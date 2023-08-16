@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos2/components/loginpage.dart';
 import 'package:pos2/dashboard.dart';
 
 
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/', // Set the initial route
       routes: {
-        '/': (context) => const MyDashboard(), // Define the route for MyDashboard
+        '/': (context) =>  LoginPage(), // Define the route for MyDashboard
       },
     );
   }
