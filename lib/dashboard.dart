@@ -234,6 +234,20 @@ class _MyDashboardState extends State<MyDashboard> {
           child: Image.asset('assets/asvesti.png'),
         ),
         title: const Text('Asvesti'),
+        actions: <Widget>[
+          Row(
+            children: [
+             const Text('Logout'),
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () {
+                  // Add your logout logic here
+                  // For example: Navigator.pushReplacementNamed(context, '/login');
+                },
+              ),
+            ],
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -351,12 +365,12 @@ class _MyDashboardState extends State<MyDashboard> {
                 child: TextField(
                   decoration: const InputDecoration(
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        
-                          color: Color.fromARGB(255, 156, 84, 84)), 
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 156, 84, 84)),
                     ),
                     labelText: 'Serial Number',
-                    labelStyle: TextStyle(color: Color.fromARGB(255, 156, 84, 84)),
+                    labelStyle:
+                        TextStyle(color: Color.fromARGB(255, 156, 84, 84)),
                     border: OutlineInputBorder(),
                     hintText: 'Enter Serial',
                     prefixIcon: Icon(Icons.qr_code_2_outlined),
