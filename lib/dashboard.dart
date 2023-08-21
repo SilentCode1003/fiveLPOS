@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pos2/components/areceipt.dart';
+import 'package:pos2/repository/customerhelper.dart';
+import 'package:pos2/repository/detailsales.dart';
+import 'package:pos2/repository/transaction.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -29,8 +35,29 @@ class MyDashboard extends StatefulWidget {
 }
 
 class _MyDashboardState extends State<MyDashboard> {
-  List<Map<String, dynamic>> forPurchase = [];
-  List<Map<String, dynamic>> forItems = [];
+  List<Map<String, dynamic>> itemsList = [];
+  List<Map<String, dynamic>> productList = [];
+  Helper helper = Helper();
+  int detailid = 0;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    _getdetailid();
+    super.initState();
+  }
+
+  Future<void> _getdetailid() async {
+    final result = await SalesDetails().getdetailid();
+    final id =(result['data']);
+
+    if (result['msg'] == 'success') {
+      setState(() {
+        detailid = int.parse(id);
+        print(detailid);
+      });
+    }
+  }
 
   String formatAsCurrency(double value) {
     return toCurrencyString(value.toString(),
@@ -65,7 +92,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     if (shouldRemove == true) {
       setState(() {
-        forPurchase.removeAt(index);
+        itemsList.removeAt(index);
       });
     }
   }
@@ -99,14 +126,14 @@ class _MyDashboardState extends State<MyDashboard> {
       );
     } else {
       setState(() {
-        forPurchase[index]['quantity'] = newQuantity;
+        itemsList[index]['quantity'] = newQuantity;
       });
     }
   }
 
   double calculateGrandTotal() {
     double grandTotal = 0;
-    for (var product in forPurchase) {
+    for (var product in itemsList) {
       grandTotal += product['price'] * product['quantity'];
     }
     return grandTotal;
@@ -116,20 +143,33 @@ class _MyDashboardState extends State<MyDashboard> {
 
   void addItem(name, price, quantity) {
     setState(() {
-      forPurchase.add({'name': name, 'price': price, 'quantity': quantity});
+      int existingIndex = itemsList.indexWhere((item) => item['name'] == name);
+
+      if (existingIndex != -1) {
+        setState(() {
+          int newQuantity = itemsList[existingIndex]['quantity'] + quantity;
+          itemsList[existingIndex]['quantity'] = newQuantity;
+        });
+      } else {
+        setState(() {
+          itemsList.add({'name': name, 'price': price, 'quantity': quantity});
+        });
+      }
     });
   }
 
   void _showSimpleDialog(BuildContext context, category) {
-    if (category == 'paint') {
-      forItems.add({'name': 'Michaela 500g', 'price': 615.00, 'quantity': 1});
-      forItems.add({'name': 'Fla 500g', 'price': 615.00, 'quantity': 1});
-      forItems.add({'name': 'Flar 500g', 'price': 615.00, 'quantity': 1});
-      forItems.add({'name': 'Alrick 500g', 'price': 615.00, 'quantity': 1});
+    productList.clear();
+    if (category == 'Paint') {
+      productList
+          .add({'name': 'Michaela 500g', 'price': 615.00, 'quantity': 1});
+      productList.add({'name': 'Fla 500g', 'price': 615.00, 'quantity': 1});
+      productList.add({'name': 'Flar 500g', 'price': 615.00, 'quantity': 1});
+      productList.add({'name': 'Alrick 500g', 'price': 615.00, 'quantity': 1});
     }
 
-    if (category == 'brush') {
-      forItems
+    if (category == 'Brush') {
+      productList
           .add({'name': 'Limewash Brush 3x10', 'price': 520.00, 'quantity': 1});
     }
 
@@ -142,45 +182,11 @@ class _MyDashboardState extends State<MyDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // const Text('Categories',
-                //     style:
-                //         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 5, // Adjust the spacing between buttons
                   runSpacing: 5, // Adjust the vertical spacing between rows
                   children: [
-                    // ElevatedButton(
-                    //   onPressed: () {},
-                    //   style: ElevatedButton.styleFrom(
-                    //       minimumSize: const Size(100, 100)),
-                    //   child: const Column(
-                    //     children: [
-                    //       Text('Fla'),
-                    //     ],
-                    //   ),
-                    // ),
-                    // ElevatedButton(
-                    //   onPressed: () {},
-                    //   style: ElevatedButton.styleFrom(
-                    //       minimumSize: const Size(100, 100)),
-                    //   child: const Text('Button 1'),
-                    // ),
-                    // ElevatedButton(
-                    //   onPressed: () {},
-                    //   style: ElevatedButton.styleFrom(
-                    //       minimumSize: const Size(100, 100)),
-                    //   child: const Text('Button 1'),
-                    // ),
-                    // ElevatedButton(
-                    //   onPressed: () {
-                    //     // Handle the first button press
-                    //   },
-                    //   style: ElevatedButton.styleFrom(
-                    //       minimumSize: const Size(100, 100)),
-                    //   child: const Text('Button 1'),
-                    // ),
-
                     SizedBox(
                       width: 300,
                       height: 550,
@@ -191,16 +197,16 @@ class _MyDashboardState extends State<MyDashboard> {
                               title: ElevatedButton(
                                 onPressed: () {
                                   addItem(
-                                      forItems[index]['name'],
-                                      forItems[index]['price'],
-                                      forItems[index]['quantity']);
+                                      productList[index]['name'],
+                                      productList[index]['price'],
+                                      productList[index]['quantity']);
                                 },
                                 style: ElevatedButton.styleFrom(
                                     minimumSize: const Size(100, 100)),
-                                child: Text(forItems[index]['name']),
+                                child: Text(productList[index]['name']),
                               ));
                         },
-                        itemCount: forItems.length,
+                        itemCount: productList.length,
                       ),
                     )
                     // Add more buttons here...
@@ -221,7 +227,96 @@ class _MyDashboardState extends State<MyDashboard> {
       },
     );
   }
-  /////TOP//////
+
+  Future<void> _transaction(
+      String detailid,
+      String posid,
+      String date,
+      String shift,
+      String paymenttype,
+      String items,
+      String total,
+      String cashier) async {
+    try {
+      final result = await Transaction().sending(
+          detailid, date, posid, shift, paymenttype, items, total, cashier);
+
+      if (result['msg'] == 'success') {
+        // ignore: use_build_context_synchronously
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Success'),
+                content: const Text('Transaction process successfully!'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReceiptScreen(
+                            cash: cashAmount,
+                            items: itemsList,
+                            cashier: cashier,
+                            detailid: detailid,
+                            posid: posid,
+                            shift: shift,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+      } else {
+        // ignore: use_build_context_synchronously
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Error'),
+                content: Text(
+                    'Please inform administrator. Thank you! ${result['status']}'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+      }
+    } catch (e) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Transaction Error'),
+              content: const Text('Please inform administrator. Thank you!'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
+  }
+
+  void _clearItems() {
+    setState(() {
+      itemsList.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +332,7 @@ class _MyDashboardState extends State<MyDashboard> {
         actions: <Widget>[
           Row(
             children: [
-             const Text('Logout'),
+              const Text('Logout'),
               IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () {
@@ -282,7 +377,7 @@ class _MyDashboardState extends State<MyDashboard> {
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(label: Text('')),
                     ],
-                    rows: forPurchase.asMap().entries.map((entry) {
+                    rows: itemsList.asMap().entries.map((entry) {
                       int index = entry.key;
                       Map<String, dynamic> product = entry.value;
                       double totalCost = product['price'] * product['quantity'];
@@ -421,9 +516,9 @@ class _MyDashboardState extends State<MyDashboard> {
                   ElevatedButton(
                     onPressed: () {
                       if (kDebugMode) {
-                        print(forPurchase.length);
+                        print(itemsList.length);
                       }
-                      if (forPurchase.isEmpty) {
+                      if (itemsList.isEmpty) {
                         showDialog(
                             context: context,
                             builder: (BuildContext context) {
@@ -561,16 +656,18 @@ class _MyDashboardState extends State<MyDashboard> {
                                                           );
                                                         });
                                                   } else {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            ReceiptScreen(
-                                                          cash: cashAmount,
-                                                          items: forPurchase,
-                                                        ),
-                                                      ),
-                                                    );
+                                                    detailid++;
+                                                    _transaction(
+                                                        detailid.toString(),
+                                                        '1',
+                                                        helper
+                                                            .GetCurrentDatetime(),
+                                                        '1',
+                                                        'CASH',
+                                                        jsonEncode(itemsList),
+                                                        calculateGrandTotal()
+                                                            .toString(),
+                                                        'Joseph Orencio');
                                                   }
                                                 },
                                                 style: ButtonStyle(
@@ -609,130 +706,6 @@ class _MyDashboardState extends State<MyDashboard> {
                           },
                         );
                       }
-
-                      // showDialog(
-                      //   context: context,
-                      //   builder: (BuildContext context) {
-                      //     return AlertDialog(
-                      //       // alignment: Alignment.center,
-                      //       title: const Text(
-                      //         'CASH',
-                      //         textAlign: TextAlign.center,
-                      //         style: TextStyle(
-                      //           fontSize: 25,
-                      //           fontWeight: FontWeight.bold,
-                      //         ),
-                      //       ),
-                      //       content: Row(
-                      //         children: [
-                      //           ElevatedButton(
-                      //             onPressed: () {},
-                      //             style: ElevatedButton.styleFrom(
-                      //               minimumSize: const Size(120, 100),
-                      //             ),
-                      //             child: const Text('E-PAYMENT'),
-                      //           ),
-                      //           const SizedBox(
-                      //               width: 16), // Add spacing between buttons
-
-                      //           ElevatedButton(
-                      //             onPressed: () {
-                      //               showDialog(
-                      //                 context: context,
-                      //                 builder: (BuildContext context) {
-                      //                   return AlertDialog(
-                      //                     title: const Text('Cash Payment'),
-                      //                     content: Column(
-                      //                       mainAxisSize: MainAxisSize.min,
-                      //                       children: [
-                      //                         const Text(
-                      //                             'Please collect cash from the customer.'),
-                      //                         const SizedBox(
-                      //                           height: 16,
-                      //                         ), // Add spacing between text and text field
-                      //                         TextField(
-                      //                           keyboardType:
-                      //                               TextInputType.number,
-                      //                           inputFormatters: [
-                      //                             CurrencyInputFormatter(
-                      //                               leadingSymbol:
-                      //                                   CurrencySymbols
-                      //                                       .DOLLAR_SIGN,
-                      //                             ),
-                      //                           ],
-                      //                           onChanged: (value) {
-                      //                             // Remove currency symbols and commas to get the numeric value
-                      //                             String numericValue =
-                      //                                 value.replaceAll(
-                      //                               RegExp(
-                      //                                   '[${CurrencySymbols.DOLLAR_SIGN},]'),
-                      //                               '',
-                      //                             );
-                      //                             setState(() {
-                      //                               cashAmount =
-                      //                                   double.tryParse(
-                      //                                           numericValue) ??
-                      //                                       0;
-                      //                             });
-                      //                           },
-                      //                           decoration:
-                      //                               const InputDecoration(
-                      //                             hintText: 'Enter amount',
-                      //                             border: OutlineInputBorder(),
-                      //                           ),
-                      //                         ),
-                      //                       ],
-                      //                     ),
-                      //                     ////ARECEIPT
-                      //                     actions: [
-                      //                       ElevatedButton(
-                      //                         onPressed: () {
-                      //                           Navigator.push(
-                      //                             context,
-                      //                             MaterialPageRoute(
-                      //                               builder: (context) =>
-                      //                                   ReceiptScreen(
-                      //                                 cash: cashAmount,
-                      //                                 items: forPurchase,
-                      //                               ),
-                      //                             ),
-                      //                           );
-                      //                         },
-                      //                         style: ButtonStyle(
-                      //                           backgroundColor:
-                      //                               MaterialStateProperty.all<
-                      //                                   Color>(
-                      //                             Colors
-                      //                                 .brown, // Change the color here
-                      //                           ),
-                      //                           // Other button styles...
-                      //                         ),
-                      //                         child: const Text('Proceed'),
-                      //                       ),
-                      //                     ],
-                      //                   );
-                      //                 },
-                      //               );
-                      //             },
-                      //             style: ElevatedButton.styleFrom(
-                      //               minimumSize: const Size(120, 100),
-                      //             ),
-                      //             child: const Text('CASH'),
-                      //           ),
-                      //         ],
-                      //       ),
-                      //       actions: [
-                      //         TextButton(
-                      //           onPressed: () {
-                      //             Navigator.of(context)
-                      //                 .pop(); // Close the dialog
-                      //           },
-                      //           child: const Text('Close'),
-                      //         ),
-                      //       ],
-                      //     );
-                      //   },
-                      // );
                     },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
@@ -767,117 +740,13 @@ class _MyDashboardState extends State<MyDashboard> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 8),
-            //////////////////////////////////////
-            // Padding(
-            //   padding: const EdgeInsets.all(8.0),
-            //   child: Container(
-            //     height: 448,
-            //     width: double.infinity,
-            //     decoration: BoxDecoration(
-            //       border: Border.all(
-            //         color: const Color.fromARGB(255, 67, 67, 67),
-            //         width: 2.0,
-            //       ),
-            //       borderRadius: BorderRadius.circular(10),
-            //     ),
-            //     child: GridView.count(
-            //       crossAxisCount: 7,
-            //       mainAxisSpacing: 10,
-            //       crossAxisSpacing: 10,
-            //       padding: const EdgeInsets.only(
-            //           left: 20, right: 20, top: 15, bottom: 15),
-            //       children: [
-            //     ElevatedButton(
-            //       onPressed: () {
-            //         _showSimpleDialog(context, 'paint');
-            //       },
-            //       style: ElevatedButton.styleFrom(
-            //           minimumSize: const Size(100, 100)),
-            //       child: Column(
-            //         children: [
-            //           Container(
-            //             padding: const EdgeInsets.all(
-            //                 5.0), // Adjust padding as needed
-            //             child: const Icon(
-            //               Icons.format_color_fill,
-            //               size: 40,
-            //             ), // Adjust size as needed
-            //           ),
-            //           const Text('PAINT'),
-            //         ],
-            //       ),
-            //     ),
-            //     ElevatedButton(
-            //       onPressed: () {
-            //         _showSimpleDialog(context, 'brush');
-            //       },
-            //       style: ElevatedButton.styleFrom(
-            //           minimumSize: const Size(100, 100)),
-            //       child: Column(
-            //         children: [
-            //           Container(
-            //             padding: const EdgeInsets.all(
-            //                 5.0), // Adjust padding as needed
-            //             child: const Icon(
-            //               Icons.imagesearch_roller_outlined,
-            //               size: 40,
-            //             ), // Adjust size as needed
-            //           ),
-            //           const Text('BRUSH'),
-            //         ],
-            //       ),
-            //     ),
-            //     ElevatedButton(
-            //       onPressed: () {},
-            //       style: ElevatedButton.styleFrom(
-            //           minimumSize: const Size(100, 100)),
-            //       child: Column(
-            //         children: [
-            //           Container(
-            //             padding: const EdgeInsets.all(
-            //                 5.0), // Adjust padding as needed
-            //             child: const Icon(
-            //               Icons.select_all,
-            //               size: 40,
-            //             ), // Adjust size as needed
-            //           ),
-            //           const Text('SEALER & Accs.'),
-            //         ],
-            //       ),
-            //     ),
-            //     ElevatedButton(
-            //       onPressed: () {
-            //         // Handle the first button press
-            //       },
-            //       style: ElevatedButton.styleFrom(
-            //           minimumSize: const Size(100, 100)),
-            //       child: Column(
-            //         children: [
-            //           Container(
-            //             padding: const EdgeInsets.all(
-            //                 5.0), // Adjust padding as needed
-            //             child: const Icon(
-            //               Icons.miscellaneous_services,
-            //               size: 40,
-            //             ), // Adjust size as needed
-            //           ),
-            //           const Text('OTHERS'),
-            //         ],
-            //       ),
-            //     ),
-            //       ],
-            //     ),
-            //   ),
-            // ),
-            //////////////////////////////////////
             Wrap(
-              // crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8, // Adjust the spacing between buttons
               runSpacing: 8, // Adjust the vertical spacing between rows
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    _showSimpleDialog(context, 'paint');
+                    _showSimpleDialog(context, 'Paint');
                   },
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(100, 100)),
@@ -897,7 +766,7 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    _showSimpleDialog(context, 'brush');
+                    _showSimpleDialog(context, 'Brush');
                   },
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(100, 100)),
@@ -962,178 +831,22 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 }
 
-// class CategoryButtons extends StatelessWidget {
-//   const CategoryButtons({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       children: [
-//         const Center(
-//           child: Text('Categories',
-//               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-//         ),
-//         const SizedBox(height: 8),
-//         Wrap(
-//           // crossAxisAlignment: WrapCrossAlignment.center,
-//           spacing: 8, // Adjust the spacing between buttons
-//           runSpacing: 8, // Adjust the vertical spacing between rows
-//           children: [
-//             ElevatedButton(
-//               onPressed: () {
-//                 _showSimpleDialog(context);
-//               },
-//               style:
-//                   ElevatedButton.styleFrom(minimumSize: const Size(100, 100)),
-//               child: Column(
-//                 children: [
-//                   Container(
-//                     padding:
-//                         const EdgeInsets.all(5.0), // Adjust padding as needed
-//                     child: const Icon(
-//                       Icons.format_color_fill,
-//                       size: 40,
-//                     ), // Adjust size as needed
-//                   ),
-//                   const Text('PAINT'),
-//                 ],
-//               ),
-//             ),
-//             ElevatedButton(
-//               onPressed: () {},
-//               style:
-//                   ElevatedButton.styleFrom(minimumSize: const Size(100, 100)),
-//               child: Column(
-//                 children: [
-//                   Container(
-//                     padding:
-//                         const EdgeInsets.all(5.0), // Adjust padding as needed
-//                     child: const Icon(
-//                       Icons.imagesearch_roller_outlined,
-//                       size: 40,
-//                     ), // Adjust size as needed
-//                   ),
-//                   const Text('BRUSH'),
-//                 ],
-//               ),
-//             ),
-//             ElevatedButton(
-//               onPressed: () {},
-//               style:
-//                   ElevatedButton.styleFrom(minimumSize: const Size(100, 100)),
-//               child: Column(
-//                 children: [
-//                   Container(
-//                     padding:
-//                         const EdgeInsets.all(5.0), // Adjust padding as needed
-//                     child: const Icon(
-//                       Icons.select_all,
-//                       size: 40,
-//                     ), // Adjust size as needed
-//                   ),
-//                   const Text('SEALER & Accs.'),
-//                 ],
-//               ),
-//             ),
-//             ElevatedButton(
-//               onPressed: () {
-//                 // Handle the first button press
-//               },
-//               style:
-//                   ElevatedButton.styleFrom(minimumSize: const Size(100, 100)),
-//               child: Column(
-//                 children: [
-//                   Container(
-//                     padding:
-//                         const EdgeInsets.all(5.0), // Adjust padding as needed
-//                     child: const Icon(
-//                       Icons.miscellaneous_services,
-//                       size: 40,
-//                     ), // Adjust size as needed
-//                   ),
-//                   const Text('OTHERS'),
-//                 ],
-//               ),
-//             ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-
-//   void _showSimpleDialog(BuildContext context) {
-//     showDialog(
-//       context: context,
-//       builder: (BuildContext context) {
-//         return AlertDialog(
-//           title: const Center(child: Text('Products')),
-//           content: SingleChildScrollView(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 // const Text('Categories',
-//                 //     style:
-//                 //         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-//                 const SizedBox(height: 8),
-//                 Wrap(
-//                   spacing: 5, // Adjust the spacing between buttons
-//                   runSpacing: 5, // Adjust the vertical spacing between rows
-//                   children: [
-//                     ElevatedButton(
-//                       onPressed: () {},
-//                       style: ElevatedButton.styleFrom(
-//                           minimumSize: const Size(100, 100)),
-//                       child: const Column(
-//                         children: [
-//                           Text('Fla'),
-//                         ],
-//                       ),
-//                     ),
-//                     ElevatedButton(
-//                       onPressed: () {},
-//                       style: ElevatedButton.styleFrom(
-//                           minimumSize: const Size(100, 100)),
-//                       child: const Text('Button 1'),
-//                     ),
-//                     ElevatedButton(
-//                       onPressed: () {},
-//                       style: ElevatedButton.styleFrom(
-//                           minimumSize: const Size(100, 100)),
-//                       child: const Text('Button 1'),
-//                     ),
-//                     ElevatedButton(
-//                       onPressed: () {
-//                         // Handle the first button press
-//                       },
-//                       style: ElevatedButton.styleFrom(
-//                           minimumSize: const Size(100, 100)),
-//                       child: const Text('Button 1'),
-//                     ),
-//                     // Add more buttons here...
-//                   ],
-//                 ),
-//               ],
-//             ),
-//           ),
-//           actions: [
-//             TextButton(
-//               onPressed: () {
-//                 Navigator.of(context).pop(); // Close the dialog
-//               },
-//               child: const Text('Close'),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-// }
-
 class ReceiptScreen extends StatefulWidget {
   double cash;
   List<Map<String, dynamic>> items;
+  String detailid;
+  String posid;
+  String cashier;
+  String shift;
 
-  ReceiptScreen({super.key, required this.cash, required this.items});
+  ReceiptScreen(
+      {super.key,
+      required this.cash,
+      required this.items,
+      required this.detailid,
+      required this.posid,
+      required this.shift,
+      required this.cashier});
 
   @override
   State<ReceiptScreen> createState() => _ReceiptScreenState();
@@ -1150,6 +863,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         child: AReceipt(
           cash: widget.cash,
           items: widget.items,
+          cashier: widget.cashier,
+          detailid: widget.detailid,
+          posid: widget.posid,
+          shift: widget.shift,
         ),
       ),
     );

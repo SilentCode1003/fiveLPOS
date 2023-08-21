@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/', // Set the initial route
       routes: {
-        '/': (context) =>  LoginPage(), // Define the route for MyDashboard
+        '/': (context) =>  MyDashboard(), // Define the route for MyDashboard
       },
     );
   }
