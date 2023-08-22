@@ -1,4 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:pos2/dashboard.dart';
+
+import '../model/userinfo.dart';
+import '../repository/login.dart';
+import 'loadingspinner.dart';
 
 void main() {
   runApp(MyApp());
@@ -26,21 +33,63 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _login() {
+  Future<void> _login() async {
     String username = _usernameController.text;
     String password = _passwordController.text;
 
-    if (username == "admin" && password == "password") {
-      print("Login successful");
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const LoadingSpinner();
+        });
+
+    final response = await Login().authenticate(username, password);
+
+    if (response['msg'] == 'success') {
+      final jsonData = json.encode(response['data']);
+      final results = json.decode(jsonData);
+      UserInfoModel userinfomodel = UserInfoModel(
+          results[0]['employeeid'],
+          results[0]['fullname'],
+          results[0]['position'],
+          results[0]['contactinfo'],
+          results[0]['datehired'],
+          results[0]['usercode'],
+          results[0]['accesstype'],
+          results[0]['status']);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => MyDashboard(
+                  accesstype: userinfomodel.accesstype,
+                  employeeid: userinfomodel.employeeid,
+                  fullname: userinfomodel.fullname,
+                  positiontype: userinfomodel.position,
+                )),
+      );
     } else {
-      print("Invalid credentials");
+      Navigator.of(context).pop();
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Access'),
+          content: const Text('Incorrect username and password'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -48,28 +97,35 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                height: 150,
-                width: 150,
+                height: 200,
+                width: double.infinity,
                 alignment: Alignment.center,
                 child: Image.asset('assets/asvesti.png'),
               ),
               Padding(
-                padding: const EdgeInsets.only(left:20.0, right: 20),
-                child:  SizedBox(
+                padding: const EdgeInsets.only(left: 20.0, right: 20),
+                child: SizedBox(
                   child: Column(
                     children: [
                       TextField(
                         controller: _usernameController,
-                        decoration: const InputDecoration(labelText: 'Username'),
+                        decoration:
+                            const InputDecoration(labelText: 'Username'),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Password'),
+                        decoration:
+                            const InputDecoration(labelText: 'Password'),
                       ),
                       const SizedBox(height: 32),
                       ElevatedButton(
+                        onLongPress: () {
+                          _login();
+                        },
+                        style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 80)),
                         onPressed: _login,
                         child: const Text('Login'),
                       ),

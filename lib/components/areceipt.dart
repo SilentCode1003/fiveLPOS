@@ -523,7 +523,7 @@ class _CReceiptState extends State<CReceipt> {
           build: (format) => _generatePdf(format),
           onPrinted: (context) => () {
                 Navigator.of(context).pop();
-                MaterialPageRoute(builder: (context) => const MyDashboard());
+                // MaterialPageRoute(builder: (context) => const MyDashboard());
               }),
     );
   }

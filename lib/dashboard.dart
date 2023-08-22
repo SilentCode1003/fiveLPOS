@@ -5,10 +5,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pos2/components/areceipt.dart';
+import 'package:pos2/components/loadingspinner.dart';
+import 'package:pos2/model/productprice.dart';
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/repository/detailsales.dart';
+import 'package:pos2/repository/productprice.dart';
+import 'package:pos2/repository/receipt.dart';
 import 'package:pos2/repository/transaction.dart';
+import 'package:printing/printing.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -20,15 +26,18 @@ class ButtonStyleInfo {
   });
 }
 
-void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: MyDashboard(),
-  ));
-}
-
 class MyDashboard extends StatefulWidget {
-  const MyDashboard({super.key});
+  String employeeid;
+  String fullname;
+  String accesstype;
+  String positiontype;
+
+  MyDashboard(
+      {super.key,
+      required this.employeeid,
+      required this.fullname,
+      required this.accesstype,
+      required this.positiontype});
 
   @override
   _MyDashboardState createState() => _MyDashboardState();
@@ -36,20 +45,36 @@ class MyDashboard extends StatefulWidget {
 
 class _MyDashboardState extends State<MyDashboard> {
   List<Map<String, dynamic>> itemsList = [];
-  List<Map<String, dynamic>> productList = [];
+  List<ProductPriceModel> productList = [];
+  List<String> categoryList = [];
+
   Helper helper = Helper();
-  int detailid = 0;
+  int detailid = 100000000;
 
   @override
   void initState() {
     // TODO: implement initState
     _getdetailid();
+
+    print(widget.employeeid);
     super.initState();
+  }
+
+  Future<void> _getcategoryitems(String category) async {
+    final result = await ProductPrice().getcategoryitems(category);
+    final List<dynamic> jsonData = json.decode(result['data']);
+
+    if (result['msg'] == 'success') {
+      setState(() {
+        productList =
+            jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
+      });
+    }
   }
 
   Future<void> _getdetailid() async {
     final result = await SalesDetails().getdetailid();
-    final id =(result['data']);
+    final id = (result['data']);
 
     if (result['msg'] == 'success') {
       setState(() {
@@ -158,74 +183,72 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
-  void _showSimpleDialog(BuildContext context, category) {
-    productList.clear();
-    if (category == 'Paint') {
-      productList
-          .add({'name': 'Michaela 500g', 'price': 615.00, 'quantity': 1});
-      productList.add({'name': 'Fla 500g', 'price': 615.00, 'quantity': 1});
-      productList.add({'name': 'Flar 500g', 'price': 615.00, 'quantity': 1});
-      productList.add({'name': 'Alrick 500g', 'price': 615.00, 'quantity': 1});
-    }
-
-    if (category == 'Brush') {
-      productList
-          .add({'name': 'Limewash Brush 3x10', 'price': 520.00, 'quantity': 1});
-    }
+  void _showSimpleDialog(BuildContext context, category) async {
+    _getcategoryitems(category);
 
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Center(child: Text('Products')),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 5, // Adjust the spacing between buttons
-                  runSpacing: 5, // Adjust the vertical spacing between rows
-                  children: [
-                    SizedBox(
-                      width: 300,
-                      height: 550,
-                      child: ListView.builder(
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                              onTap: () {},
-                              title: ElevatedButton(
-                                onPressed: () {
-                                  addItem(
-                                      productList[index]['name'],
-                                      productList[index]['price'],
-                                      productList[index]['quantity']);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(100, 100)),
-                                child: Text(productList[index]['name']),
-                              ));
-                        },
-                        itemCount: productList.length,
-                      ),
-                    )
-                    // Add more buttons here...
-                  ],
-                ),
-              ],
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const LoadingSpinner();
+        });
+
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      Navigator.of(context).pop();
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Center(child: Text('Products')),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 5, // Adjust the spacing between buttons
+                    runSpacing: 5, // Adjust the vertical spacing between rows
+                    children: [
+                      SizedBox(
+                        width: 300,
+                        height: 550,
+                        child: ListView.builder(
+                          itemBuilder: (context, index) {
+                            return ListTile(
+                                onTap: () {},
+                                title: ElevatedButton(
+                                  onPressed: () {
+                                    addItem(
+                                        productList[index].description,
+                                        double.parse(productList[index].price),
+                                        1);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                      minimumSize: const Size(100, 100)),
+                                  child: Text(productList[index].description),
+                                ));
+                          },
+                          itemCount: productList.length,
+                        ),
+                      )
+                      // Add more buttons here...
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 
   Future<void> _transaction(
@@ -240,6 +263,9 @@ class _MyDashboardState extends State<MyDashboard> {
     try {
       final result = await Transaction().sending(
           detailid, date, posid, shift, paymenttype, items, total, cashier);
+      final pdfBytes =
+          await Receipt(itemsList, cashAmount, detailid, posid, cashier, shift)
+              .print();
 
       if (result['msg'] == 'success') {
         // ignore: use_build_context_synchronously
@@ -253,19 +279,22 @@ class _MyDashboardState extends State<MyDashboard> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ReceiptScreen(
-                            cash: cashAmount,
-                            items: itemsList,
-                            cashier: cashier,
-                            detailid: detailid,
-                            posid: posid,
-                            shift: shift,
-                          ),
-                        ),
-                      );
+                      Printing.layoutPdf(
+                          onLayout: (PdfPageFormat format) => pdfBytes);
+                      _clearItems();
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //     builder: (context) => ReceiptScreen(
+                      //       cash: cashAmount,
+                      //       items: itemsList,
+                      //       cashier: cashier,
+                      //       detailid: detailid,
+                      //       posid: posid,
+                      //       shift: shift,
+                      //     ),
+                      //   ),
+                      // );
                     },
                     child: const Text('OK'),
                   ),
@@ -667,7 +696,10 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         jsonEncode(itemsList),
                                                         calculateGrandTotal()
                                                             .toString(),
-                                                        'Joseph Orencio');
+                                                        widget.fullname);
+
+                                                    Navigator.of(context).pop();
+                                                    Navigator.of(context).pop();
                                                   }
                                                 },
                                                 style: ButtonStyle(
@@ -785,7 +817,9 @@ class _MyDashboardState extends State<MyDashboard> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    _showSimpleDialog(context, 'Sealer & Accessories');
+                  },
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(100, 100)),
                   child: Column(
@@ -804,7 +838,7 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Handle the first button press
+                    _showSimpleDialog(context, 'Color Samples');
                   },
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(100, 100)),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pos2/components/loginpage.dart';
 import 'package:pos2/dashboard.dart';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -18,9 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.brown),
       ),
       initialRoute: '/', // Set the initial route
-      routes: {
-        '/': (context) =>  MyDashboard(), // Define the route for MyDashboard
-      },
+      home: LoginPage(),
     );
   }
 }
