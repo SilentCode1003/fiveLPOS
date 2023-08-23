@@ -8,7 +8,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pos2/components/areceipt.dart';
 import 'package:pos2/components/loadingspinner.dart';
+import 'package:pos2/components/loginpage.dart';
 import 'package:pos2/model/productprice.dart';
+import 'package:pos2/repository/category.dart';
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/repository/detailsales.dart';
 import 'package:pos2/repository/productprice.dart';
@@ -54,10 +56,22 @@ class _MyDashboardState extends State<MyDashboard> {
   @override
   void initState() {
     // TODO: implement initState
-    _getdetailid();
 
-    print(widget.employeeid);
+    _getdetailid();
+    _getcategory();
+
     super.initState();
+  }
+
+  Future<void> _getcategory() async {
+    final results = await CategoryAPI().getCategory();
+    final jsonData = json.encode(results['data']);
+
+    setState(() {
+      for (var data in json.decode(jsonData)) {
+        categoryList.add(data['categoryname']);
+      }
+    });
   }
 
   Future<void> _getcategoryitems(String category) async {
@@ -195,46 +209,38 @@ class _MyDashboardState extends State<MyDashboard> {
 
     Future.delayed(const Duration(milliseconds: 1200), () {
       Navigator.of(context).pop();
+
+      final List<Widget> product = List<Widget>.generate(
+          productList.length,
+          (index) => SizedBox(
+                height: 120,
+                width: 120,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Add your button press logic here
+                    addItem(productList[index].description,
+                        double.parse(productList[index].price), 1);
+                  },
+                  child: Text(
+                    productList[index].description,
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ));
+
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Center(child: Text('Products')),
             content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 5, // Adjust the spacing between buttons
-                    runSpacing: 5, // Adjust the vertical spacing between rows
-                    children: [
-                      SizedBox(
-                        width: 300,
-                        height: 550,
-                        child: ListView.builder(
-                          itemBuilder: (context, index) {
-                            return ListTile(
-                                onTap: () {},
-                                title: ElevatedButton(
-                                  onPressed: () {
-                                    addItem(
-                                        productList[index].description,
-                                        double.parse(productList[index].price),
-                                        1);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(100, 100)),
-                                  child: Text(productList[index].description),
-                                ));
-                          },
-                          itemCount: productList.length,
-                        ),
-                      )
-                      // Add more buttons here...
-                    ],
-                  ),
-                ],
+              child: Center(
+                child: Wrap(
+                    spacing: 8, // Adjust the spacing between buttons
+                    runSpacing: 8, // Adjust the vertical spacing between rows
+                    children: product),
               ),
             ),
             actions: [
@@ -349,6 +355,25 @@ class _MyDashboardState extends State<MyDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> category = List<Widget>.generate(
+        categoryList.length,
+        (index) => SizedBox(
+              height: 120,
+              width: 120,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Add your button press logic here
+                  _showSimpleDialog(context, categoryList[index]);
+                },
+                child: Text(
+                  categoryList[index],
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ));
+
     return Scaffold(
       appBar: AppBar(
         elevation: 6,
@@ -366,7 +391,29 @@ class _MyDashboardState extends State<MyDashboard> {
                 icon: const Icon(Icons.logout),
                 onPressed: () {
                   // Add your logout logic here
-                  // For example: Navigator.pushReplacementNamed(context, '/login');
+
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Logut'),
+                          content:
+                              const Text('Are you sure you want to logout?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => LoginPage())),
+                              child: const Text('OK'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        );
+                      });
                 },
               ),
             ],
@@ -772,92 +819,11 @@ class _MyDashboardState extends State<MyDashboard> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 8),
+
             Wrap(
-              spacing: 8, // Adjust the spacing between buttons
-              runSpacing: 8, // Adjust the vertical spacing between rows
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    _showSimpleDialog(context, 'Paint');
-                  },
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 100)),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(
-                            5.0), // Adjust padding as needed
-                        child: const Icon(
-                          Icons.format_color_fill,
-                          size: 40,
-                        ), // Adjust size as needed
-                      ),
-                      const Text('PAINT'),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showSimpleDialog(context, 'Brush');
-                  },
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 100)),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(
-                            5.0), // Adjust padding as needed
-                        child: const Icon(
-                          Icons.imagesearch_roller_outlined,
-                          size: 40,
-                        ), // Adjust size as needed
-                      ),
-                      const Text('BRUSH'),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showSimpleDialog(context, 'Sealer & Accessories');
-                  },
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 100)),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(
-                            5.0), // Adjust padding as needed
-                        child: const Icon(
-                          Icons.select_all,
-                          size: 40,
-                        ), // Adjust size as needed
-                      ),
-                      const Text('SEALER & Accs.'),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showSimpleDialog(context, 'Color Samples');
-                  },
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 100)),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(
-                            5.0), // Adjust padding as needed
-                        child: const Icon(
-                          Icons.miscellaneous_services,
-                          size: 40,
-                        ), // Adjust size as needed
-                      ),
-                      const Text('OTHERS'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                spacing: 8, // Adjust the spacing between buttons
+                runSpacing: 8, // Adjust the vertical spacing between rows
+                children: category),
           ],
         ),
       ),

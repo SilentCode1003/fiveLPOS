@@ -3,9 +3,9 @@ import 'dart:convert';
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
-class SalesDetails {
-  Future<Map<String, dynamic>> getdetailid() async {
-    final url = Uri.parse('${Config.apiUrl}${Config.getdetailidAPI}');
+class CategoryAPI {
+  Future<Map<String, dynamic>> getCategory() async {
+    final url = Uri.parse('${Config.apiUrl}${Config.getCategoryAPI}');
     final response = await http.get(url);
 
     final responseData = json.decode(response.body);
@@ -19,4 +19,3 @@ class SalesDetails {
     return data;
   }
 }
-
