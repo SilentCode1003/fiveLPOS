@@ -57,7 +57,7 @@ class _MyDashboardState extends State<MyDashboard> {
   void initState() {
     // TODO: implement initState
 
-    _getdetailid();
+    _getdetailid('1');
     _getcategory();
 
     super.initState();
@@ -86,15 +86,18 @@ class _MyDashboardState extends State<MyDashboard> {
     }
   }
 
-  Future<void> _getdetailid() async {
-    final result = await SalesDetails().getdetailid();
+  Future<void> _getdetailid(posid) async {
+    final result = await SalesDetails().getdetailid(posid);
     final id = (result['data']);
 
-    if (result['msg'] == 'success') {
-      setState(() {
-        detailid = int.parse(id);
-        print(detailid);
-      });
+    if (id == null) {
+    } else {
+      if (result['msg'] == 'success') {
+        setState(() {
+          detailid = int.parse(id);
+          print(detailid);
+        });
+      }
     }
   }
 
@@ -271,7 +274,7 @@ class _MyDashboardState extends State<MyDashboard> {
           detailid, date, posid, shift, paymenttype, items, total, cashier);
       final pdfBytes =
           await Receipt(itemsList, cashAmount, detailid, posid, cashier, shift)
-              .print();
+              .printReceipt();
 
       if (result['msg'] == 'success') {
         // ignore: use_build_context_synchronously
@@ -333,7 +336,7 @@ class _MyDashboardState extends State<MyDashboard> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Transaction Error'),
-              content: const Text('Please inform administrator. Thank you!'),
+              content: Text('Please inform administrator. Thank you! $e'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -563,15 +566,16 @@ class _MyDashboardState extends State<MyDashboard> {
 
             Container(
               color: Colors.grey[200],
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.all(8.0),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
                 children: [
                   ElevatedButton(
                     onPressed: () {},
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
-                          const Size(200, 100)), // Adjust the size here
+                          const Size(120, 90)), // Adjust the size here
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -585,9 +589,6 @@ class _MyDashboardState extends State<MyDashboard> {
                         const Text('SCAN'),
                       ],
                     ),
-                  ),
-                  const SizedBox(
-                    width: 50,
                   ),
                   ElevatedButton(
                     onPressed: () {
@@ -788,7 +789,7 @@ class _MyDashboardState extends State<MyDashboard> {
                     },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
-                          const Size(200, 100)), // Adjust the size here
+                          const Size(120, 90)), // Adjust the size here
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -807,7 +808,7 @@ class _MyDashboardState extends State<MyDashboard> {
               ),
             ),
             const SizedBox(
-              height: 50,
+              height: 5,
             ), //END
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -1,12 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:pdf/pdf.dart';
-import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:pos2/dashboard.dart';
 import 'package:pos2/repository/customerhelper.dart';
-import 'package:printing/printing.dart';
-import '../repository/usbprinterwindows.dart';
+import '../model/branch.dart';
 
 class Receipt {
   List<Map<String, dynamic>> items;
@@ -29,12 +30,31 @@ class Receipt {
   }
   //Currency
 
+  String name = "";
+  String address = "";
+  String tin = "";
+
+  Future<void> getConfig() async {
+    String filePath = 'assets/branch.json';
+
+    String results = await Helper().readJsonFile(filePath);
+    List<dynamic> jsonData = json.decode(results);
+    List<BranchModel> model = jsonData
+        .map((data) => BranchModel(data['branchid'], data['branchname'],
+            data['tin'], data['address'], data['logo']))
+        .toList();
+
+    name = model[0].branchname;
+    address = model[0].address;
+    tin = model[0].tin;
+  }
+
   String businessname() {
-    return 'Asvesti';
+    return name;
   }
 
   String businessadd() {
-    return '1234 Elm Street, City, Country';
+    return address;
   }
 
   String cartitems() {
@@ -42,7 +62,7 @@ class Receipt {
   }
 
   String vatreg() {
-    return '000 000 000 000000';
+    return tin;
   }
 
 /////INFO//////
@@ -143,9 +163,11 @@ class Receipt {
     return 'present the receipt to claim a freebie test';
   }
 
-  Future<Uint8List> print() async {
+  Future<Uint8List> printReceipt() async {
     PdfPageFormat format = PdfPageFormat.roll80;
     final pdf = pw.Document(version: PdfVersion.pdf_1_5, compress: true);
+
+    await getConfig();
 
     pdf.addPage(
       pw.Page(
@@ -161,11 +183,13 @@ class Receipt {
                   ),
                   height: 50,
                   width: 50),
+              pw.SizedBox(height: 10),
               pw.Text(
                 businessname(),
                 style: const pw.TextStyle(fontSize: 18),
                 textAlign: pw.TextAlign.center,
               ),
+
               pw.SizedBox(height: 5),
               pw.Text(
                 businessadd(),
@@ -177,6 +201,7 @@ class Receipt {
                 style: const pw.TextStyle(fontSize: 9),
                 textAlign: pw.TextAlign.center,
               ),
+
               //////////////////////////////////////////////////////////////////////////////////////////
               pw.Container(
                 height: 1, // Set the height of the divider

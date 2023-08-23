@@ -7,4 +7,5 @@ class Config {
   static const String getpriceAPI = 'productprice/getprice';
   static const String getdetailidAPI = 'salesdetails/getdetailid';
   static const String getCategoryAPI = 'category/load';
+  static const String getBranchAPI = 'branch/load';
 }

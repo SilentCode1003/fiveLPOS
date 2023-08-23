@@ -4,9 +4,9 @@ import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class SalesDetails {
-  Future<Map<String, dynamic>> getdetailid() async {
+  Future<Map<String, dynamic>> getdetailid(posid) async {
     final url = Uri.parse('${Config.apiUrl}${Config.getdetailidAPI}');
-    final response = await http.get(url);
+    final response = await http.post(url, body: {'posid': posid});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;
@@ -19,4 +19,3 @@ class SalesDetails {
     return data;
   }
 }
-
