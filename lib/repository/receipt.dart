@@ -16,9 +16,12 @@ class Receipt {
   String posid;
   String cashier;
   String shift;
+  String companyname;
+  String address;
+  String tin;
 
   Receipt(this.items, this.cash, this.detailid, this.posid, this.cashier,
-      this.shift);
+      this.shift, this.companyname, this.address, this.tin);
 
   Helper helper = Helper();
 
@@ -30,27 +33,19 @@ class Receipt {
   }
   //Currency
 
-  String name = "";
-  String address = "";
-  String tin = "";
+  // Future<void> getConfig() async {
+  //   String filePath = 'assets/branch.json';
 
-  Future<void> getConfig() async {
-    String filePath = 'assets/branch.json';
-
-    String results = await Helper().readJsonFile(filePath);
-    List<dynamic> jsonData = json.decode(results);
-    List<BranchModel> model = jsonData
-        .map((data) => BranchModel(data['branchid'], data['branchname'],
-            data['tin'], data['address'], data['logo']))
-        .toList();
-
-    name = model[0].branchname;
-    address = model[0].address;
-    tin = model[0].tin;
-  }
+  //   String results = await Helper().readJsonFile(filePath);
+  //   List<dynamic> jsonData = json.decode(results);
+  //   List<BranchModel> model = jsonData
+  //       .map((data) => BranchModel(data['branchid'], data['branchname'],
+  //           data['tin'], data['address'], data['logo']))
+  //       .toList();
+  // }
 
   String businessname() {
-    return name;
+    return companyname;
   }
 
   String businessadd() {
@@ -62,7 +57,7 @@ class Receipt {
   }
 
   String vatreg() {
-    return tin;
+    return 'VAT REG TIN: $tin';
   }
 
 /////INFO//////
@@ -167,7 +162,7 @@ class Receipt {
     PdfPageFormat format = PdfPageFormat.roll80;
     final pdf = pw.Document(version: PdfVersion.pdf_1_5, compress: true);
 
-    await getConfig();
+    // await getConfig();
 
     pdf.addPage(
       pw.Page(
@@ -189,7 +184,6 @@ class Receipt {
                 style: const pw.TextStyle(fontSize: 18),
                 textAlign: pw.TextAlign.center,
               ),
-
               pw.SizedBox(height: 5),
               pw.Text(
                 businessadd(),

@@ -20,4 +20,21 @@ class ProductPrice {
 
     return data;
   }
+
+  Future<Map<String, dynamic>> getitemserial(String barcode) async {
+    final url = Uri.parse('${Config.apiUrl}${Config.getpriceAPI}');
+    final response = await http.post(url, body: {
+      'barcode': barcode,
+    });
+
+    final responseData = json.decode(response.body);
+    final status = response.statusCode;
+    final msg = responseData['msg'];
+    final results = json.encode(responseData['data']);
+
+    Map<String, dynamic> data = {};
+    data = {'msg': msg, 'status': status, 'data': results};
+
+    return data;
+  }
 }

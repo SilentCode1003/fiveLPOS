@@ -10,6 +10,7 @@ import 'package:pos2/components/areceipt.dart';
 import 'package:pos2/components/loadingspinner.dart';
 import 'package:pos2/components/loginpage.dart';
 import 'package:pos2/model/productprice.dart';
+import 'package:pos2/repository/branch.dart';
 import 'package:pos2/repository/category.dart';
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/repository/detailsales.dart';
@@ -49,6 +50,11 @@ class _MyDashboardState extends State<MyDashboard> {
   List<Map<String, dynamic>> itemsList = [];
   List<ProductPriceModel> productList = [];
   List<String> categoryList = [];
+  String companyname = "";
+  String address = "";
+  String tin = "";
+
+  final TextEditingController _serialNumberController = TextEditingController();
 
   Helper helper = Helper();
   int detailid = 100000000;
@@ -56,11 +62,39 @@ class _MyDashboardState extends State<MyDashboard> {
   @override
   void initState() {
     // TODO: implement initState
-
+    _getbranch();
     _getdetailid('1');
     _getcategory();
-
     super.initState();
+  }
+
+  Future<void> _search() async {
+    String serial = _serialNumberController.text;
+    final results = await ProductPrice().getitemserial(serial);
+    final jsonData = json.decode(results['data']);
+    String description = "";
+    double price = 0;
+
+    setState(() {
+      for (var data in jsonData) {
+        description = data['description'];
+        price = double.parse(data['price']);
+        addItem(description, price, 1);
+      }
+    });
+  }
+
+  Future<void> _getbranch() async {
+    final results = await BranchAPI().getBranch();
+    final jsonData = json.encode(results['data']);
+
+    setState(() {
+      for (var data in json.decode(jsonData)) {
+        companyname = data['branchname'];
+        tin = data['tin'];
+        address = data['address'];
+      }
+    });
   }
 
   Future<void> _getcategory() async {
@@ -272,9 +306,10 @@ class _MyDashboardState extends State<MyDashboard> {
     try {
       final result = await Transaction().sending(
           detailid, date, posid, shift, paymenttype, items, total, cashier);
-      final pdfBytes =
-          await Receipt(itemsList, cashAmount, detailid, posid, cashier, shift)
-              .printReceipt();
+      print(companyname);
+      final pdfBytes = await Receipt(itemsList, cashAmount, detailid, posid,
+              cashier, shift, companyname, address, tin)
+          .printReceipt();
 
       if (result['msg'] == 'success') {
         // ignore: use_build_context_synchronously
@@ -534,35 +569,60 @@ class _MyDashboardState extends State<MyDashboard> {
               ),
             ),
             const SizedBox(height: 5), //DIVIDER START
-            SizedBox(
-                width: 300,
-                child: TextField(
-                  decoration: const InputDecoration(
-                    focusedBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: Color.fromARGB(255, 156, 84, 84)),
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                        width: 300,
+                        child: TextField(
+                          controller: _serialNumberController,
+                          decoration: const InputDecoration(
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                  color: Color.fromARGB(255, 156, 84, 84)),
+                            ),
+                            labelText: 'Serial Number',
+                            labelStyle: TextStyle(
+                                color: Color.fromARGB(255, 156, 84, 84)),
+                            border: OutlineInputBorder(),
+                            hintText: 'Enter Serial',
+                            prefixIcon: Icon(Icons.qr_code_2_outlined),
+                          ),
+                          textInputAction: TextInputAction.go,
+                          onEditingComplete: () {
+                            _search();
+                            // ScaffoldMessenger.of(context).showSnackBar(
+                            //   const SnackBar(
+                            //     content: Text('Enter pressed!'),
+                            //   ),
+                            // );
+                            _serialNumberController.clear();
+                          },
+                        )),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     ),
-                    labelText: 'Serial Number',
-                    labelStyle:
-                        TextStyle(color: Color.fromARGB(255, 156, 84, 84)),
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter Serial',
-                    prefixIcon: Icon(Icons.qr_code_2_outlined),
-                  ),
-                  textInputAction: TextInputAction.go,
-                  onEditingComplete: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Enter pressed!'),
+                    SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _search();
+                        },
+                        child: const Icon(Icons.search),
                       ),
-                    );
-                  },
-                )),
+                    ),
+                  ],
+                ),
+              ],
+            ),
 
             const SizedBox(
               width: 50,
             ),
-            const SizedBox(height: 10), //DIVIDER START
+            const SizedBox(height: 5), //DIVIDER START
 
             Container(
               color: Colors.grey[200],
@@ -819,7 +879,7 @@ class _MyDashboardState extends State<MyDashboard> {
               child: Text('Categories',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
 
             Wrap(
                 spacing: 8, // Adjust the spacing between buttons

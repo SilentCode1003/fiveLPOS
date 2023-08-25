@@ -18,11 +18,11 @@ class BranchAPI {
 
     final jsonData = json.encode(results);
 
-    File file = File('assets/branch.json');
-    if (file.existsSync()) {
-    } else {
-      await file.writeAsString(jsonData);
-    }
+    // File file = File('assets/branch.json');
+    // if (file.existsSync()) {
+    // } else {
+    //   await file.writeAsString(jsonData);
+    // }
 
     Map<String, dynamic> data = {};
     data = {'msg': msg, 'status': status, 'data': results};
