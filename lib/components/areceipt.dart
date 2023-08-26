@@ -1,16 +1,30 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:pdf/pdf.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pos2/dashboard.dart';
+import 'package:pos2/repository/customerhelper.dart';
 import 'package:printing/printing.dart';
+
+import '../repository/usbprinterwindows.dart';
 
 class AReceipt extends StatefulWidget {
   List<Map<String, dynamic>> items;
   double cash;
+  String detailid;
+  String posid;
+  String cashier;
+  String shift;
 
-  AReceipt({Key? key, required this.items, required this.cash})
+  AReceipt(
+      {Key? key,
+      required this.items,
+      required this.cash,
+      required this.detailid,
+      required this.posid,
+      required this.shift,
+      required this.cashier})
       : super(key: key);
 
   @override
@@ -22,7 +36,14 @@ class _AReceiptState extends State<AReceipt> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: CReceipt(cash: widget.cash, items: widget.items),
+      home: CReceipt(
+        cash: widget.cash,
+        items: widget.items,
+        cashier: widget.cashier,
+        detailid: widget.detailid,
+        posid: widget.posid,
+        shift: widget.shift,
+      ),
     );
   }
 }
@@ -30,8 +51,19 @@ class _AReceiptState extends State<AReceipt> {
 class CReceipt extends StatefulWidget {
   List<Map<String, dynamic>> items;
   double cash;
+  String detailid;
+  String posid;
+  String cashier;
+  String shift;
 
-  CReceipt({Key? key, required this.items, required this.cash})
+  CReceipt(
+      {Key? key,
+      required this.items,
+      required this.cash,
+      required this.detailid,
+      required this.posid,
+      required this.shift,
+      required this.cashier})
       : super(key: key);
 
   @override
@@ -40,6 +72,8 @@ class CReceipt extends StatefulWidget {
 
 class _CReceiptState extends State<CReceipt> {
   ///  //Currency
+
+  Helper helper = Helper();
 
   String formatAsCurrency(double value) {
     return toCurrencyString(
@@ -68,22 +102,19 @@ class _CReceiptState extends State<CReceipt> {
 
 /////INFO//////
   String datetime() {
-    final now = DateTime.now();
-    final formattedDate = DateFormat('MMM d, yyyy').format(now);
-    final formattedTime = DateFormat('hh:mm a').format(now);
-    return '$formattedDate, $formattedTime';
+    return helper.GetCurrentDatetime();
   }
 
   String officialreceipt() {
-    return '100000001';
+    return widget.detailid;
   }
 
   String staffname() {
-    return 'John Jhonson';
+    return widget.cashier;
   }
 
   String posnumber() {
-    return '001';
+    return widget.posid;
   }
 
   String serialnum() {
@@ -175,27 +206,9 @@ class _CReceiptState extends State<CReceipt> {
     return 'present the receipt to claim a freebie test';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: PdfPreview(
-        build: (format) => _generatePdf(format, 'test'),
-      ),
-    );
-  }
-
-  Future<Uint8List> _generatePdf(PdfPageFormat format, String title) async {
+  Future<Uint8List> _generatePdf(PdfPageFormat format) async {
     final pdf = pw.Document(version: PdfVersion.pdf_1_5, compress: true);
     List<Map<String, dynamic>> items = widget.items;
-
-    // const PdfPageFormat customReceiptFormat = PdfPageFormat(
-    //   170, // Width (in points)
-    //   double.infinity, // Height (set to infinity for auto height)
-    //   marginLeft: 10.0,
-    //   marginRight: 10.0,
-    //   marginTop: 10.0,
-    //   marginBottom: 10.0,
-    // );
 
     pdf.addPage(
       pw.Page(
@@ -502,163 +515,16 @@ class _CReceiptState extends State<CReceipt> {
 
     return pdf.save();
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: PdfPreview(
+          build: (format) => _generatePdf(format),
+          onPrinted: (context) => () {
+                Navigator.of(context).pop();
+                // MaterialPageRoute(builder: (context) => const MyDashboard());
+              }),
+    );
+  }
 }
-
-
-
-
-
-// import 'dart:io';
-
-// import 'package:flutter/material.dart';
-// import 'package:pdf/pdf.dart';
-// import 'package:pdf/widgets.dart' as pw;
-// import 'package:printing/printing.dart';
-// import 'package:pdf/widgets.dart' as pw;
-
-// void main() {
-//   runApp(MyApp());
-// }
-
-
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       theme: ThemeData(
-//         primarySwatch: Colors.blue,
-//       ),
-//       home: const AReceipt(),
-//     );
-//   }
-// }
-
-// class AReceipt extends StatelessWidget {
-//   const AReceipt({Key? key}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Transaction Receipt'),
-//         centerTitle: true,
-//       ),
-//       body: const SingleChildScrollView(
-//         child: Padding(
-//           padding: EdgeInsets.all(20),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               PrintButtonSection(),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// class PrintButtonSection extends StatelessWidget {
-//   const PrintButtonSection({Key? key}) : super(key: key);
-//   Future<void> printImageToPdf() async {}
-
-//  pw.Document _buildPdfContent() {
-//   final pdf = pw.Document();
-
-//   // Define a custom page format (Letter size: 8.5 x 11 inches)
-//   const pageFormat = PdfPageFormat(215.9, 279.4);
-
-//   String businessname() {
-//     return 'Asvesti';
-//   }
-
-//   String businessinfo() {
-//     return '1234 Elm Street, City, Country';
-//   }
-
-//   String cartitems() {
-//     return '00000 00000 00000 00000';
-//   }
-
-//   pdf.addPage(
-//     pw.Page(
-//       pageFormat: pageFormat, // Pass the custom page format
-//       build: (pw.Context context) {
-//         return pw.Center(
-//           child: pw.Column(
-//             children: [
-//               LogoEmblem(), // Add the logo image here
-//               pw.Text(
-//                 businessname(),
-//                 style: const pw.TextStyle(fontSize: 24),
-//                 textAlign: pw.TextAlign.center,
-//               ),
-//               pw.SizedBox(height: 10),
-//               pw.Text(
-//                 businessinfo(),
-//                 style: const pw.TextStyle(fontSize: 10),
-//                 textAlign: pw.TextAlign.center,
-//               ),
-//               pw.Divider(),
-//               pw.Text(
-//                 cartitems(),
-//                 style: const pw.TextStyle(fontSize: 8),
-//                 textAlign: pw.TextAlign.left,
-//               ),
-//             ],
-//           ),
-//         );
-//       },
-//     ),
-//   );
-
-//   return pdf;
-// }
-
-
-//   Future<void> _printReceipt() async {
-//     final pdf = _buildPdfContent();
-
-//     await Printing.layoutPdf(
-//       onLayout: (PdfPageFormat format) async => pdf.save(),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Center(
-//       child: ElevatedButton(
-//         onPressed: _printReceipt,
-//         style: ButtonStyle(
-//           fixedSize: MaterialStateProperty.all(
-//             const Size(200, 90),
-//           ),
-//         ),
-//         child: const Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Icon(Icons.receipt, size: 50),
-//             Text('Print Receipt'),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // class LogoEmblem extends StatelessWidget {
-// //   const LogoEmblem({Key? key}) : super(key: key);
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return const Center(
-// //       child: Image(
-// //         image: AssetImage('assets/asvesti.png'),
-// //         width: 100,
-// //         height: 100,
-// //         fit: BoxFit.contain,
-// //       ),
-// //     );
-// //   }
-// // }
-
