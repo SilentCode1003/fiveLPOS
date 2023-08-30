@@ -1,4 +1,5 @@
 class Config {
+  
   static const String apiUrl = 'http://172.16.2.200:3050/';
 
   static const String authenticationLoginAPI = 'login/poslogin';
@@ -7,5 +8,6 @@ class Config {
   static const String getpriceAPI = 'productprice/getprice';
   static const String getdetailidAPI = 'salesdetails/getdetailid';
   static const String getCategoryAPI = 'category/active';
-  static const String getBranchAPI = 'branch/load';
+  static const String getBranchAPI = 'branch/getbranch';
+  static const String getPosConfig = 'pos/getposconfig';
 }

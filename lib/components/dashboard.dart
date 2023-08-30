@@ -10,13 +10,13 @@ import 'package:pos2/components/areceipt.dart';
 import 'package:pos2/components/loadingspinner.dart';
 import 'package:pos2/components/loginpage.dart';
 import 'package:pos2/model/productprice.dart';
-import 'package:pos2/repository/branch.dart';
-import 'package:pos2/repository/category.dart';
+import 'package:pos2/api/branch.dart';
+import 'package:pos2/api/category.dart';
 import 'package:pos2/repository/customerhelper.dart';
-import 'package:pos2/repository/detailsales.dart';
-import 'package:pos2/repository/productprice.dart';
+import 'package:pos2/api/detailsales.dart';
+import 'package:pos2/api/productprice.dart';
 import 'package:pos2/repository/receipt.dart';
-import 'package:pos2/repository/transaction.dart';
+import 'package:pos2/api/transaction.dart';
 import 'package:printing/printing.dart';
 
 class ButtonStyleInfo {
@@ -62,7 +62,7 @@ class _MyDashboardState extends State<MyDashboard> {
   @override
   void initState() {
     // TODO: implement initState
-    _getbranch();
+    // _getbranch();
     _getdetailid('1');
     _getcategory();
     super.initState();
@@ -84,18 +84,18 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
-  Future<void> _getbranch() async {
-    final results = await BranchAPI().getBranch();
-    final jsonData = json.encode(results['data']);
+  // Future<void> _getbranch() async {
+  //   final results = await BranchAPI().getBranch();
+  //   final jsonData = json.encode(results['data']);
 
-    setState(() {
-      for (var data in json.decode(jsonData)) {
-        companyname = data['branchname'];
-        tin = data['tin'];
-        address = data['address'];
-      }
-    });
-  }
+  //   setState(() {
+  //     for (var data in json.decode(jsonData)) {
+  //       companyname = data['branchname'];
+  //       tin = data['tin'];
+  //       address = data['address'];
+  //     }
+  //   });
+  // }
 
   Future<void> _getcategory() async {
     final results = await CategoryAPI().getCategory();
@@ -136,8 +136,7 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   String formatAsCurrency(double value) {
-    return toCurrencyString(value.toString(),
-        leadingSymbol: CurrencySymbols.DOLLAR_SIGN);
+    return '₱ ${toCurrencyString(value.toString())}';
   }
 
   Future<void> confirmAndRemove(int index) async {

@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:pos2/dashboard.dart';
+import 'package:pos2/components/dashboard.dart';
 
 import '../model/userinfo.dart';
-import '../repository/login.dart';
+import '../api/login.dart';
 import 'loadingspinner.dart';
 
 void main() {
