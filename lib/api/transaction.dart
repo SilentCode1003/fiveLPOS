@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
-class Transaction {
+class POSTransaction {
   Future<Map<String, dynamic>> sending(
       String detailid,
       String date,

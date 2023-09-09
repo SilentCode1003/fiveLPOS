@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:math';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,14 +10,15 @@ import 'package:pos2/components/areceipt.dart';
 import 'package:pos2/components/loadingspinner.dart';
 import 'package:pos2/components/loginpage.dart';
 import 'package:pos2/model/productprice.dart';
-import 'package:pos2/api/branch.dart';
 import 'package:pos2/api/category.dart';
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/api/detailsales.dart';
 import 'package:pos2/api/productprice.dart';
+import 'package:pos2/repository/dbhelper.dart';
 import 'package:pos2/repository/receipt.dart';
 import 'package:pos2/api/transaction.dart';
 import 'package:printing/printing.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -53,19 +54,35 @@ class _MyDashboardState extends State<MyDashboard> {
   String companyname = "";
   String address = "";
   String tin = "";
+  String posid = "";
 
   final TextEditingController _serialNumberController = TextEditingController();
+  final TextEditingController _referenceidController = TextEditingController();
 
   Helper helper = Helper();
+  DatabaseHelper dbHelper = DatabaseHelper();
   int detailid = 100000000;
 
   @override
   void initState() {
     // TODO: implement initState
     // _getbranch();
-    _getdetailid('1');
+    _getposconfig();
+
     _getcategory();
     super.initState();
+  }
+
+  Future<void> _getposconfig() async {
+    Database db = await dbHelper.database;
+    List<Map<String, dynamic>> posconfig = await db.query('pos');
+    for (var pos in posconfig) {
+      setState(() {
+        posid = pos['posid'].toString();
+        print(posid);
+        _getdetailid(posid);
+      });
+    }
   }
 
   Future<void> _search() async {
@@ -120,19 +137,16 @@ class _MyDashboardState extends State<MyDashboard> {
     }
   }
 
-  Future<void> _getdetailid(posid) async {
-    final result = await SalesDetails().getdetailid(posid);
-    final id = (result['data']);
+  Future<void> _getdetailid(String pos) async {
+    final result = await SalesDetails().getdetailid(pos);
+    int id = int.parse(result['data']);
 
-    if (id == null) {
-    } else {
-      if (result['msg'] == 'success') {
-        setState(() {
-          detailid = int.parse(id);
-          print(detailid);
-        });
-      }
-    }
+    print(id);
+
+    setState(() {
+      detailid = id;
+      print(detailid);
+    });
   }
 
   String formatAsCurrency(double value) {
@@ -249,7 +263,7 @@ class _MyDashboardState extends State<MyDashboard> {
       final List<Widget> product = List<Widget>.generate(
           productList.length,
           (index) => SizedBox(
-                height: 120,
+                height: 60,
                 width: 120,
                 child: ElevatedButton(
                   onPressed: () {
@@ -294,20 +308,33 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _transaction(
-      String detailid,
-      String posid,
-      String date,
-      String shift,
-      String paymenttype,
-      String items,
-      String total,
-      String cashier) async {
+    String detailid,
+    String posid,
+    String date,
+    String shift,
+    String paymenttype,
+    String items,
+    String total,
+    String cashier,
+    String referenceid,
+    String epaymenttype,
+  ) async {
     try {
-      final result = await Transaction().sending(
+      final result = await POSTransaction().sending(
           detailid, date, posid, shift, paymenttype, items, total, cashier);
-      print(companyname);
-      final pdfBytes = await Receipt(itemsList, cashAmount, detailid, posid,
-              cashier, shift, companyname, address, tin)
+      final pdfBytes = await Receipt(
+              itemsList,
+              cashAmount,
+              detailid,
+              posid,
+              cashier,
+              shift,
+              companyname,
+              address,
+              tin,
+              paymenttype,
+              referenceid,
+              epaymenttype)
           .printReceipt();
 
       if (result['msg'] == 'success') {
@@ -320,10 +347,28 @@ class _MyDashboardState extends State<MyDashboard> {
                 content: const Text('Transaction process successfully!'),
                 actions: [
                   TextButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
-                      Printing.layoutPdf(
-                          onLayout: (PdfPageFormat format) => pdfBytes);
+                      if (Platform.isAndroid) {
+                        // Printing.layoutPdf(
+                        //   onLayout: (PdfPageFormat format) => pdfBytes,
+                        // );
+
+                        Printing.directPrintPdf(
+                            printer: const Printer(url: ''),
+                            onLayout: (PdfPageFormat format) => pdfBytes);
+                      } else if (Platform.isWindows) {
+                        List<Printer> printerList =
+                            await Printing.listPrinters();
+                        for (var printer in printerList) {
+                          if (printer.isDefault) {
+                            Printing.directPrintPdf(
+                                printer: printer,
+                                onLayout: (PdfPageFormat format) => pdfBytes);
+                          }
+                        }
+                      }
+
                       _clearItems();
                       // Navigator.push(
                       //   context,
@@ -395,7 +440,7 @@ class _MyDashboardState extends State<MyDashboard> {
     final List<Widget> category = List<Widget>.generate(
         categoryList.length,
         (index) => SizedBox(
-              height: 120,
+              height: 80,
               width: 120,
               child: ElevatedButton(
                 onPressed: () {
@@ -405,11 +450,19 @@ class _MyDashboardState extends State<MyDashboard> {
                 child: Text(
                   categoryList[index],
                   style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold),
+                      fontSize: 16, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
             ));
+
+    String selectedValue = 'Select Payment Type';
+    List<String> options = [
+      'Select Payment Type',
+      'Gcash',
+      'Paymaya',
+      'Card'
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -463,7 +516,7 @@ class _MyDashboardState extends State<MyDashboard> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
-                height: 300,
+                height: 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   border: Border.all(
@@ -477,16 +530,16 @@ class _MyDashboardState extends State<MyDashboard> {
                     // columnSpacing: 20,
                     columns: const [
                       DataColumn(
-                          label: Text('Prdct Name',
+                          label: Text('Description',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
-                          label: Text('UNIT PRICE',
+                          label: Text('Price',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
-                          label: Text('QTY.',
+                          label: Text('Qty',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
-                          label: Text('Total Cost',
+                          label: Text('Sub Total',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(label: Text('')),
                     ],
@@ -553,7 +606,7 @@ class _MyDashboardState extends State<MyDashboard> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       const Text(
-                        'Grand Total',
+                        'Total',
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
@@ -618,9 +671,6 @@ class _MyDashboardState extends State<MyDashboard> {
               ],
             ),
 
-            const SizedBox(
-              width: 50,
-            ),
             const SizedBox(height: 5), //DIVIDER START
 
             Container(
@@ -634,7 +684,7 @@ class _MyDashboardState extends State<MyDashboard> {
                     onPressed: () {},
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
-                          const Size(120, 90)), // Adjust the size here
+                          const Size(120, 80)), // Adjust the size here
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -643,7 +693,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.barcode,
-                              size: 48), // Adjust size as needed
+                              size: 28), // Adjust size as needed
                         ),
                         const Text('SCAN'),
                       ],
@@ -680,7 +730,7 @@ class _MyDashboardState extends State<MyDashboard> {
                             return AlertDialog(
                               // alignment: Alignment.center,
                               title: const Text(
-                                'CASH',
+                                'PAYMENT METHOD',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 25,
@@ -690,7 +740,341 @@ class _MyDashboardState extends State<MyDashboard> {
                               content: Row(
                                 children: [
                                   ElevatedButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: const Text(
+                                                  'Select E-Payment type'),
+                                              content: Container(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: Row(
+                                                  children: [
+                                                    ElevatedButton(
+                                                      onPressed: () {
+                                                        showDialog(
+                                                            context: context,
+                                                            builder:
+                                                                (BuildContext
+                                                                    context) {
+                                                              return AlertDialog(
+                                                                title: Text(
+                                                                    'GCASH INFO, Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                                content:
+                                                                    SizedBox(
+                                                                  height: 300,
+                                                                  width: 300,
+                                                                  child: Column(
+                                                                      children: [
+                                                                        TextField(
+                                                                          controller:
+                                                                              _referenceidController,
+                                                                          decoration:
+                                                                              const InputDecoration(labelText: "Reference ID"),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              5,
+                                                                        ),
+                                                                        TextField(
+                                                                          keyboardType:
+                                                                              TextInputType.number,
+                                                                          inputFormatters: [
+                                                                            CurrencyInputFormatter(
+                                                                              leadingSymbol: CurrencySymbols.PESO,
+                                                                            ),
+                                                                          ],
+                                                                          onChanged:
+                                                                              (value) {
+                                                                            // Remove currency symbols and commas to get the numeric value
+                                                                            String
+                                                                                numericValue =
+                                                                                value.replaceAll(
+                                                                              RegExp('[${CurrencySymbols.PESO},]'),
+                                                                              '',
+                                                                            );
+                                                                            setState(() {
+                                                                              cashAmount = double.tryParse(numericValue) ?? 0;
+                                                                            });
+                                                                          },
+                                                                          decoration:
+                                                                              const InputDecoration(
+                                                                            hintText:
+                                                                                'Enter amount',
+                                                                            border:
+                                                                                OutlineInputBorder(),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              5,
+                                                                        ),
+                                                                      ]),
+                                                                ),
+                                                                actions: [
+                                                                  ElevatedButton(
+                                                                    onPressed:
+                                                                        () {
+                                                                      String
+                                                                          message =
+                                                                          "";
+                                                                      String
+                                                                          title =
+                                                                          "";
+
+                                                                      if (cashAmount ==
+                                                                          0) {
+                                                                        message +=
+                                                                            "Please enter amount to proceed.";
+                                                                        title +=
+                                                                            "[Enter Amount]";
+                                                                      }
+                                                                      if (cashAmount <
+                                                                          calculateGrandTotal()) {
+                                                                        message +=
+                                                                            "Please enter the right amount received from e-payment.";
+                                                                        title +=
+                                                                            "[Insufficient Funds]";
+                                                                      }
+
+                                                                      if (message !=
+                                                                          "") {
+                                                                        showDialog(
+                                                                            context:
+                                                                                context,
+                                                                            builder:
+                                                                                (BuildContext context) {
+                                                                              return AlertDialog(
+                                                                                title: Text(title),
+                                                                                content: Text(message),
+                                                                                actions: [
+                                                                                  TextButton(
+                                                                                    onPressed: () {
+                                                                                      Navigator.of(context).pop(); // Close the dialog
+                                                                                    },
+                                                                                    child: const Text('OK'),
+                                                                                  ),
+                                                                                ],
+                                                                              );
+                                                                            });
+                                                                      } else {
+                                                                        String
+                                                                            referenceid =
+                                                                            _referenceidController.text;
+                                                                        detailid++;
+                                                                        _transaction(
+                                                                            detailid.toString(),
+                                                                            posid,
+                                                                            helper.GetCurrentDatetime(),
+                                                                            '1',
+                                                                            'EPAYMENT',
+                                                                            jsonEncode(itemsList),
+                                                                            calculateGrandTotal().toString(),
+                                                                            widget.fullname,
+                                                                            referenceid,
+                                                                            'GCASH');
+
+                                                                        Navigator.of(context)
+                                                                            .pop();
+                                                                        Navigator.of(context)
+                                                                            .pop();
+                                                                        Navigator.of(context)
+                                                                            .pop();
+                                                                      }
+                                                                    },
+                                                                    style:
+                                                                        ButtonStyle(
+                                                                      backgroundColor:
+                                                                          MaterialStateProperty.all<
+                                                                              Color>(
+                                                                        Colors
+                                                                            .brown, // Change the color here
+                                                                      ),
+                                                                      // Other button styles...
+                                                                    ),
+                                                                    child: const Text(
+                                                                        'Proceed'),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            });
+                                                      },
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        minimumSize:
+                                                            const Size(80, 60),
+                                                      ),
+                                                      child:
+                                                          const Text('GCASH'),
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 10,
+                                                    ),
+                                                    ElevatedButton(
+                                                      onPressed: () {
+                                                        showDialog(
+                                                            context: context,
+                                                            builder:
+                                                                (BuildContext
+                                                                    context) {
+                                                              return AlertDialog(
+                                                                title: Text(
+                                                                    'GCASH INFO, Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                                content:
+                                                                    SizedBox(
+                                                                  height: 300,
+                                                                  width: 300,
+                                                                  child: Column(
+                                                                      children: [
+                                                                        TextField(
+                                                                          controller:
+                                                                              _referenceidController,
+                                                                          decoration:
+                                                                              const InputDecoration(labelText: "Reference ID"),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              5,
+                                                                        ),
+                                                                        TextField(
+                                                                          keyboardType:
+                                                                              TextInputType.number,
+                                                                          inputFormatters: [
+                                                                            CurrencyInputFormatter(
+                                                                              leadingSymbol: CurrencySymbols.PESO,
+                                                                            ),
+                                                                          ],
+                                                                          onChanged:
+                                                                              (value) {
+                                                                            // Remove currency symbols and commas to get the numeric value
+                                                                            String
+                                                                                numericValue =
+                                                                                value.replaceAll(
+                                                                              RegExp('[${CurrencySymbols.PESO},]'),
+                                                                              '',
+                                                                            );
+                                                                            setState(() {
+                                                                              cashAmount = double.tryParse(numericValue) ?? 0;
+                                                                            });
+                                                                          },
+                                                                          decoration:
+                                                                              const InputDecoration(
+                                                                            hintText:
+                                                                                'Enter amount',
+                                                                            border:
+                                                                                OutlineInputBorder(),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              5,
+                                                                        ),
+                                                                      ]),
+                                                                ),
+                                                                actions: [
+                                                                  ElevatedButton(
+                                                                    onPressed:
+                                                                        () {
+                                                                      String
+                                                                          message =
+                                                                          "";
+                                                                      String
+                                                                          title =
+                                                                          "";
+
+                                                                      if (cashAmount ==
+                                                                          0) {
+                                                                        message +=
+                                                                            "Please enter amount to proceed.";
+                                                                        title +=
+                                                                            "[Enter Amount]";
+                                                                      }
+                                                                      if (cashAmount <
+                                                                          calculateGrandTotal()) {
+                                                                        message +=
+                                                                            "Please enter the right amount received from e-payment.";
+                                                                        title +=
+                                                                            "[Insufficient Funds]";
+                                                                      }
+
+                                                                      if (message !=
+                                                                          "") {
+                                                                        showDialog(
+                                                                            context:
+                                                                                context,
+                                                                            builder:
+                                                                                (BuildContext context) {
+                                                                              return AlertDialog(
+                                                                                title: Text(title),
+                                                                                content: Text(message),
+                                                                                actions: [
+                                                                                  TextButton(
+                                                                                    onPressed: () {
+                                                                                      Navigator.of(context).pop(); // Close the dialog
+                                                                                    },
+                                                                                    child: const Text('OK'),
+                                                                                  ),
+                                                                                ],
+                                                                              );
+                                                                            });
+                                                                      } else {
+                                                                        String
+                                                                            referenceid =
+                                                                            _referenceidController.text;
+                                                                        detailid++;
+                                                                        _transaction(
+                                                                            detailid.toString(),
+                                                                            posid,
+                                                                            helper.GetCurrentDatetime(),
+                                                                            '1',
+                                                                            'EPAYMENT',
+                                                                            jsonEncode(itemsList),
+                                                                            calculateGrandTotal().toString(),
+                                                                            widget.fullname,
+                                                                            referenceid,
+                                                                            'PAYMAYA');
+
+                                                                        Navigator.of(context)
+                                                                            .pop();
+                                                                        Navigator.of(context)
+                                                                            .pop();
+                                                                        Navigator.of(context)
+                                                                            .pop();
+                                                                      }
+                                                                    },
+                                                                    style:
+                                                                        ButtonStyle(
+                                                                      backgroundColor:
+                                                                          MaterialStateProperty.all<
+                                                                              Color>(
+                                                                        Colors
+                                                                            .brown, // Change the color here
+                                                                      ),
+                                                                      // Other button styles...
+                                                                    ),
+                                                                    child: const Text(
+                                                                        'Proceed'),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            });
+                                                      },
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        minimumSize:
+                                                            const Size(80, 60),
+                                                      ),
+                                                      child:
+                                                          const Text('PAYMAYA'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          });
+                                    },
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: const Size(120, 100),
                                     ),
@@ -698,7 +1082,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                   ),
                                   const SizedBox(
                                       width: 16), // Add spacing between buttons
-
                                   ElevatedButton(
                                     onPressed: () {
                                       showDialog(
@@ -709,19 +1092,19 @@ class _MyDashboardState extends State<MyDashboard> {
                                             content: Column(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                const Text(
-                                                    'Please collect cash from the customer.'),
+                                                Text(
+                                                    'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
                                                 const SizedBox(
                                                   height: 16,
                                                 ), // Add spacing between text and text field
+
                                                 TextField(
                                                   keyboardType:
                                                       TextInputType.number,
                                                   inputFormatters: [
                                                     CurrencyInputFormatter(
                                                       leadingSymbol:
-                                                          CurrencySymbols
-                                                              .DOLLAR_SIGN,
+                                                          CurrencySymbols.PESO,
                                                     ),
                                                   ],
                                                   onChanged: (value) {
@@ -729,7 +1112,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     String numericValue =
                                                         value.replaceAll(
                                                       RegExp(
-                                                          '[${CurrencySymbols.DOLLAR_SIGN},]'),
+                                                          '[${CurrencySymbols.PESO},]'),
                                                       '',
                                                     );
                                                     setState(() {
@@ -795,7 +1178,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     detailid++;
                                                     _transaction(
                                                         detailid.toString(),
-                                                        '1',
+                                                        posid,
                                                         helper
                                                             .GetCurrentDatetime(),
                                                         '1',
@@ -803,7 +1186,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         jsonEncode(itemsList),
                                                         calculateGrandTotal()
                                                             .toString(),
-                                                        widget.fullname);
+                                                        widget.fullname,
+                                                        'none',
+                                                        'none');
 
                                                     Navigator.of(context).pop();
                                                     Navigator.of(context).pop();
@@ -848,7 +1233,7 @@ class _MyDashboardState extends State<MyDashboard> {
                     },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
-                          const Size(120, 90)), // Adjust the size here
+                          const Size(120, 80)), // Adjust the size here
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -857,7 +1242,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.moneyBill,
-                              size: 48), // Adjust size as needed
+                              size: 28), // Adjust size as needed
                         ),
                         const Text('PAYMENT'),
                       ],
@@ -869,10 +1254,39 @@ class _MyDashboardState extends State<MyDashboard> {
             const SizedBox(
               height: 5,
             ), //END
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              // child: CategoryButtons(),
+
+            Container(
+              color: Colors.grey[200],
+              padding: const EdgeInsets.all(8.0),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                          const Size(120, 80)), // Adjust the size here
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(
+                              10.0), // Adjust padding as needed
+                          child: const FaIcon(FontAwesomeIcons.gears,
+                              size: 32), // Adjust size as needed
+                        ),
+                        const Text('OTHERS'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(
+              height: 5,
+            ), //END
 
             const Center(
               child: Text('Categories',

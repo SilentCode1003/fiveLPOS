@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -180,27 +182,30 @@ class _PosConfigState extends State<PosConfig> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            TextField(
-              controller: _branchidController,
-              decoration: const InputDecoration(labelText: "BRANCH ID"),
-            ),
-            TextField(
-              controller: _posidController,
-              decoration: const InputDecoration(labelText: "POS ID"),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                _sync();
-              },
-              style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 80)),
-              child: const Text("SYNC"),
-            )
-          ]),
+        child: SizedBox(
+          width: 400,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              TextField(
+                controller: _branchidController,
+                decoration: const InputDecoration(labelText: "BRANCH ID"),
+              ),
+              TextField(
+                controller: _posidController,
+                decoration: const InputDecoration(labelText: "POS ID"),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () {
+                  _sync();
+                },
+                style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 80)),
+                child: const Text("SYNC"),
+              )
+            ]),
+          ),
         ),
       ),
     );

@@ -4,7 +4,7 @@ import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class SalesDetails {
-  Future<Map<String, dynamic>> getdetailid(posid) async {
+  Future<Map<String, dynamic>> getdetailid(String posid) async {
     final url = Uri.parse('${Config.apiUrl}${Config.getdetailidAPI}');
     final response = await http.post(url, body: {'posid': posid});
 
