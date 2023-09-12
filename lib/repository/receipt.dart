@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:ffi';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:pdf/pdf.dart';
@@ -10,7 +8,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/repository/dbhelper.dart';
 import 'package:sqflite_common/sqlite_api.dart';
-import '../model/branch.dart';
 
 class Receipt {
   List<Map<String, dynamic>> items;
@@ -176,7 +173,7 @@ class Receipt {
     return 'present the receipt to claim a freebie test';
   }
 
-  Future<Future<Uint8List>> printReceipt() async {
+  Future<Uint8List> printReceipt() async {
     String id = '';
     String posname = '';
     String serial = '';

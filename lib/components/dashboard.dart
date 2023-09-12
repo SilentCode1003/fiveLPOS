@@ -9,12 +9,14 @@ import 'package:pdf/pdf.dart';
 import 'package:pos2/components/areceipt.dart';
 import 'package:pos2/components/loadingspinner.dart';
 import 'package:pos2/components/loginpage.dart';
+import 'package:pos2/components/sendreceipt.dart';
 import 'package:pos2/model/productprice.dart';
 import 'package:pos2/api/category.dart';
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/api/detailsales.dart';
 import 'package:pos2/api/productprice.dart';
 import 'package:pos2/repository/dbhelper.dart';
+import 'package:pos2/repository/email.dart';
 import 'package:pos2/repository/receipt.dart';
 import 'package:pos2/api/transaction.dart';
 import 'package:printing/printing.dart';
@@ -70,6 +72,7 @@ class _MyDashboardState extends State<MyDashboard> {
     _getposconfig();
 
     _getcategory();
+
     super.initState();
   }
 
@@ -307,6 +310,82 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
+  void others() {
+    bool isStartShift = false;
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Others'),
+            content: SingleChildScrollView(
+              child: Center(
+                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize:
+                              MaterialStateProperty.all(const Size(120, 80))),
+                      onPressed: isStartShift ? () {} : null,
+                      child: const Text(
+                        'START\nSHIFT',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize:
+                              MaterialStateProperty.all(const Size(120, 80))),
+                      onPressed: () {},
+                      child: const Text(
+                        'END\nSHIFT',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize:
+                              MaterialStateProperty.all(const Size(120, 80))),
+                      onPressed: () {},
+                      child: const Text(
+                        'RE-PRINT',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize:
+                              MaterialStateProperty.all(const Size(120, 80))),
+                      onPressed: () {},
+                      child: const Text(
+                        'SEND\nE-RECEIPT',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                ]),
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Close'))
+            ],
+          );
+        });
+  }
+
+  bool isValidEmail(String email) {
+    String emailRegex = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
+    RegExp regex = RegExp(emailRegex);
+
+    return regex.hasMatch(email);
+  }
+
   Future<void> _transaction(
     String detailid,
     String posid,
@@ -320,6 +399,7 @@ class _MyDashboardState extends State<MyDashboard> {
     String epaymenttype,
   ) async {
     try {
+      final TextEditingController _emailController = TextEditingController();
       final result = await POSTransaction().sending(
           detailid, date, posid, shift, paymenttype, items, total, cashier);
       final pdfBytes = await Receipt(
@@ -338,6 +418,25 @@ class _MyDashboardState extends State<MyDashboard> {
           .printReceipt();
 
       if (result['msg'] == 'success') {
+        if (Platform.isAndroid) {
+          // Printing.layoutPdf(
+          //   onLayout: (PdfPageFormat format) => pdfBytes,
+          // );
+
+          Printing.directPrintPdf(
+              printer: const Printer(url: ''),
+              onLayout: (PdfPageFormat format) => pdfBytes);
+        } else if (Platform.isWindows) {
+          List<Printer> printerList = await Printing.listPrinters();
+          for (var printer in printerList) {
+            if (printer.isDefault) {
+              Printing.directPrintPdf(
+                  printer: printer,
+                  onLayout: (PdfPageFormat format) => pdfBytes);
+            }
+          }
+        }
+
         // ignore: use_build_context_synchronously
         showDialog(
             context: context,
@@ -349,27 +448,7 @@ class _MyDashboardState extends State<MyDashboard> {
                   TextButton(
                     onPressed: () async {
                       Navigator.of(context).pop();
-                      if (Platform.isAndroid) {
-                        // Printing.layoutPdf(
-                        //   onLayout: (PdfPageFormat format) => pdfBytes,
-                        // );
 
-                        Printing.directPrintPdf(
-                            printer: const Printer(url: ''),
-                            onLayout: (PdfPageFormat format) => pdfBytes);
-                      } else if (Platform.isWindows) {
-                        List<Printer> printerList =
-                            await Printing.listPrinters();
-                        for (var printer in printerList) {
-                          if (printer.isDefault) {
-                            Printing.directPrintPdf(
-                                printer: printer,
-                                onLayout: (PdfPageFormat format) => pdfBytes);
-                          }
-                        }
-                      }
-
-                      _clearItems();
                       // Navigator.push(
                       //   context,
                       //   MaterialPageRoute(
@@ -386,6 +465,100 @@ class _MyDashboardState extends State<MyDashboard> {
                     },
                     child: const Text('OK'),
                   ),
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Customer Email'),
+                                content: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    TextField(
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      decoration: const InputDecoration(
+                                          labelText: "Customer Email",
+                                          hintText: 'you@example.com'),
+                                    )
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () async {
+                                        String email = _emailController.text;
+                                        if (isValidEmail(email)) {
+                                          String message = '';
+                                          message = await Email().sendMail(
+                                              detailid.toString(),
+                                              email,
+                                              pdfBytes,
+                                              cashier,
+                                              itemsList,
+                                              paymenttype,
+                                              referenceid);
+
+                                          _clearItems();
+
+                                          if (message != 'success') {
+                                          } else {
+                                            Navigator.of(context).pop();
+                                            showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title:
+                                                        const Text('Success'),
+                                                    content: const Text(
+                                                        'E-Receipt sent successfully!'),
+                                                    actions: [
+                                                      TextButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                          child:
+                                                              const Text('Ok'))
+                                                    ],
+                                                  );
+                                                });
+                                          }
+                                        } else {
+                                          showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('Invalid'),
+                                                  content: const Text(
+                                                      'Invalid Email Address!'),
+                                                  actions: [
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                        child:
+                                                            const Text('Close'))
+                                                  ],
+                                                );
+                                              });
+                                        }
+                                      },
+                                      child: const Text("Send")),
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text("Close")),
+                                ],
+                              );
+                            });
+                      },
+                      child: const Text('Send E-Receipt')),
                 ],
               );
             });
@@ -457,12 +630,7 @@ class _MyDashboardState extends State<MyDashboard> {
             ));
 
     String selectedValue = 'Select Payment Type';
-    List<String> options = [
-      'Select Payment Type',
-      'Gcash',
-      'Paymaya',
-      'Card'
-    ];
+    List<String> options = ['Select Payment Type', 'Gcash', 'Paymaya', 'Card'];
 
     return Scaffold(
       appBar: AppBar(
@@ -680,6 +848,25 @@ class _MyDashboardState extends State<MyDashboard> {
                 spacing: 4,
                 runSpacing: 4,
                 children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                          const Size(120, 80)), // Adjust the size here
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(
+                              10.0), // Adjust padding as needed
+                          child: const FaIcon(FontAwesomeIcons.tag,
+                              size: 28), // Adjust size as needed
+                        ),
+                        const Text('DISCOUNT'),
+                      ],
+                    ),
+                  ),
                   ElevatedButton(
                     onPressed: () {},
                     style: ButtonStyle(
@@ -1263,7 +1450,9 @@ class _MyDashboardState extends State<MyDashboard> {
                 runSpacing: 4,
                 children: [
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      others();
+                    },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
                           const Size(120, 80)), // Adjust the size here
