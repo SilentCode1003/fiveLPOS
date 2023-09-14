@@ -1,18 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
+import 'package:pos2/repository/customerhelper.dart';
 import 'package:pos2/repository/dbhelper.dart';
 import 'package:sqflite_common/sqlite_api.dart';
 
 class Email {
-  final String username = "5lpos@5lsolutions.com";
-  final String password = "5lpointofsales";
   DatabaseHelper dbHelper = DatabaseHelper();
+  Helper helper = Helper();
   final String css = """
 <style>
 /* -------------------------------------
@@ -300,9 +301,12 @@ a {
     String branchname = '';
     String tin = '';
     List<String> address = [];
-    List<String> logo = [];
+    String logo = '';
+    String username = '';
+    String password = '';
+    String emailserver = '';
 
-    String date = DateTime.now().toString();
+    String date = helper.GetCurrentDatetime();
 
     Database db = await dbHelper.database;
     List<Map<String, dynamic>> posconfig = await db.query('pos');
@@ -320,7 +324,14 @@ a {
       branchname = branch['branchname'];
       tin = 'VAT REG TIN: ${branch['tin']}';
       address = branch['address'].toString().split(',').toList();
-      logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
+      logo = branch['logo'];
+    }
+
+    List<Map<String, dynamic>> emailconfig = await db.query('email');
+    for (var email in emailconfig) {
+      username = email['emailaddress'];
+      password = email['emailpassword'];
+      emailserver = email['emailserver'];
     }
 
     String location = '';
@@ -333,10 +344,9 @@ a {
     for (int index = 0; index < itemsList.length; index++) {
       items += """
           <tr>
-            <td>${itemsList[index]['name']}</td>
-            <td class="alignright">${itemsList[index]['quantity']}</td>
+            <td>${itemsList[index]['name']} x ${itemsList[index]['quantity']} </td>
             <td class="alignright">${itemsList[index]['price']}</td>
-            <td class="alignright">${itemsList[index]['price'] * itemsList[index]['quantity']}</td>
+            <td class="alignright">${itemsList[index]['price'] * itemsList[index]['quantity']} </td>
           </tr>
 """;
 
@@ -353,61 +363,59 @@ a {
     }
 
     final directory = await getTemporaryDirectory();
-
-    final pdfFile = File('${directory.path}/$or.pdf');
+    String filepath = '${directory.path}/$or.pdf';
+    final pdfFile = File(filepath);
 
     await pdfFile.writeAsBytes(ereceipt);
 
-    final smtpServer = SmtpServer('mail.5lsolutions.com',
+    final smtpServer = SmtpServer(emailserver,
         username: username, password: password, port: 587, ssl: false);
 
     final message = Message()
       ..from = Address(username)
       ..recipients.add(recipient)
       ..subject = '$branchname - OR#:$or [E-Receipt]'
-      ..text =
-          'Good Day,\n\n Thank you for purchase, please see attached receipt.'
       ..html = '''
 <html>
 <head>
 $css
 </head>
 <body>
+
 <table class="body-wrap">
     <tbody><tr>
         <td></td>
-        <td class="container" width="600">
+        <td class="container" width="800">
             <div class="content">
                 <table class="main" width="100%" cellpadding="0" cellspacing="0">
                     <tbody><tr>
                         <td class="content-wrap aligncenter">
                             <table width="100%" cellpadding="0" cellspacing="0">
-                                <tbody><tr>
+                                <tbody>
+                                <tr>
                                     <td class="content-block">
-                                        <h2>Thank You</h2>
+                                        <h2>$branchname</h2>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td class="content-block">
                                         <table class="invoice">
-                                            <tbody><tr>
+                                            <tbody>
+                                            <tr>
                                                 <td>$details</td>
-                                        
                                             </tr>
                                             <tr>
                                                 <td>
                                                     <table class="invoice-items" cellpadding="0" cellspacing="10">
                                                         <thead>
                                                           <th>Item</th>
-                                                          <th>Qty</th>
                                                           <th>Price</th>
                                                           <th>Subtotal</th>
                                                         </thead>
                                                         <tbody>
                                                           $items
                                                           <tr class="total">
-                                                              <td class="alignright" width="80%">Total</td>
-                                                              <td></td>
+                                                              <td class="aligncenter" width="80%">Total</td>
                                                               <td></td>
                                                               <td class="alignright">$total</td>
                                                           </tr>
@@ -423,13 +431,17 @@ $css
                                      $location
                                     </td>
                                 </tr>
+                                <tr>
+                                  <td>Thank you for being our valued customer. We hope our product will meet your expectations. Let us know if you have any questions.</td>
+                                </tr>
                             </tbody></table>
                         </td>
                     </tr>
                 </tbody></table>
                 <div class="footer">
                     <table width="100%">
-                        <tbody><tr>
+                        <tbody>
+                        <tr>
                             <td class="aligncenter content-block">Questions? Email <a href="mailto:">support@company.inc</a></td>
                         </tr>
                     </tbody></table>
@@ -449,6 +461,8 @@ $css
     try {
       final sendReport = await send(message, smtpServer);
       print('Message sent: ${sendReport.toString()}');
+
+      await helper.deleteFile(filepath);
 
       return 'success';
     } on MailerException catch (e) {

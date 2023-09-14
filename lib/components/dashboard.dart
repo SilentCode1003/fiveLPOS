@@ -257,7 +257,9 @@ class _MyDashboardState extends State<MyDashboard> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const LoadingSpinner();
+          return LoadingSpinner(
+            message: 'Loading',
+          );
         });
 
     Future.delayed(const Duration(milliseconds: 1200), () {
@@ -423,9 +425,9 @@ class _MyDashboardState extends State<MyDashboard> {
           //   onLayout: (PdfPageFormat format) => pdfBytes,
           // );
 
-          Printing.directPrintPdf(
-              printer: const Printer(url: ''),
-              onLayout: (PdfPageFormat format) => pdfBytes);
+          // Printing.directPrintPdf(
+          //     printer: const Printer(url: ''),
+          //     onLayout: (PdfPageFormat format) => pdfBytes);
         } else if (Platform.isWindows) {
           List<Printer> printerList = await Printing.listPrinters();
           for (var printer in printerList) {
@@ -473,17 +475,21 @@ class _MyDashboardState extends State<MyDashboard> {
                             builder: (BuildContext context) {
                               return AlertDialog(
                                 title: const Text('Customer Email'),
-                                content: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    TextField(
-                                      controller: _emailController,
-                                      keyboardType: TextInputType.emailAddress,
-                                      decoration: const InputDecoration(
-                                          labelText: "Customer Email",
-                                          hintText: 'you@example.com'),
-                                    )
-                                  ],
+                                content: Container(
+                                  height: 200,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: _emailController,
+                                        keyboardType: TextInputType.emailAddress,
+                                        decoration: const InputDecoration(
+                                            labelText: "Customer Email",
+                                            hintText: 'you@example.com'),
+                                      )
+                                    ],
+                                  ),
                                 ),
                                 actions: [
                                   TextButton(
@@ -491,6 +497,15 @@ class _MyDashboardState extends State<MyDashboard> {
                                         String email = _emailController.text;
                                         if (isValidEmail(email)) {
                                           String message = '';
+
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return LoadingSpinner(
+                                                  message: 'Sending...',
+                                                );
+                                              });
                                           message = await Email().sendMail(
                                               detailid.toString(),
                                               email,
@@ -499,6 +514,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                               itemsList,
                                               paymenttype,
                                               referenceid);
+
+                                          Navigator.of(context).pop();
 
                                           _clearItems();
 

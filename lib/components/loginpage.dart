@@ -41,7 +41,7 @@ class _LoginPageState extends State<LoginPage> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const LoadingSpinner();
+          return  LoadingSpinner(message: 'Loading...',);
         });
 
     final response = await Login().authenticate(username, password);
@@ -103,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Image.asset('assets/asvesti.png'),
               ),
               Padding(
-                padding: EdgeInsets.all(120.0),
+                padding: EdgeInsets.all(40),
                 child: SizedBox(
                   width: 400,
                   child: Column(
