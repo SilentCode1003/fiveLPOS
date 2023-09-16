@@ -18,4 +18,19 @@ class SalesDetails {
 
     return data;
   }
+
+  Future<Map<String, dynamic>> getdetails(String detailid) async {
+    final url = Uri.parse('${Config.apiUrl}${Config.getdetailsAPI}');
+    final response = await http.post(url, body: {'detailid': detailid});
+
+    final responseData = json.decode(response.body);
+    final status = response.statusCode;
+    final msg = responseData['msg'];
+    final results = responseData['data'];
+
+    Map<String, dynamic> data = {};
+    data = {'msg': msg, 'status': status, 'data': results};
+
+    return data;
+  }
 }

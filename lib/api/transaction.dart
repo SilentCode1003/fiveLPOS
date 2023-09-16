@@ -12,9 +12,12 @@ class POSTransaction {
       String posid,
       String shift,
       String paymenttype,
+      String referenceid,
+      String paymentname,
       String items,
       String total,
-      String cashier) async {
+      String cashier,
+      String amount) async {
     final url = Uri.parse('${Config.apiUrl}${Config.salesDetailAPI}');
     final response = await http.post(url, body: {
       'detailid': detailid,
@@ -25,6 +28,9 @@ class POSTransaction {
       'description': items,
       'total': total,
       'cashier': cashier,
+      'paymentname': paymentname,
+      'referenceid': referenceid,
+      'amount': amount
     });
 
     final responseData = json.decode(response.body);

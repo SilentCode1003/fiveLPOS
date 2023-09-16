@@ -234,7 +234,6 @@ class Receipt {
                     ),
                     pw.SizedBox(height: 5),
                     pw.Text(
-                      
                       '${address[0]},${address[1]},\n${address[2]},${address[4]}',
                       style: const pw.TextStyle(fontSize: 8),
                       textAlign: pw.TextAlign.center,
@@ -258,12 +257,28 @@ class Receipt {
                 margin: const pw.EdgeInsets.symmetric(
                     vertical: 10), // Adjust vertical spacing
               ),
-              pw.Text(
-                datetime(),
-                style: const pw.TextStyle(fontSize: 8),
-                textAlign: pw.TextAlign.center,
-              ),
-              pw.SizedBox(height: 5),
+              pw.Row(children: [
+                pw.Container(
+                  width: 100,
+                  child: pw.Text(
+                    'OR: ${officialreceipt()}',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+                pw.Container(
+                  width: 100,
+                  child: pw.Text(
+                    'Date: ${datetime()}',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+              ]),
+              // pw.Text(
+              //   datetime(),
+              //   style: const pw.TextStyle(fontSize: 8),
+              //   textAlign: pw.TextAlign.center,
+              // ),
+              // pw.SizedBox(height: 5),
               if (paymenttype == 'EPAYMENT')
                 pw.Row(
                   children: [
@@ -289,7 +304,7 @@ class Receipt {
                   pw.Container(
                     width: 100,
                     child: pw.Text(
-                      'OR: ${officialreceipt()}',
+                      'Shift: $shift',
                       style: const pw.TextStyle(fontSize: 8),
                     ),
                   ),

@@ -6,14 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pos2/components/areceipt.dart';
+import 'package:pos2/api/posshiftlog.dart';
 import 'package:pos2/components/loadingspinner.dart';
 import 'package:pos2/components/loginpage.dart';
-import 'package:pos2/components/sendreceipt.dart';
 import 'package:pos2/model/productprice.dart';
 import 'package:pos2/api/category.dart';
 import 'package:pos2/repository/customerhelper.dart';
-import 'package:pos2/api/detailsales.dart';
+import 'package:pos2/api/salesdetails.dart';
 import 'package:pos2/api/productprice.dart';
 import 'package:pos2/repository/dbhelper.dart';
 import 'package:pos2/repository/email.dart';
@@ -57,9 +56,12 @@ class _MyDashboardState extends State<MyDashboard> {
   String address = "";
   String tin = "";
   String posid = "";
+  String shift = "";
+  bool isStartShift = false;
 
   final TextEditingController _serialNumberController = TextEditingController();
   final TextEditingController _referenceidController = TextEditingController();
+  final TextEditingController _receiptORController = TextEditingController();
 
   Helper helper = Helper();
   DatabaseHelper dbHelper = DatabaseHelper();
@@ -70,10 +72,115 @@ class _MyDashboardState extends State<MyDashboard> {
     // TODO: implement initState
     // _getbranch();
     _getposconfig();
-
     _getcategory();
-
     super.initState();
+  }
+
+  Future<void> _getPOSShift(posid) async {
+    final results = await POSShiftLogAPI().getPOSShift(posid);
+    final jsonData = json.encode(results['data']);
+
+    print(jsonData);
+
+    if (jsonData.length == 2) {
+      print('empty');
+      setState(() {
+        isStartShift = true;
+      });
+    }
+
+    for (var data in json.decode(jsonData)) {
+      print('processing');
+      shift = data['shift'];
+      if (data['status'] != 'START') {
+        setState(() {
+          isStartShift = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _startShift(BuildContext context, posid) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return LoadingSpinner(
+            message: 'Loading',
+          );
+        });
+
+    final results = await POSShiftLogAPI().startShift(posid);
+    // final jsonData = json.encode(results['data']);
+    print(results['msg']);
+
+    if (results['msg'] == 'success') {
+      setState(() {
+        isStartShift = false;
+      });
+    }
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.pop(context);
+      Navigator.pop(context);
+
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Shift started!'),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    });
+  }
+
+  Future<void> _getdetails(BuildContext context, detailid) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return LoadingSpinner(
+            message: 'Loading',
+          );
+        });
+
+    final results = await SalesDetails().getdetails(detailid);
+    final jsonData = json.encode(results['data']);
+
+    if (results['msg'] == 'success') {
+      Navigator.of(context).pop();
+    }
+
+    print(jsonData);
+
+    if (jsonData.length == 2) {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Not Found'),
+              content: Text('OR Number $detailid not found'),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    } else {}
   }
 
   Future<void> _getposconfig() async {
@@ -84,6 +191,7 @@ class _MyDashboardState extends State<MyDashboard> {
         posid = pos['posid'].toString();
         print(posid);
         _getdetailid(posid);
+        _getPOSShift(posid);
       });
     }
   }
@@ -103,19 +211,6 @@ class _MyDashboardState extends State<MyDashboard> {
       }
     });
   }
-
-  // Future<void> _getbranch() async {
-  //   final results = await BranchAPI().getBranch();
-  //   final jsonData = json.encode(results['data']);
-
-  //   setState(() {
-  //     for (var data in json.decode(jsonData)) {
-  //       companyname = data['branchname'];
-  //       tin = data['tin'];
-  //       address = data['address'];
-  //     }
-  //   });
-  // }
 
   Future<void> _getcategory() async {
     final results = await CategoryAPI().getCategory();
@@ -313,8 +408,6 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   void others() {
-    bool isStartShift = false;
-
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -327,7 +420,11 @@ class _MyDashboardState extends State<MyDashboard> {
                       style: ButtonStyle(
                           fixedSize:
                               MaterialStateProperty.all(const Size(120, 80))),
-                      onPressed: isStartShift ? () {} : null,
+                      onPressed: isStartShift
+                          ? () {
+                              _startShift(context, posid);
+                            }
+                          : null,
                       child: const Text(
                         'START\nSHIFT',
                         style: TextStyle(
@@ -349,7 +446,43 @@ class _MyDashboardState extends State<MyDashboard> {
                       style: ButtonStyle(
                           fixedSize:
                               MaterialStateProperty.all(const Size(120, 80))),
-                      onPressed: () {},
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Re-printing'),
+                                content: SizedBox(
+                                  height: 80,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: _receiptORController,
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                            labelText: "OR Number",
+                                            hintText: '200000001'),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () async {
+                                      String receiptOR =
+                                          _receiptORController.text.trim();
+                                      Navigator.of(context).pop();
+                                      _getdetails(context, receiptOR);
+                                    },
+                                    child: const Text('Print'),
+                                  ),
+                                ],
+                              );
+                            });
+                      },
                       child: const Text(
                         'RE-PRINT',
                         style: TextStyle(
@@ -398,12 +531,22 @@ class _MyDashboardState extends State<MyDashboard> {
     String total,
     String cashier,
     String referenceid,
-    String epaymenttype,
+    String paymentname,
   ) async {
     try {
       final TextEditingController _emailController = TextEditingController();
       final result = await POSTransaction().sending(
-          detailid, date, posid, shift, paymenttype, items, total, cashier);
+          detailid,
+          date,
+          posid,
+          shift,
+          paymenttype,
+          referenceid,
+          paymentname,
+          items,
+          total,
+          cashier,
+          cashAmount.toString());
       final pdfBytes = await Receipt(
               itemsList,
               cashAmount,
@@ -416,7 +559,7 @@ class _MyDashboardState extends State<MyDashboard> {
               tin,
               paymenttype,
               referenceid,
-              epaymenttype)
+              paymentname)
           .printReceipt();
 
       if (result['msg'] == 'success') {
@@ -439,6 +582,8 @@ class _MyDashboardState extends State<MyDashboard> {
           }
         }
 
+        _clearItems();
+
         // ignore: use_build_context_synchronously
         showDialog(
             context: context,
@@ -450,7 +595,6 @@ class _MyDashboardState extends State<MyDashboard> {
                   TextButton(
                     onPressed: () async {
                       Navigator.of(context).pop();
-
                       // Navigator.push(
                       //   context,
                       //   MaterialPageRoute(
@@ -483,7 +627,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                     children: [
                                       TextField(
                                         controller: _emailController,
-                                        keyboardType: TextInputType.emailAddress,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
                                         decoration: const InputDecoration(
                                             labelText: "Customer Email",
                                             hintText: 'you@example.com'),
@@ -945,6 +1090,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                 children: [
                                   ElevatedButton(
                                     onPressed: () {
+                                      String paymenttype = 'EPAYMENT';
                                       showDialog(
                                           context: context,
                                           builder: (BuildContext context) {
@@ -1022,6 +1168,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                     onPressed:
                                                                         () {
                                                                       String
+                                                                          paymentname =
+                                                                          "GCASH";
+                                                                      String
                                                                           message =
                                                                           "";
                                                                       String
@@ -1072,13 +1221,13 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                             detailid.toString(),
                                                                             posid,
                                                                             helper.GetCurrentDatetime(),
-                                                                            '1',
-                                                                            'EPAYMENT',
+                                                                            shift,
+                                                                            paymenttype,
                                                                             jsonEncode(itemsList),
                                                                             calculateGrandTotal().toString(),
                                                                             widget.fullname,
                                                                             referenceid,
-                                                                            'GCASH');
+                                                                            paymentname);
 
                                                                         Navigator.of(context)
                                                                             .pop();
@@ -1118,6 +1267,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     ),
                                                     ElevatedButton(
                                                       onPressed: () {
+                                                        String paymentname =
+                                                            'PAYMAYA';
                                                         showDialog(
                                                             context: context,
                                                             builder:
@@ -1232,13 +1383,13 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                             detailid.toString(),
                                                                             posid,
                                                                             helper.GetCurrentDatetime(),
-                                                                            '1',
-                                                                            'EPAYMENT',
+                                                                            shift,
+                                                                            paymenttype,
                                                                             jsonEncode(itemsList),
                                                                             calculateGrandTotal().toString(),
                                                                             widget.fullname,
                                                                             referenceid,
-                                                                            'PAYMAYA');
+                                                                            paymentname);
 
                                                                         Navigator.of(context)
                                                                             .pop();
@@ -1385,7 +1536,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         posid,
                                                         helper
                                                             .GetCurrentDatetime(),
-                                                        '1',
+                                                        shift,
                                                         'CASH',
                                                         jsonEncode(itemsList),
                                                         calculateGrandTotal()
@@ -1505,48 +1656,6 @@ class _MyDashboardState extends State<MyDashboard> {
                 runSpacing: 8, // Adjust the vertical spacing between rows
                 children: category),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class ReceiptScreen extends StatefulWidget {
-  double cash;
-  List<Map<String, dynamic>> items;
-  String detailid;
-  String posid;
-  String cashier;
-  String shift;
-
-  ReceiptScreen(
-      {super.key,
-      required this.cash,
-      required this.items,
-      required this.detailid,
-      required this.posid,
-      required this.shift,
-      required this.cashier});
-
-  @override
-  State<ReceiptScreen> createState() => _ReceiptScreenState();
-}
-
-class _ReceiptScreenState extends State<ReceiptScreen> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Receipt'),
-      ),
-      body: Center(
-        child: AReceipt(
-          cash: widget.cash,
-          items: widget.items,
-          cashier: widget.cashier,
-          detailid: widget.detailid,
-          posid: widget.posid,
-          shift: widget.shift,
         ),
       ),
     );
