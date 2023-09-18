@@ -14,7 +14,201 @@ import 'package:sqflite_common/sqlite_api.dart';
 class Email {
   DatabaseHelper dbHelper = DatabaseHelper();
   Helper helper = Helper();
-  final String css = """
+  CSS css = CSS();
+
+  Future<String> sendMail(
+      String or,
+      String recipient,
+      Uint8List ereceipt,
+      String cashier,
+      List<Map<String, dynamic>> itemsList,
+      String paymenttype,
+      String referenceid) async {
+    String id = '';
+    String posname = '';
+    String serial = '';
+    String min = '';
+    String ptu = '';
+
+    String branchid = '';
+    String branchname = '';
+    String tin = '';
+    List<String> address = [];
+    String logo = '';
+    String username = '';
+    String password = '';
+    String emailserver = '';
+
+    String date = helper.GetCurrentDatetime();
+
+    Database db = await dbHelper.database;
+    List<Map<String, dynamic>> posconfig = await db.query('pos');
+    for (var pos in posconfig) {
+      id = pos['posid'].toString();
+      posname = pos['posname'];
+      serial = pos['serial'];
+      min = pos['min'];
+      ptu = 'PTU: ${pos['ptu']}';
+    }
+
+    List<Map<String, dynamic>> branchconfig = await db.query('branch');
+    for (var branch in branchconfig) {
+      branchid = branch['branchid'].toString();
+      branchname = branch['branchname'];
+      tin = 'VAT REG TIN: ${branch['tin']}';
+      address = branch['address'].toString().split(',').toList();
+      logo = branch['logo'];
+    }
+
+    List<Map<String, dynamic>> emailconfig = await db.query('email');
+    for (var email in emailconfig) {
+      username = email['emailaddress'];
+      password = email['emailpassword'];
+      emailserver = email['emailserver'];
+    }
+
+    String location = '';
+    for (String addr in address) {
+      location += '$addr ';
+    }
+
+    double total = 0;
+    String items = '';
+    for (int index = 0; index < itemsList.length; index++) {
+      items += """
+          <tr>
+            <td>${itemsList[index]['name']} x ${itemsList[index]['quantity']} </td>
+            <td class="alignright">${helper.formatAsCurrency(itemsList[index]['price'])}</td>
+            <td class="alignright">${helper.formatAsCurrency(itemsList[index]['price'] * itemsList[index]['quantity'])} </td>
+          </tr>
+        """;
+
+      total += itemsList[index]['price'] * itemsList[index]['quantity'];
+    }
+
+    String details = '';
+    if (paymenttype != 'CASH') {
+      details =
+          'Cashier: $cashier<br>POS ID:$id<br>OR#: $or<br>Date: $date<br>Payment Type: $paymenttype<br>Ref. #: $referenceid';
+    } else {
+      details =
+          'Cashier: $cashier<br>POS ID:$id<br>OR#: $or<br>Date: $date<br>Payment Type: $paymenttype';
+    }
+
+    final directory = await getTemporaryDirectory();
+    String filepath = '${directory.path}/$or.pdf';
+    final pdfFile = File(filepath);
+
+    await pdfFile.writeAsBytes(ereceipt);
+
+    final smtpServer = SmtpServer(emailserver,
+        username: username, password: password, port: 587, ssl: false);
+
+    final message = Message()
+      ..from = Address(username)
+      ..recipients.add(recipient)
+      ..subject = '$branchname - OR#:$or [E-Receipt]'
+      ..html = '''
+<html>
+<head>
+${css.css()}
+</head>
+<body>
+
+<table class="body-wrap">
+    <tbody><tr>
+        <td></td>
+        <td class="container" width="600">
+            <div class="content">
+                <table class="main" width="100%" cellpadding="0" cellspacing="0">
+                    <tbody><tr>
+                        <td class="content-wrap aligncenter">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tbody>
+                                <tr>
+                                    <td class="content-block">
+                                        <h2>$branchname</h2>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="content-block">
+                                        <table class="invoice">
+                                            <tbody>
+                                            <tr>
+                                                <td>$details</td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <table class="invoice-items" cellpadding="0" cellspacing="10">
+                                                        <thead>
+                                                          <th>Item</th>
+                                                          <th>Price</th>
+                                                          <th>Subtotal</th>
+                                                        </thead>
+                                                        <tbody>
+                                                          $items
+                                                          <tr class="total">
+                                                              <td class="aligncenter" width="60%">Total</td>
+                                                              <td></td>
+                                                              <td class="alignright">${helper.formatAsCurrency(total)}</td>
+                                                          </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </tbody></table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="content-block">
+                                     $location
+                                    </td>
+                                </tr>
+                                <tr>
+                                  <td>Thank you for being our valued customer. We hope our product will meet your expectations. Let us know if you have any questions.</td>
+                                </tr>
+                            </tbody></table>
+                        </td>
+                    </tr>
+                </tbody></table>
+                <div class="footer">
+                    <table width="100%">
+                        <tbody>
+                        <tr>
+                            <td class="aligncenter content-block">Questions? Email <a href="mailto:">support@company.inc</a></td>
+                        </tr>
+                    </tbody></table>
+                </div></div>
+        </td>
+        <td></td>
+    </tr>
+</tbody></table>
+</body>
+</html>
+
+
+
+              '''
+      ..attachments.add(FileAttachment(pdfFile));
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Message sent: ${sendReport.toString()}');
+
+      await helper.deleteFile(filepath);
+
+      return 'success';
+    } on MailerException catch (e) {
+      print('Message not sent. Error: ${e.message}');
+
+      return e.message;
+    }
+  }
+}
+
+class CSS {
+  String css() {
+    return """
 <style>
 /* -------------------------------------
     GLOBAL
@@ -66,7 +260,7 @@ body {
 }
 
 .content {
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
     display: block;
     padding: 20px;
@@ -281,194 +475,6 @@ a {
     }
 }
 </style>
-""";
-
-  Future<String> sendMail(
-      String or,
-      String recipient,
-      Uint8List ereceipt,
-      String cashier,
-      List<Map<String, dynamic>> itemsList,
-      String paymenttype,
-      String referenceid) async {
-    String id = '';
-    String posname = '';
-    String serial = '';
-    String min = '';
-    String ptu = '';
-
-    String branchid = '';
-    String branchname = '';
-    String tin = '';
-    List<String> address = [];
-    String logo = '';
-    String username = '';
-    String password = '';
-    String emailserver = '';
-
-    String date = helper.GetCurrentDatetime();
-
-    Database db = await dbHelper.database;
-    List<Map<String, dynamic>> posconfig = await db.query('pos');
-    for (var pos in posconfig) {
-      id = pos['posid'].toString();
-      posname = pos['posname'];
-      serial = pos['serial'];
-      min = pos['min'];
-      ptu = 'PTU: ${pos['ptu']}';
-    }
-
-    List<Map<String, dynamic>> branchconfig = await db.query('branch');
-    for (var branch in branchconfig) {
-      branchid = branch['branchid'].toString();
-      branchname = branch['branchname'];
-      tin = 'VAT REG TIN: ${branch['tin']}';
-      address = branch['address'].toString().split(',').toList();
-      logo = branch['logo'];
-    }
-
-    List<Map<String, dynamic>> emailconfig = await db.query('email');
-    for (var email in emailconfig) {
-      username = email['emailaddress'];
-      password = email['emailpassword'];
-      emailserver = email['emailserver'];
-    }
-
-    String location = '';
-    for (String addr in address) {
-      location += '$addr ';
-    }
-
-    double total = 0;
-    String items = '';
-    for (int index = 0; index < itemsList.length; index++) {
-      items += """
-          <tr>
-            <td>${itemsList[index]['name']} x ${itemsList[index]['quantity']} </td>
-            <td class="alignright">${itemsList[index]['price']}</td>
-            <td class="alignright">${itemsList[index]['price'] * itemsList[index]['quantity']} </td>
-          </tr>
-""";
-
-      total += itemsList[index]['price'] * itemsList[index]['quantity'];
-    }
-
-    String details = '';
-    if (paymenttype != 'CASH') {
-      details =
-          'Cashier: $cashier<br>POS ID:$id<br>OR#: $or<br>Date: $date<br>Payment Type: $paymenttype<br>Ref. #: $referenceid';
-    } else {
-      details =
-          'Cashier: $cashier<br>POS ID:$id<br>OR#: $or<br>Date: $date<br>Payment Type: $paymenttype';
-    }
-
-    final directory = await getTemporaryDirectory();
-    String filepath = '${directory.path}/$or.pdf';
-    final pdfFile = File(filepath);
-
-    await pdfFile.writeAsBytes(ereceipt);
-
-    final smtpServer = SmtpServer(emailserver,
-        username: username, password: password, port: 587, ssl: false);
-
-    final message = Message()
-      ..from = Address(username)
-      ..recipients.add(recipient)
-      ..subject = '$branchname - OR#:$or [E-Receipt]'
-      ..html = '''
-<html>
-<head>
-$css
-</head>
-<body>
-
-<table class="body-wrap">
-    <tbody><tr>
-        <td></td>
-        <td class="container" width="800">
-            <div class="content">
-                <table class="main" width="100%" cellpadding="0" cellspacing="0">
-                    <tbody><tr>
-                        <td class="content-wrap aligncenter">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                                <tbody>
-                                <tr>
-                                    <td class="content-block">
-                                        <h2>$branchname</h2>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="content-block">
-                                        <table class="invoice">
-                                            <tbody>
-                                            <tr>
-                                                <td>$details</td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <table class="invoice-items" cellpadding="0" cellspacing="10">
-                                                        <thead>
-                                                          <th>Item</th>
-                                                          <th>Price</th>
-                                                          <th>Subtotal</th>
-                                                        </thead>
-                                                        <tbody>
-                                                          $items
-                                                          <tr class="total">
-                                                              <td class="aligncenter" width="80%">Total</td>
-                                                              <td></td>
-                                                              <td class="alignright">$total</td>
-                                                          </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                        </tbody></table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="content-block">
-                                     $location
-                                    </td>
-                                </tr>
-                                <tr>
-                                  <td>Thank you for being our valued customer. We hope our product will meet your expectations. Let us know if you have any questions.</td>
-                                </tr>
-                            </tbody></table>
-                        </td>
-                    </tr>
-                </tbody></table>
-                <div class="footer">
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td class="aligncenter content-block">Questions? Email <a href="mailto:">support@company.inc</a></td>
-                        </tr>
-                    </tbody></table>
-                </div></div>
-        </td>
-        <td></td>
-    </tr>
-</tbody></table>
-</body>
-</html>
-
-
-
-              '''
-      ..attachments.add(FileAttachment(pdfFile));
-
-    try {
-      final sendReport = await send(message, smtpServer);
-      print('Message sent: ${sendReport.toString()}');
-
-      await helper.deleteFile(filepath);
-
-      return 'success';
-    } on MailerException catch (e) {
-      print('Message not sent. Error: ${e.message}');
-
-      return e.message;
-    }
+    """;
   }
 }

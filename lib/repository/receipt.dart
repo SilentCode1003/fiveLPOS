@@ -183,7 +183,7 @@ class Receipt {
     String branchid = '';
     String branchname = '';
     String tin = '';
-    List<String> address = [];
+    String address = '';
     List<String> logo = [];
 
     PdfPageFormat format = PdfPageFormat.roll80;
@@ -204,7 +204,7 @@ class Receipt {
       branchid = branch['branchid'].toString();
       branchname = branch['branchname'];
       tin = 'VAT REG TIN: ${branch['tin']}';
-      address = branch['address'].toString().split(',').toList();
+      address = branch['address'];
       logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
     }
 
@@ -234,7 +234,7 @@ class Receipt {
                     ),
                     pw.SizedBox(height: 5),
                     pw.Text(
-                      '${address[0]},${address[1]},\n${address[2]},${address[4]}',
+                      address,
                       style: const pw.TextStyle(fontSize: 8),
                       textAlign: pw.TextAlign.center,
                     ),
