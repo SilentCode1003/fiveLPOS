@@ -3,7 +3,7 @@ import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:pdf/pdf.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:pos2/dashboard.dart';
+import 'package:pos2/components/dashboard.dart';
 import 'package:pos2/repository/customerhelper.dart';
 import 'package:printing/printing.dart';
 

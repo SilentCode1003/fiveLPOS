@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:pos2/dashboard.dart';
+import 'package:pos2/components/dashboard.dart';
 
 import '../model/userinfo.dart';
-import '../repository/login.dart';
+import '../api/login.dart';
 import 'loadingspinner.dart';
 
 void main() {
@@ -41,7 +41,7 @@ class _LoginPageState extends State<LoginPage> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const LoadingSpinner();
+          return  LoadingSpinner(message: 'Loading...',);
         });
 
     final response = await Login().authenticate(username, password);
@@ -50,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
       final jsonData = json.encode(response['data']);
       final results = json.decode(jsonData);
       UserInfoModel userinfomodel = UserInfoModel(
-          results[0]['employeeid'],
+          results[0]['employeeid'].toString(),
           results[0]['fullname'],
           results[0]['position'],
           results[0]['contactinfo'],
@@ -92,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -103,8 +103,9 @@ class _LoginPageState extends State<LoginPage> {
                 child: Image.asset('assets/asvesti.png'),
               ),
               Padding(
-                padding: const EdgeInsets.only(left: 20.0, right: 20),
+                padding: EdgeInsets.all(40),
                 child: SizedBox(
+                  width: 400,
                   child: Column(
                     children: [
                       TextField(

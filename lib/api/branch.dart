@@ -7,9 +7,9 @@ import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class BranchAPI {
-  Future<Map<String, dynamic>> getBranch() async {
+  Future<Map<String, dynamic>> getBranch(String branchid) async {
     final url = Uri.parse('${Config.apiUrl}${Config.getBranchAPI}');
-    final response = await http.get(url);
+    final response = await http.post(url, body: {'branchid': branchid});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 
 class LoadingSpinner extends StatelessWidget {
-  const LoadingSpinner({super.key});
+  String message;
+  LoadingSpinner({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       content: Row(
-        children: const [
-          CircularProgressIndicator(),
-          SizedBox(width: 16.0),
-          Text('Loading...'),
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(width: 16.0),
+          Text(message),
         ],
       ),
     );
