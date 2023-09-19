@@ -18,6 +18,7 @@ import 'package:pos2/repository/dbhelper.dart';
 import 'package:pos2/repository/email.dart';
 import 'package:pos2/repository/receipt.dart';
 import 'package:pos2/api/transaction.dart';
+import 'package:pos2/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:sqflite_common/sqlite_api.dart';
 
@@ -58,6 +59,7 @@ class _MyDashboardState extends State<MyDashboard> {
   String posid = "";
   String shift = "";
   bool isStartShift = false;
+  bool isEndShift = false;
 
   final TextEditingController _serialNumberController = TextEditingController();
   final TextEditingController _referenceidController = TextEditingController();
@@ -86,6 +88,7 @@ class _MyDashboardState extends State<MyDashboard> {
       print('empty');
       setState(() {
         isStartShift = true;
+        isEndShift = false;
       });
     }
 
@@ -95,6 +98,10 @@ class _MyDashboardState extends State<MyDashboard> {
       if (data['status'] != 'START') {
         setState(() {
           isStartShift = true;
+        });
+      } else {
+        setState(() {
+          isEndShift = true;
         });
       }
     }
@@ -134,6 +141,51 @@ class _MyDashboardState extends State<MyDashboard> {
                 TextButton(
                   onPressed: () async {
                     Navigator.of(context).pop();
+                    await _getPOSShift(posid);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    });
+  }
+
+  Future<void> _endShift(BuildContext context, posid) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return LoadingSpinner(
+            message: 'Loading',
+          );
+        });
+
+    final results = await POSShiftLogAPI().endShift(posid);
+    // final jsonData = json.encode(results['data']);
+    print(results['msg']);
+
+    if (results['msg'] == 'success') {
+      setState(() {
+        isStartShift = false;
+      });
+    }
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.pop(context);
+      Navigator.pop(context);
+
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Shift Ended!'),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _getPOSShift(posid);
                   },
                   child: const Text('OK'),
                 ),
@@ -160,8 +212,6 @@ class _MyDashboardState extends State<MyDashboard> {
       Navigator.of(context).pop();
     }
 
-    print(jsonData);
-
     if (jsonData.length == 2) {
       showDialog(
           context: context,
@@ -180,7 +230,36 @@ class _MyDashboardState extends State<MyDashboard> {
               ],
             );
           });
-    } else {}
+    } else {
+      for (var data in json.decode(jsonData)) {
+        int amount = data['amount'];
+
+        final pdfBytes = ReprintingReceipt(
+                data['ornumber'],
+                data['ordate'],
+                data['ordescription'],
+                data['orpaymenttype'],
+                data['posid'],
+                data['shift'],
+                data['cashier'],
+                double.parse(data['total']),
+                data['epaymentname'],
+                data['referenceid'],
+                amount.toDouble())
+            .printReceipt();
+
+        if (Platform.isWindows) {
+          List<Printer> printerList = await Printing.listPrinters();
+          for (var printer in printerList) {
+            if (printer.isDefault) {
+              Printing.directPrintPdf(
+                  printer: printer,
+                  onLayout: (PdfPageFormat format) => pdfBytes);
+            }
+          }
+        }
+      }
+    }
   }
 
   Future<void> _getposconfig() async {
@@ -435,7 +514,11 @@ class _MyDashboardState extends State<MyDashboard> {
                       style: ButtonStyle(
                           fixedSize:
                               MaterialStateProperty.all(const Size(120, 80))),
-                      onPressed: () {},
+                      onPressed: isEndShift
+                          ? () {
+                              _endShift(context, posid);
+                            }
+                          : null,
                       child: const Text(
                         'END\nSHIFT',
                         style: TextStyle(
