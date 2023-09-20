@@ -324,7 +324,7 @@ class _MyDashboardState extends State<MyDashboard> {
               pdfBytes,
               data['cashier'],
               items,
-              data['orpaymenttype'],
+              data['epaymentname'],
               data['referenceid']);
         }
       }
@@ -495,65 +495,84 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   void _showSimpleDialog(BuildContext context, category) async {
-    _getcategoryitems(category);
-
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return LoadingSpinner(
-            message: 'Loading',
-          );
-        });
-
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      Navigator.of(context).pop();
-
-      final List<Widget> product = List<Widget>.generate(
-          productList.length,
-          (index) => SizedBox(
-                height: 60,
-                width: 120,
-                child: ElevatedButton(
+    if (isStartShift != false) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Shift'),
+              content: const Text('Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
+              actions: [
+                TextButton(
                   onPressed: () {
-                    // Add your button press logic here
-                    addItem(productList[index].description,
-                        double.parse(productList[index].price), 1);
+                    Navigator.of(context).pop(); // Close the dialog
                   },
-                  child: Text(
-                    productList[index].description,
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: const Text('OK'),
                 ),
-              ));
+              ],
+            );
+          });
+    } else {
+      _getcategoryitems(category);
 
       showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Center(child: Text('Products')),
-            content: SingleChildScrollView(
-              child: Center(
-                child: Wrap(
-                    spacing: 8, // Adjust the spacing between buttons
-                    runSpacing: 8, // Adjust the vertical spacing between rows
-                    children: product),
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return LoadingSpinner(
+              message: 'Loading',
+            );
+          });
+
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        Navigator.of(context).pop();
+
+        final List<Widget> product = List<Widget>.generate(
+            productList.length,
+            (index) => SizedBox(
+                  height: 60,
+                  width: 120,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Add your button press logic here
+                      addItem(productList[index].description,
+                          double.parse(productList[index].price), 1);
+                    },
+                    child: Text(
+                      productList[index].description,
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ));
+
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Center(child: Text('Products')),
+              content: SingleChildScrollView(
+                child: Center(
+                  child: Wrap(
+                      spacing: 8, // Adjust the spacing between buttons
+                      runSpacing: 8, // Adjust the vertical spacing between rows
+                      children: product),
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                child: const Text('Close'),
-              ),
-            ],
-          );
-        },
-      );
-    });
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      });
+    }
   }
 
   void others() {
@@ -924,7 +943,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                               pdfBytes,
                                               cashier,
                                               itemsList,
-                                              paymenttype,
+                                              paymentname,
                                               referenceid);
 
                                           Navigator.of(context).pop();
