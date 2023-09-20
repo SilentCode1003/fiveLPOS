@@ -582,8 +582,6 @@ class _MyDashboardState extends State<MyDashboard> {
           }
         }
 
-        _clearItems();
-
         // ignore: use_build_context_synchronously
         showDialog(
             context: context,
@@ -595,6 +593,7 @@ class _MyDashboardState extends State<MyDashboard> {
                   TextButton(
                     onPressed: () async {
                       Navigator.of(context).pop();
+                      _clearItems();
                       // Navigator.push(
                       //   context,
                       //   MaterialPageRoute(
@@ -723,7 +722,9 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text('Send E-Receipt')),
                 ],
               );
-            });
+            }).then((value) {
+          _clearItems();
+        });
       } else {
         // ignore: use_build_context_synchronously
         showDialog(
