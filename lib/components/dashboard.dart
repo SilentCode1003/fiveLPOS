@@ -262,6 +262,76 @@ class _MyDashboardState extends State<MyDashboard> {
     }
   }
 
+  Future<String> _semdreceipt(email, ornumber) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return LoadingSpinner(
+            message: 'Loading',
+          );
+        });
+
+    final results = await SalesDetails().getdetails(ornumber);
+    final jsonData = json.encode(results['data']);
+
+    if (results['msg'] == 'success') {
+      Navigator.of(context).pop();
+      if (jsonData.length == 2) {
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Not Found'),
+                content: Text('OR Number $detailid not found'),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+
+        return 'notfound';
+      } else {
+        for (var data in json.decode(jsonData)) {
+          int amount = data['amount'];
+
+          final pdfBytes = await ReprintingReceipt(
+                  data['ornumber'],
+                  data['ordate'],
+                  data['ordescription'],
+                  data['orpaymenttype'],
+                  data['posid'],
+                  data['shift'],
+                  data['cashier'],
+                  double.parse(data['total']),
+                  data['epaymentname'],
+                  data['referenceid'],
+                  amount.toDouble())
+              .printReceipt();
+
+          List<Map<String, dynamic>> items = List<Map<String, dynamic>>.from(
+              jsonDecode(data['ordescription']));
+
+          await Email().sendMail(
+              data['ornumber'],
+              email,
+              pdfBytes,
+              data['cashier'],
+              items,
+              data['orpaymenttype'],
+              data['referenceid']);
+        }
+      }
+    }
+    return 'success';
+  }
+
   Future<void> _getposconfig() async {
     Database db = await dbHelper.database;
     List<Map<String, dynamic>> posconfig = await db.query('pos');
@@ -576,7 +646,122 @@ class _MyDashboardState extends State<MyDashboard> {
                       style: ButtonStyle(
                           fixedSize:
                               MaterialStateProperty.all(const Size(120, 80))),
-                      onPressed: () {},
+                      onPressed: () {
+                        final TextEditingController _emailController =
+                            TextEditingController();
+                        final TextEditingController _ornumberController =
+                            TextEditingController();
+
+                        Navigator.of(context).pop();
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Customer Email'),
+                                content: Container(
+                                  height: 200,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: _emailController,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        decoration: const InputDecoration(
+                                            labelText: "Customer Email",
+                                            hintText: 'you@example.com'),
+                                      ),
+                                      TextField(
+                                        controller: _ornumberController,
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                            labelText: "OR Number",
+                                            hintText: '200000001'),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () async {
+                                        String email = _emailController.text;
+                                        String ornumber =
+                                            _ornumberController.text;
+                                        if (isValidEmail(email)) {
+                                          String message = '';
+
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return LoadingSpinner(
+                                                  message: 'Sending...',
+                                                );
+                                              });
+                                          message = await _semdreceipt(
+                                              email, ornumber);
+
+                                          Navigator.of(context).pop();
+
+                                          _clearItems();
+
+                                          if (message != 'success') {
+                                          } else {
+                                            Navigator.of(context).pop();
+                                            showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title:
+                                                        const Text('Success'),
+                                                    content: const Text(
+                                                        'E-Receipt sent successfully!'),
+                                                    actions: [
+                                                      TextButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                          child:
+                                                              const Text('Ok'))
+                                                    ],
+                                                  );
+                                                });
+                                          }
+                                        } else {
+                                          showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('Invalid'),
+                                                  content: const Text(
+                                                      'Invalid Email Address!'),
+                                                  actions: [
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                        child:
+                                                            const Text('Close'))
+                                                  ],
+                                                );
+                                              });
+                                        }
+                                      },
+                                      child: const Text("Send")),
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text("Close")),
+                                ],
+                              );
+                            });
+                      },
                       child: const Text(
                         'SEND\nE-RECEIPT',
                         style: TextStyle(
@@ -744,8 +929,6 @@ class _MyDashboardState extends State<MyDashboard> {
 
                                           Navigator.of(context).pop();
 
-                                          _clearItems();
-
                                           if (message != 'success') {
                                           } else {
                                             Navigator.of(context).pop();
@@ -770,6 +953,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     ],
                                                   );
                                                 });
+
+                                            _clearItems();
                                           }
                                         } else {
                                           showDialog(
@@ -805,9 +990,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text('Send E-Receipt')),
                 ],
               );
-            }).then((value) {
-          _clearItems();
-        });
+            });
       } else {
         // ignore: use_build_context_synchronously
         showDialog(
@@ -941,10 +1124,10 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
                 child: SingleChildScrollView(
                   child: DataTable(
-                    // columnSpacing: 20,
+                    columnSpacing: 10,
                     columns: const [
                       DataColumn(
-                          label: Text('Description',
+                          label: Text('Name',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Price',
@@ -953,58 +1136,73 @@ class _MyDashboardState extends State<MyDashboard> {
                           label: Text('Qty',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
-                          label: Text('Sub Total',
+                          label: Text('Total',
                               style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('')),
+                      // DataColumn(label: Text('')),
                     ],
                     rows: itemsList.asMap().entries.map((entry) {
                       int index = entry.key;
                       Map<String, dynamic> product = entry.value;
                       double totalCost = product['price'] * product['quantity'];
                       return DataRow(cells: [
-                        DataCell(Text(product['name'])),
-                        DataCell(Text(formatAsCurrency(product['price']))),
-                        DataCell(Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove, size: 20),
-                              color: const Color.fromARGB(255, 213, 86, 86),
-                              onPressed: () {
-                                if (product['quantity'] > 0) {
-                                  updateQuantity(
-                                      index, product['quantity'] - 1);
-                                }
-                              },
-                            ),
-                            Expanded(
-                              child: SizedBox(
-                                child: TextField(
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (newQuantity) {
-                                    int parsedQuantity =
-                                        int.tryParse(newQuantity) ?? 0;
-                                    updateQuantity(index, parsedQuantity);
+                        DataCell(SizedBox(
+                            width: 50,
+                            child: Text(
+                              product['name'],
+                            ))),
+                        DataCell(
+                          SizedBox(
+                            width: 60,
+                            child: Text(formatAsCurrency(product['price'])),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: 120,
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove, size: 20),
+                                  color: const Color.fromARGB(255, 213, 86, 86),
+                                  onPressed: () {
+                                    if (product['quantity'] > 0) {
+                                      updateQuantity(
+                                          index, product['quantity'] - 1);
+                                    }
                                   },
-                                  controller: TextEditingController(
-                                      text: product['quantity'].toString()),
                                 ),
-                              ),
+                                Expanded(
+                                  child: SizedBox(
+                                    child: TextField(
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (newQuantity) {
+                                        int parsedQuantity =
+                                            int.tryParse(newQuantity) ?? 0;
+                                        updateQuantity(index, parsedQuantity);
+                                      },
+                                      controller: TextEditingController(
+                                          text: product['quantity'].toString()),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add, size: 20),
+                                  color: const Color.fromARGB(255, 92, 213, 86),
+                                  onPressed: () {
+                                    updateQuantity(
+                                        index, product['quantity'] + 1);
+                                  },
+                                ),
+                              ],
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.add, size: 20),
-                              color: const Color.fromARGB(255, 92, 213, 86),
-                              onPressed: () {
-                                updateQuantity(index, product['quantity'] + 1);
-                              },
-                            ),
-                          ],
-                        )),
+                          ),
+                        ),
                         DataCell(Text(formatAsCurrency(totalCost))),
-                        DataCell(IconButton(
-                          icon: const Icon(Icons.delete),
-                          color: const Color.fromARGB(255, 58, 58, 67),
-                          onPressed: () => confirmAndRemove(index),
-                        )),
+                        // DataCell(IconButton(
+                        //   icon: const Icon(Icons.delete),
+                        //   color: const Color.fromARGB(255, 58, 58, 67),
+                        //   onPressed: () => confirmAndRemove(index),
+                        // )),
                       ]);
                     }).toList(),
                   ),
