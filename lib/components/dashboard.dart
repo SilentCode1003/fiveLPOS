@@ -63,6 +63,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
   double splitcash = 0;
   double splitepayamount = 0;
+  double remaining = 0;
 
   final TextEditingController _serialNumberController = TextEditingController();
   final TextEditingController _referenceidController = TextEditingController();
@@ -83,6 +84,14 @@ class _MyDashboardState extends State<MyDashboard> {
     _getposconfig();
     _getcategory();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _splitCashController.dispose();
+    _splitAmountController.dispose();
+
+    super.dispose();
   }
 
   Future<void> _getPOSShift(posid) async {
@@ -1132,7 +1141,21 @@ class _MyDashboardState extends State<MyDashboard> {
   void _clearItems() {
     setState(() {
       itemsList.clear();
+      _referenceidController.clear();
+      _splitReferenceidController.clear();
+      _splitCashController.clear();
+      _splitAmountController.clear();
     });
+  }
+
+  double _remaining() {
+    double total = calculateGrandTotal();
+
+    setState(() {
+      remaining = total - (splitcash + splitepayamount);
+    });
+
+    return remaining;
   }
 
   Future<void> _splitpayment(
@@ -1177,6 +1200,7 @@ class _MyDashboardState extends State<MyDashboard> {
         .printReceipt();
 
     if (result['msg'] == 'success') {
+      Navigator.of(context);
       if (Platform.isAndroid) {
         // Printing.layoutPdf(
         //   onLayout: (PdfPageFormat format) => pdfBytes,
@@ -2168,6 +2192,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                   const SizedBox(width: 16),
                                   ElevatedButton(
                                       onPressed: () {
+                                        _remaining();
+
                                         showDialog(
                                             context: context,
                                             builder: (BuildContext context) {
@@ -2179,6 +2205,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                   children: [
                                                     Text(
                                                         'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                    const SizedBox(
+                                                      height: 10,
+                                                    ),
                                                     TextField(
                                                       keyboardType:
                                                           TextInputType.number,
@@ -2202,6 +2231,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                               double.tryParse(
                                                                       numericValue) ??
                                                                   0;
+
+                                                          _remaining();
                                                         });
                                                       },
                                                       controller:
@@ -2245,6 +2276,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                           labelText:
                                                               "Reference ID"),
                                                     ),
+                                                    const SizedBox(
+                                                      height: 10,
+                                                    ),
                                                     TextField(
                                                       controller:
                                                           _splitAmountController,
@@ -2268,6 +2302,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                               double.tryParse(
                                                                       numericValue) ??
                                                                   0;
+
+                                                          _remaining();
                                                         });
                                                       },
                                                       decoration:
@@ -2298,16 +2334,38 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         if (totaltendered ==
                                                             0) {
                                                           message +=
-                                                              "Please enter amount to proceed.";
+                                                              "Please enter amount to proceed.\n";
                                                           title +=
                                                               "[Enter Amount]";
                                                         }
                                                         if (totaltendered <
                                                             calculateGrandTotal()) {
                                                           message +=
-                                                              "Please enter the right amount received from e-payment or cash.";
+                                                              "Please enter the right amount received from e-payment or cash.\n";
                                                           title +=
                                                               "[Insufficient Funds]";
+                                                        }
+                                                        if (splitReferenceid ==
+                                                            "") {
+                                                          message +=
+                                                              "Please enter reference id.\n";
+                                                          title +=
+                                                              "[Reference ID]";
+                                                        }
+
+                                                        if (remaining > 0) {
+                                                          message +=
+                                                              "Remaining: $remaining\n";
+                                                          title +=
+                                                              "[Remaining Balance]";
+                                                        }
+
+                                                        if (splitEPaymentType ==
+                                                            'Select Payment Type') {
+                                                          message +=
+                                                              "Please select payment type\n";
+                                                          title +=
+                                                              "[Payment Type]";
                                                         }
 
                                                         if (message != "") {
@@ -2325,6 +2383,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                               });
                                                         } else {
                                                           detailid++;
+
                                                           _splitpayment(
                                                             splitcash,
                                                             splitepayamount,
@@ -2336,6 +2395,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                             jsonEncode(
                                                                 itemsList),
                                                           );
+
+                                                          Navigator.pop(
+                                                              context);
 
                                                           Navigator.pop(
                                                               context);
