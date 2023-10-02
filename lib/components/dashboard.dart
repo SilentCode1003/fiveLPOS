@@ -58,6 +58,7 @@ class _MyDashboardState extends State<MyDashboard> {
   String tin = "";
   String posid = "";
   String shift = "";
+  String branchid = "";
   bool isStartShift = false;
   bool isEndShift = false;
 
@@ -133,7 +134,8 @@ class _MyDashboardState extends State<MyDashboard> {
           );
         });
 
-    final results = await POSShiftLogAPI().startShift(posid);
+    final results = await POSShiftLogAPI()
+        .startShift(posid, widget.fullname, (detailid + 1).toString());
     // final jsonData = json.encode(results['data']);
     print(results['msg']);
 
@@ -177,7 +179,7 @@ class _MyDashboardState extends State<MyDashboard> {
           );
         });
 
-    final results = await POSShiftLogAPI().endShift(posid);
+    final results = await POSShiftLogAPI().endShift(posid, detailid.toString());
     // final jsonData = json.encode(results['data']);
     print(results['msg']);
 
@@ -420,6 +422,13 @@ class _MyDashboardState extends State<MyDashboard> {
         print(posid);
         _getdetailid(posid);
         _getPOSShift(posid);
+      });
+    }
+
+    List<Map<String, dynamic>> branchconfig = await db.query('branch');
+    for (var branch in branchconfig) {
+      setState(() {
+        branchid = branch['branchid'].toString();
       });
     }
   }
@@ -920,7 +929,8 @@ class _MyDashboardState extends State<MyDashboard> {
           total,
           cashier,
           cashAmount.toString(),
-          '0');
+          '0',
+          branchid);
       final pdfBytes = await Receipt(
               itemsList,
               cashAmount,
@@ -1170,18 +1180,20 @@ class _MyDashboardState extends State<MyDashboard> {
     final TextEditingController _emailController = TextEditingController();
     double total = cashamount + epayamount;
     final result = await POSTransaction().sending(
-        detailid,
-        helper.GetCurrentDatetime(),
-        posid,
-        shift,
-        paymentmethod,
-        referenceid,
-        epaymentname,
-        items,
-        total.toString(),
-        cashier,
-        cashamount.toString(),
-        epayamount.toString());
+      detailid,
+      helper.GetCurrentDatetime(),
+      posid,
+      shift,
+      paymentmethod,
+      referenceid,
+      epaymentname,
+      items,
+      total.toString(),
+      cashier,
+      cashamount.toString(),
+      epayamount.toString(),
+      branchid,
+    );
 
     final pdfBytes = await Receipt(
             itemsList,
@@ -1692,7 +1704,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              content: Row(
+                              content: Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
                                 children: [
                                   ElevatedButton(
                                     onPressed: () {
@@ -2045,12 +2059,10 @@ class _MyDashboardState extends State<MyDashboard> {
                                           });
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(120, 100),
+                                      minimumSize: const Size(120, 60),
                                     ),
                                     child: const Text('E-PAYMENT'),
                                   ),
-                                  const SizedBox(
-                                      width: 16), // Add spacing between buttons
                                   ElevatedButton(
                                     onPressed: () {
                                       showDialog(
@@ -2156,8 +2168,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         calculateGrandTotal()
                                                             .toString(),
                                                         widget.fullname,
-                                                        'none',
-                                                        'none');
+                                                        'CASH',
+                                                        'CASH');
 
                                                     Navigator.of(context).pop();
                                                     Navigator.of(context).pop();
@@ -2185,11 +2197,10 @@ class _MyDashboardState extends State<MyDashboard> {
                                       );
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(120, 100),
+                                      minimumSize: const Size(120, 60),
                                     ),
                                     child: const Text('CASH'),
                                   ),
-                                  const SizedBox(width: 16),
                                   ElevatedButton(
                                       onPressed: () {
                                         _remaining();
@@ -2415,9 +2426,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                             });
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size(120, 100),
+                                        minimumSize: const Size(120, 60),
                                       ),
-                                      child: const Text('SPLIT PAYMENT'))
+                                      child: const Text('SPLIT'))
                                 ],
                               ),
                               actions: [
