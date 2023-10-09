@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdf/pdf.dart';
+import 'package:pos2/api/discount.dart';
+import 'package:pos2/api/payment.dart';
 import 'package:pos2/api/posshiftlog.dart';
 import 'package:pos2/components/loadingspinner.dart';
 import 'package:pos2/components/loginpage.dart';
@@ -53,6 +55,8 @@ class _MyDashboardState extends State<MyDashboard> {
   List<Map<String, dynamic>> itemsList = [];
   List<ProductPriceModel> productList = [];
   List<String> categoryList = [];
+  List<String> discountList = [];
+  List<String> paymentList = [];
   String companyname = "";
   String address = "";
   String tin = "";
@@ -73,6 +77,10 @@ class _MyDashboardState extends State<MyDashboard> {
   final TextEditingController _splitReferenceidController =
       TextEditingController();
   final TextEditingController _splitAmountController = TextEditingController();
+  final TextEditingController _discountFullnameController =
+      TextEditingController();
+  final TextEditingController _discountIDController = TextEditingController();
+  final List<Map<String, dynamic>> discountDetail = [];
 
   Helper helper = Helper();
   DatabaseHelper dbHelper = DatabaseHelper();
@@ -84,6 +92,8 @@ class _MyDashboardState extends State<MyDashboard> {
     // _getbranch();
     _getposconfig();
     _getcategory();
+    _getdiscount();
+    _getpayment();
     super.initState();
   }
 
@@ -95,6 +105,7 @@ class _MyDashboardState extends State<MyDashboard> {
     super.dispose();
   }
 
+// #region API CALLS
   Future<void> _getPOSShift(posid) async {
     final results = await POSShiftLogAPI().getPOSShift(posid);
     final jsonData = json.encode(results['data']);
@@ -484,6 +495,64 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
+  Future<void> _getdiscountrate(type) async {
+    final results = await DiscountAPI().getDiscountRate(type);
+    final jsonData = json.encode(results['data']);
+
+    setState(() {
+      for (var data in json.decode(jsonData)) {
+        double discount =
+            ((calculateGrandTotal() * 1.12) * (data['rate'] / 100)) * -1;
+
+        if (calculateGrandTotal() == 0) {
+          showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Discount'),
+                  content:
+                      const Text('Can not do discount if empty transaction'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close the dialog
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+        } else {
+          addItem('Discount ($type)', discount, 1);
+        }
+      }
+    });
+  }
+
+  Future<void> _getdiscount() async {
+    final results = await DiscountAPI().getDiscount();
+    final jsonData = json.encode(results['data']);
+
+    setState(() {
+      for (var data in json.decode(jsonData)) {
+        discountList.add(data['name']);
+      }
+    });
+  }
+
+  Future<void> _getpayment() async {
+    final results = await PaymentAPI().getPayment();
+    final jsonData = json.encode(results['data']);
+
+    setState(() {
+      for (var data in json.decode(jsonData)) {
+        paymentList.add(data['paymentname']);
+      }
+    });
+  }
+
+// #endregion
+// #region Payment methods
   String formatAsCurrency(double value) {
     return '₱ ${toCurrencyString(value.toString())}';
   }
@@ -1376,6 +1445,245 @@ class _MyDashboardState extends State<MyDashboard> {
     }
   }
 
+  Future<void> _discount() async {
+    final List<Widget> discount = List<Widget>.generate(
+        discountList.length,
+        (index) => SizedBox(
+              height: 60,
+              width: 120,
+              child: ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text(discountList[index]),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              TextField(
+                                controller: _discountIDController,
+                                decoration: InputDecoration(labelText: "ID"),
+                              ),
+                              TextField(
+                                controller: _discountFullnameController,
+                                decoration:
+                                    InputDecoration(labelText: "Fullname"),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop(); // Close the dialog
+                              },
+                              child: const Text('Close'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                _getdiscountrate(discountList[index]);
+                                Navigator.of(context).pop(); // Close the dialog
+                              },
+                              child: const Text('Apply'),
+                            ),
+                          ],
+                        );
+                      });
+                },
+                child: Text(
+                  discountList[index],
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ));
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Discounts"),
+            content: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.start,
+              spacing: 8,
+              runSpacing: 8,
+              children: discount,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        });
+  }
+
+  Future<void> _epayment() async {
+    final List<Widget> epayments = List<Widget>.generate(
+        paymentList.length,
+        (index) => SizedBox(
+              height: 60,
+              width: 120,
+              child: ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text(
+                                'Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                            content: SizedBox(
+                              height: 300,
+                              width: 300,
+                              child: Column(children: [
+                                TextField(
+                                  controller: _referenceidController,
+                                  decoration: InputDecoration(
+                                      labelText:
+                                          "${paymentList[index]} Reference ID"),
+                                ),
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                TextField(
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    CurrencyInputFormatter(
+                                      leadingSymbol: CurrencySymbols.PESO,
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    // Remove currency symbols and commas to get the numeric value
+                                    String numericValue = value.replaceAll(
+                                      RegExp('[${CurrencySymbols.PESO},]'),
+                                      '',
+                                    );
+                                    setState(() {
+                                      cashAmount =
+                                          double.tryParse(numericValue) ?? 0;
+                                    });
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: 'Enter amount',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                              ]),
+                            ),
+                            actions: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  String paymenttype = 'EPAYMENT';
+                                  String paymentname = paymentList[index];
+                                  String message = "";
+                                  String title = "";
+
+                                  if (cashAmount == 0) {
+                                    message +=
+                                        "Please enter amount to proceed.";
+                                    title += "[Enter Amount]";
+                                  }
+                                  if (cashAmount < calculateGrandTotal()) {
+                                    message +=
+                                        "Please enter the right amount received from e-payment.";
+                                    title += "[Insufficient Funds]";
+                                  }
+
+                                  if (message != "") {
+                                    showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: Text(title),
+                                            content: Text(message),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.of(context)
+                                                      .pop(); // Close the dialog
+                                                },
+                                                child: const Text('OK'),
+                                              ),
+                                            ],
+                                          );
+                                        });
+                                  } else {
+                                    String referenceid =
+                                        _referenceidController.text;
+                                    detailid++;
+                                    _transaction(
+                                        detailid.toString(),
+                                        posid,
+                                        helper.GetCurrentDatetime(),
+                                        shift,
+                                        paymenttype,
+                                        jsonEncode(itemsList),
+                                        calculateGrandTotal().toString(),
+                                        widget.fullname,
+                                        referenceid,
+                                        paymentname);
+
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                                style: ButtonStyle(
+                                  backgroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                    Colors.brown, // Change the color here
+                                  ),
+                                  // Other button styles...
+                                ),
+                                child: const Text('Proceed'),
+                              ),
+                            ],
+                          );
+                        });
+                  },
+                  child: Text(
+                    paymentList[index],
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  )),
+            ));
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Select E-Payment Type'),
+            content: Container(
+              padding: const EdgeInsets.all(8.0),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.start,
+                spacing: 8,
+                runSpacing: 8,
+                children: epayments,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        });
+  }
+
+// #endregion
   @override
   Widget build(BuildContext context) {
     final List<Widget> category = List<Widget>.generate(
@@ -1396,6 +1704,7 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
               ),
             ));
+
     List<String> options = ['Select Payment Type', 'Gcash', 'Paymaya', 'Card'];
     String splitEPaymentType = options.first;
 
@@ -1629,7 +1938,9 @@ class _MyDashboardState extends State<MyDashboard> {
                 runSpacing: 4,
                 children: [
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _discount();
+                    },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
                           const Size(120, 80)), // Adjust the size here
@@ -1710,353 +2021,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                 children: [
                                   ElevatedButton(
                                     onPressed: () {
-                                      String paymenttype = 'EPAYMENT';
-                                      showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return AlertDialog(
-                                              title: const Text(
-                                                  'Select E-Payment type'),
-                                              content: Container(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: Row(
-                                                  children: [
-                                                    ElevatedButton(
-                                                      onPressed: () {
-                                                        showDialog(
-                                                            context: context,
-                                                            builder:
-                                                                (BuildContext
-                                                                    context) {
-                                                              return AlertDialog(
-                                                                title: Text(
-                                                                    'GCASH INFO, Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                                content:
-                                                                    SizedBox(
-                                                                  height: 300,
-                                                                  width: 300,
-                                                                  child: Column(
-                                                                      children: [
-                                                                        TextField(
-                                                                          controller:
-                                                                              _referenceidController,
-                                                                          decoration:
-                                                                              const InputDecoration(labelText: "Reference ID"),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          height:
-                                                                              5,
-                                                                        ),
-                                                                        TextField(
-                                                                          keyboardType:
-                                                                              TextInputType.number,
-                                                                          inputFormatters: [
-                                                                            CurrencyInputFormatter(
-                                                                              leadingSymbol: CurrencySymbols.PESO,
-                                                                            ),
-                                                                          ],
-                                                                          onChanged:
-                                                                              (value) {
-                                                                            // Remove currency symbols and commas to get the numeric value
-                                                                            String
-                                                                                numericValue =
-                                                                                value.replaceAll(
-                                                                              RegExp('[${CurrencySymbols.PESO},]'),
-                                                                              '',
-                                                                            );
-                                                                            setState(() {
-                                                                              cashAmount = double.tryParse(numericValue) ?? 0;
-                                                                            });
-                                                                          },
-                                                                          decoration:
-                                                                              const InputDecoration(
-                                                                            hintText:
-                                                                                'Enter amount',
-                                                                            border:
-                                                                                OutlineInputBorder(),
-                                                                          ),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          height:
-                                                                              5,
-                                                                        ),
-                                                                      ]),
-                                                                ),
-                                                                actions: [
-                                                                  ElevatedButton(
-                                                                    onPressed:
-                                                                        () {
-                                                                      String
-                                                                          paymentname =
-                                                                          "GCASH";
-                                                                      String
-                                                                          message =
-                                                                          "";
-                                                                      String
-                                                                          title =
-                                                                          "";
-
-                                                                      if (cashAmount ==
-                                                                          0) {
-                                                                        message +=
-                                                                            "Please enter amount to proceed.";
-                                                                        title +=
-                                                                            "[Enter Amount]";
-                                                                      }
-                                                                      if (cashAmount <
-                                                                          calculateGrandTotal()) {
-                                                                        message +=
-                                                                            "Please enter the right amount received from e-payment.";
-                                                                        title +=
-                                                                            "[Insufficient Funds]";
-                                                                      }
-
-                                                                      if (message !=
-                                                                          "") {
-                                                                        showDialog(
-                                                                            context:
-                                                                                context,
-                                                                            builder:
-                                                                                (BuildContext context) {
-                                                                              return AlertDialog(
-                                                                                title: Text(title),
-                                                                                content: Text(message),
-                                                                                actions: [
-                                                                                  TextButton(
-                                                                                    onPressed: () {
-                                                                                      Navigator.of(context).pop(); // Close the dialog
-                                                                                    },
-                                                                                    child: const Text('OK'),
-                                                                                  ),
-                                                                                ],
-                                                                              );
-                                                                            });
-                                                                      } else {
-                                                                        String
-                                                                            referenceid =
-                                                                            _referenceidController.text;
-                                                                        detailid++;
-                                                                        _transaction(
-                                                                            detailid.toString(),
-                                                                            posid,
-                                                                            helper.GetCurrentDatetime(),
-                                                                            shift,
-                                                                            paymenttype,
-                                                                            jsonEncode(itemsList),
-                                                                            calculateGrandTotal().toString(),
-                                                                            widget.fullname,
-                                                                            referenceid,
-                                                                            paymentname);
-
-                                                                        Navigator.of(context)
-                                                                            .pop();
-                                                                        Navigator.of(context)
-                                                                            .pop();
-                                                                        Navigator.of(context)
-                                                                            .pop();
-                                                                      }
-                                                                    },
-                                                                    style:
-                                                                        ButtonStyle(
-                                                                      backgroundColor:
-                                                                          MaterialStateProperty.all<
-                                                                              Color>(
-                                                                        Colors
-                                                                            .brown, // Change the color here
-                                                                      ),
-                                                                      // Other button styles...
-                                                                    ),
-                                                                    child: const Text(
-                                                                        'Proceed'),
-                                                                  ),
-                                                                ],
-                                                              );
-                                                            });
-                                                      },
-                                                      style: ElevatedButton
-                                                          .styleFrom(
-                                                        minimumSize:
-                                                            const Size(80, 60),
-                                                      ),
-                                                      child:
-                                                          const Text('GCASH'),
-                                                    ),
-                                                    const SizedBox(
-                                                      width: 10,
-                                                    ),
-                                                    ElevatedButton(
-                                                      onPressed: () {
-                                                        String paymentname =
-                                                            'PAYMAYA';
-                                                        showDialog(
-                                                            context: context,
-                                                            builder:
-                                                                (BuildContext
-                                                                    context) {
-                                                              return AlertDialog(
-                                                                title: Text(
-                                                                    'GCASH INFO, Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                                content:
-                                                                    SizedBox(
-                                                                  height: 300,
-                                                                  width: 300,
-                                                                  child: Column(
-                                                                      children: [
-                                                                        TextField(
-                                                                          controller:
-                                                                              _referenceidController,
-                                                                          decoration:
-                                                                              const InputDecoration(labelText: "Reference ID"),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          height:
-                                                                              5,
-                                                                        ),
-                                                                        TextField(
-                                                                          keyboardType:
-                                                                              TextInputType.number,
-                                                                          inputFormatters: [
-                                                                            CurrencyInputFormatter(
-                                                                              leadingSymbol: CurrencySymbols.PESO,
-                                                                            ),
-                                                                          ],
-                                                                          onChanged:
-                                                                              (value) {
-                                                                            // Remove currency symbols and commas to get the numeric value
-                                                                            String
-                                                                                numericValue =
-                                                                                value.replaceAll(
-                                                                              RegExp('[${CurrencySymbols.PESO},]'),
-                                                                              '',
-                                                                            );
-                                                                            setState(() {
-                                                                              cashAmount = double.tryParse(numericValue) ?? 0;
-                                                                            });
-                                                                          },
-                                                                          decoration:
-                                                                              const InputDecoration(
-                                                                            hintText:
-                                                                                'Enter amount',
-                                                                            border:
-                                                                                OutlineInputBorder(),
-                                                                          ),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          height:
-                                                                              5,
-                                                                        ),
-                                                                      ]),
-                                                                ),
-                                                                actions: [
-                                                                  ElevatedButton(
-                                                                    onPressed:
-                                                                        () {
-                                                                      String
-                                                                          message =
-                                                                          "";
-                                                                      String
-                                                                          title =
-                                                                          "";
-
-                                                                      if (cashAmount ==
-                                                                          0) {
-                                                                        message +=
-                                                                            "Please enter amount to proceed.";
-                                                                        title +=
-                                                                            "[Enter Amount]";
-                                                                      }
-                                                                      if (cashAmount <
-                                                                          calculateGrandTotal()) {
-                                                                        message +=
-                                                                            "Please enter the right amount received from e-payment.";
-                                                                        title +=
-                                                                            "[Insufficient Funds]";
-                                                                      }
-
-                                                                      if (message !=
-                                                                          "") {
-                                                                        showDialog(
-                                                                            context:
-                                                                                context,
-                                                                            builder:
-                                                                                (BuildContext context) {
-                                                                              return AlertDialog(
-                                                                                title: Text(title),
-                                                                                content: Text(message),
-                                                                                actions: [
-                                                                                  TextButton(
-                                                                                    onPressed: () {
-                                                                                      Navigator.of(context).pop(); // Close the dialog
-                                                                                    },
-                                                                                    child: const Text('OK'),
-                                                                                  ),
-                                                                                ],
-                                                                              );
-                                                                            });
-                                                                      } else {
-                                                                        String
-                                                                            referenceid =
-                                                                            _referenceidController.text;
-                                                                        detailid++;
-                                                                        _transaction(
-                                                                            detailid.toString(),
-                                                                            posid,
-                                                                            helper.GetCurrentDatetime(),
-                                                                            shift,
-                                                                            paymenttype,
-                                                                            jsonEncode(itemsList),
-                                                                            calculateGrandTotal().toString(),
-                                                                            widget.fullname,
-                                                                            referenceid,
-                                                                            paymentname);
-
-                                                                        Navigator.of(context)
-                                                                            .pop();
-                                                                        Navigator.of(context)
-                                                                            .pop();
-                                                                        Navigator.of(context)
-                                                                            .pop();
-                                                                      }
-                                                                    },
-                                                                    style:
-                                                                        ButtonStyle(
-                                                                      backgroundColor:
-                                                                          MaterialStateProperty.all<
-                                                                              Color>(
-                                                                        Colors
-                                                                            .brown, // Change the color here
-                                                                      ),
-                                                                      // Other button styles...
-                                                                    ),
-                                                                    child: const Text(
-                                                                        'Proceed'),
-                                                                  ),
-                                                                ],
-                                                              );
-                                                            });
-                                                      },
-                                                      style: ElevatedButton
-                                                          .styleFrom(
-                                                        minimumSize:
-                                                            const Size(80, 60),
-                                                      ),
-                                                      child:
-                                                          const Text('PAYMAYA'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                    onPressed: () {
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    },
-                                                    child: Text('Close'))
-                                              ],
-                                            );
-                                          });
+                                      _epayment();
                                     },
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: const Size(120, 60),
@@ -2261,7 +2226,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     ),
                                                     DropdownMenu(
                                                       initialSelection:
-                                                          options.first,
+                                                          paymentList.first,
                                                       onSelected:
                                                           (String? value) {
                                                         setState(() {
@@ -2270,7 +2235,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         });
                                                       },
                                                       dropdownMenuEntries:
-                                                          options.map<
+                                                          paymentList.map<
                                                               DropdownMenuEntry<
                                                                   String>>((String
                                                               value) {
