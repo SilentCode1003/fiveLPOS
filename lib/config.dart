@@ -20,4 +20,5 @@ class Config {
   static const String getDiscountAPI = 'discount/load';
   static const String getPaymentAPI = 'payment/getactive';
   static const String getPromoAPI = 'promo/getactive';
+  static const String salesDiscountAPI = 'promo/salesdiscount';
 }
