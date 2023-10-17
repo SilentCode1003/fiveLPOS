@@ -702,7 +702,7 @@ class _MyDashboardState extends State<MyDashboard> {
             productList.length,
             (index) => SizedBox(
                   height: 60,
-                  width: 120,
+                  width: 220,
                   child: ElevatedButton(
                     onPressed: (productList[index].quantity <= 0)
                         ? null
@@ -711,11 +711,22 @@ class _MyDashboardState extends State<MyDashboard> {
                             addItem(productList[index].description,
                                 double.parse(productList[index].price), 1);
                           },
-                    child: Text(
-                      productList[index].description,
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.memory(
+                            base64Decode(productList[index].productimage)),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                        Text(
+                          productList[index].description,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                 ));
@@ -1779,7 +1790,7 @@ class _MyDashboardState extends State<MyDashboard> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
-                height: 200,
+                height: 280,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   border: Border.all(
@@ -1793,17 +1804,29 @@ class _MyDashboardState extends State<MyDashboard> {
                     columnSpacing: 10,
                     columns: const [
                       DataColumn(
-                          label: Text('Name',
-                              style: TextStyle(fontWeight: FontWeight.bold))),
+                          label: Text(
+                        'Name',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
                       DataColumn(
-                          label: Text('Price',
-                              style: TextStyle(fontWeight: FontWeight.bold))),
+                          label: Text(
+                        'Price',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
                       DataColumn(
-                          label: Text('Qty',
-                              style: TextStyle(fontWeight: FontWeight.bold))),
+                          label: Text(
+                        'Qty',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
                       DataColumn(
-                          label: Text('Total',
-                              style: TextStyle(fontWeight: FontWeight.bold))),
+                          label: Text(
+                        'Total',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
                       // DataColumn(label: Text('')),
                     ],
                     rows: itemsList.asMap().entries.map((entry) {
@@ -1812,13 +1835,14 @@ class _MyDashboardState extends State<MyDashboard> {
                       double totalCost = product['price'] * product['quantity'];
                       return DataRow(cells: [
                         DataCell(SizedBox(
-                            width: 50,
+                            width: 70,
                             child: Text(
                               product['name'],
+                              textAlign: TextAlign.left,
                             ))),
                         DataCell(
                           SizedBox(
-                            width: 60,
+                            width: 70,
                             child: Text(formatAsCurrency(product['price'])),
                           ),
                         ),
