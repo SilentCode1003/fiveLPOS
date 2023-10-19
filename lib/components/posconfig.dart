@@ -25,10 +25,10 @@ class _PosConfigState extends State<PosConfig> {
   final TextEditingController _emailPasswordController =
       TextEditingController();
   final TextEditingController _emailServerController = TextEditingController();
+  DatabaseHelper dbHelper = DatabaseHelper();
 
   String branchlogo = '';
 
-  DatabaseHelper dbHelper = DatabaseHelper();
   @override
   void initState() {
     _check();
@@ -44,12 +44,18 @@ class _PosConfigState extends State<PosConfig> {
     if (posconfig.isNotEmpty &&
         branchconfig.isNotEmpty &&
         emailconfig.isNotEmpty) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => LoginPage(
-                    logo: branchconfig[0]['logo'],
-                  )));
+      List<Map<String, dynamic>> branchconfig = await db.query('branch');
+      for (var branch in branchconfig) {
+        setState(() {
+          branchlogo = branch['logo'];
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => LoginPage(
+                        logo: branchlogo,
+                      )));
+        });
+      }
     } else {
       if (posconfig.isNotEmpty) {
         for (var pos in posconfig) {
@@ -287,6 +293,8 @@ class _PosConfigState extends State<PosConfig> {
               "address": data['address'],
               "logo": data['logo'],
             }, 'branch');
+
+            branchlogo = data['logo'];
           }
 
           List<Map<String, dynamic>> branchconfig = await db.query('branch');

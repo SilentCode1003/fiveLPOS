@@ -89,7 +89,7 @@ class _MyDashboardState extends State<MyDashboard> {
   DatabaseHelper dbHelper = DatabaseHelper();
   int detailid = 100000000;
 
-  // List<String> logo = [];
+  String logo = '';
   // String branchlogo = '';
 
   @override
@@ -114,16 +114,15 @@ class _MyDashboardState extends State<MyDashboard> {
 
 // #region API CALLS
 
-  // Future<void> _getbranchdetail() async {
-  //   Database db = await dbHelper.database;
-  //   List<Map<String, dynamic>> branchconfig = await db.query('branch');
-  //   for (var branch in branchconfig) {
-  //     setState(() {
-  //       branchlogo = branch['logo'];
-  //       logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
-  //     });
-  //   }
-  // }
+  Future<void> _getbranchdetail() async {
+    Database db = await dbHelper.database;
+    List<Map<String, dynamic>> branchconfig = await db.query('branch');
+    for (var branch in branchconfig) {
+      setState(() {
+        logo = branch['logo'];
+      });
+    }
+  }
 
   Future<void> _getPOSShift(posid) async {
     final results = await POSShiftLogAPI().getPOSShift(posid);
@@ -1764,8 +1763,7 @@ class _MyDashboardState extends State<MyDashboard> {
           padding: const EdgeInsets.all(5),
           alignment: Alignment.center,
           child: ClipOval(
-            child: SvgPicture.string(
-                '<svg ${utf8.decode(base64.decode(widget.logo)).split('<svg')[1].replaceAll(RegExp(r'\n'), '')}'),
+            child: SvgPicture.string(widget.logo),
           ),
         ),
         title: Text(companyname),
@@ -1787,12 +1785,10 @@ class _MyDashboardState extends State<MyDashboard> {
                               const Text('Are you sure you want to logout?'),
                           actions: [
                             TextButton(
-                              onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => LoginPage(
-                                            logo: widget.logo,
-                                          ))),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop();
+                              },
                               child: const Text('OK'),
                             ),
                             TextButton(

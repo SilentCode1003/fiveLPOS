@@ -41,12 +41,20 @@ class _LoginPageState extends State<LoginPage> {
   String branchname = '';
   String tin = '';
   String address = '';
+  String branchlogo = '';
 
   DatabaseHelper dbHelper = DatabaseHelper();
 
   @override
   void initState() {
-    // _getbranchdetail();
+    // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
+    setState(() {
+      List<String> logo =
+          utf8.decode(base64.decode(widget.logo)).split('<svg ');
+      branchlogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
+    });
+
+    print(branchlogo);
     super.initState();
   }
 
@@ -66,6 +74,7 @@ class _LoginPageState extends State<LoginPage> {
     final response = await Login().authenticate(username, password);
 
     if (response['msg'] == 'success') {
+       Navigator.of(context).pop();
       final jsonData = json.encode(response['data']);
       final results = json.decode(jsonData);
       UserInfoModel userinfomodel = UserInfoModel(
@@ -86,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                   employeeid: userinfomodel.employeeid,
                   fullname: userinfomodel.fullname,
                   positiontype: userinfomodel.position,
-                  logo: widget.logo,
+                  logo: branchlogo,
                 )),
       );
     } else {
@@ -124,8 +133,7 @@ class _LoginPageState extends State<LoginPage> {
                       width: double.maxFinite,
                       height: double.maxFinite,
                       child: ClipOval(
-                        child: SvgPicture.string(
-                            '<svg ${utf8.decode(base64.decode(widget.logo)).split('<svg')[1].replaceAll(RegExp(r'\n'), '')}'),
+                        child: SvgPicture.string(branchlogo),
                       ))),
               Padding(
                 padding: EdgeInsets.all(40),
