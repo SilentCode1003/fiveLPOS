@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pos2/api/discount.dart';
@@ -39,13 +40,15 @@ class MyDashboard extends StatefulWidget {
   String fullname;
   String accesstype;
   String positiontype;
+  String logo;
 
   MyDashboard(
       {super.key,
       required this.employeeid,
       required this.fullname,
       required this.accesstype,
-      required this.positiontype});
+      required this.positiontype,
+      required this.logo});
 
   @override
   _MyDashboardState createState() => _MyDashboardState();
@@ -86,10 +89,14 @@ class _MyDashboardState extends State<MyDashboard> {
   DatabaseHelper dbHelper = DatabaseHelper();
   int detailid = 100000000;
 
+  // List<String> logo = [];
+  // String branchlogo = '';
+
   @override
   void initState() {
     // TODO: implement initState
     // _getbranch();
+    // _getbranchdetail();
     _getposconfig();
     _getcategory();
     _getdiscount();
@@ -106,6 +113,18 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
 // #region API CALLS
+
+  // Future<void> _getbranchdetail() async {
+  //   Database db = await dbHelper.database;
+  //   List<Map<String, dynamic>> branchconfig = await db.query('branch');
+  //   for (var branch in branchconfig) {
+  //     setState(() {
+  //       branchlogo = branch['logo'];
+  //       logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
+  //     });
+  //   }
+  // }
+
   Future<void> _getPOSShift(posid) async {
     final results = await POSShiftLogAPI().getPOSShift(posid);
     final jsonData = json.encode(results['data']);
@@ -1744,9 +1763,12 @@ class _MyDashboardState extends State<MyDashboard> {
         leading: Container(
           padding: const EdgeInsets.all(5),
           alignment: Alignment.center,
-          child: Image.asset('assets/asvesti.png'),
+          child: ClipOval(
+            child: SvgPicture.string(
+                '<svg ${utf8.decode(base64.decode(widget.logo)).split('<svg')[1].replaceAll(RegExp(r'\n'), '')}'),
+          ),
         ),
-        title: const Text('Asvesti'),
+        title: Text(companyname),
         actions: <Widget>[
           Row(
             children: [
@@ -1768,7 +1790,9 @@ class _MyDashboardState extends State<MyDashboard> {
                               onPressed: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => LoginPage())),
+                                      builder: (context) => LoginPage(
+                                            logo: widget.logo,
+                                          ))),
                               child: const Text('OK'),
                             ),
                             TextButton(

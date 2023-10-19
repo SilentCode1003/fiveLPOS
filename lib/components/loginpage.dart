@@ -1,30 +1,35 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pos2/components/dashboard.dart';
+import 'package:pos2/repository/dbhelper.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 
 import '../model/userinfo.dart';
 import '../api/login.dart';
 import 'loadingspinner.dart';
 
-void main() {
-  runApp(MyApp());
-}
+// void main() {
+//   runApp(MyApp());
+// }
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'POS Shift Login',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: LoginPage(),
-    );
-  }
-}
+// class MyApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'POS Shift Login',
+//       theme: ThemeData(
+//         primarySwatch: Colors.blue,
+//       ),
+//       home: LoginPage(),
+//     );
+//   }
+// }
 
 class LoginPage extends StatefulWidget {
+  String logo;
+  LoginPage({super.key, required this.logo});
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -32,6 +37,18 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String branchid = '';
+  String branchname = '';
+  String tin = '';
+  String address = '';
+
+  DatabaseHelper dbHelper = DatabaseHelper();
+
+  @override
+  void initState() {
+    // _getbranchdetail();
+    super.initState();
+  }
 
   Future<void> _login() async {
     String username = _usernameController.text;
@@ -41,7 +58,9 @@ class _LoginPageState extends State<LoginPage> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return  LoadingSpinner(message: 'Loading...',);
+          return LoadingSpinner(
+            message: 'Loading...',
+          );
         });
 
     final response = await Login().authenticate(username, password);
@@ -67,6 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                   employeeid: userinfomodel.employeeid,
                   fullname: userinfomodel.fullname,
                   positiontype: userinfomodel.position,
+                  logo: widget.logo,
                 )),
       );
     } else {
@@ -97,11 +117,16 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                height: 200,
-                width: double.infinity,
-                alignment: Alignment.center,
-                child: Image.asset('assets/asvesti.png'),
-              ),
+                  height: 200,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: Container(
+                      width: double.maxFinite,
+                      height: double.maxFinite,
+                      child: ClipOval(
+                        child: SvgPicture.string(
+                            '<svg ${utf8.decode(base64.decode(widget.logo)).split('<svg')[1].replaceAll(RegExp(r'\n'), '')}'),
+                      ))),
               Padding(
                 padding: EdgeInsets.all(40),
                 child: SizedBox(

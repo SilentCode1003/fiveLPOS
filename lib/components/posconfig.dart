@@ -25,6 +25,9 @@ class _PosConfigState extends State<PosConfig> {
   final TextEditingController _emailPasswordController =
       TextEditingController();
   final TextEditingController _emailServerController = TextEditingController();
+
+  String branchlogo = '';
+
   DatabaseHelper dbHelper = DatabaseHelper();
   @override
   void initState() {
@@ -42,7 +45,11 @@ class _PosConfigState extends State<PosConfig> {
         branchconfig.isNotEmpty &&
         emailconfig.isNotEmpty) {
       Navigator.push(
-          context, MaterialPageRoute(builder: (context) => LoginPage()));
+          context,
+          MaterialPageRoute(
+              builder: (context) => LoginPage(
+                    logo: branchconfig[0]['logo'],
+                  )));
     } else {
       if (posconfig.isNotEmpty) {
         for (var pos in posconfig) {
@@ -61,6 +68,7 @@ class _PosConfigState extends State<PosConfig> {
           print('${branch['branchid']}');
 
           setState(() {
+            branchlogo = branch['logo'];
             _branchidController.text = branch['branchid'];
           });
           // Process data
@@ -167,8 +175,12 @@ class _PosConfigState extends State<PosConfig> {
               onPressed: () {
                 Navigator.pop(ctx);
 
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => LoginPage()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => LoginPage(
+                              logo: branchlogo,
+                            )));
               },
               child: const Text('OK'),
             ),
@@ -326,8 +338,7 @@ class _PosConfigState extends State<PosConfig> {
           // Process data
         }
         Navigator.pop(context);
-        return
-         'success';
+        return 'success';
       } else {
         await dbHelper.insertItem({
           "emailaddress": emailaddress,
