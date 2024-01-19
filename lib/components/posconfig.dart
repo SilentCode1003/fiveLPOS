@@ -307,8 +307,12 @@ class _PosConfigState extends State<PosConfig> {
       // } else {
       if (jsonData.length != 2) {
         for (var data in json.decode(jsonData)) {
-          if (Platform.isWindows) Helper().writeJsonToFile(data, 'pos.json');
-          if (Platform.isAndroid) Helper().JsonToFileWrite(data, 'pos.json');
+          if (Platform.isWindows) {
+            Helper().writeJsonToFile(data, 'pos.json');
+          }
+          if (Platform.isAndroid) {
+            Helper().JsonToFileWrite(data, 'pos.json');
+          }
           // await dbHelper.insertItem({
           //   'posid': data['posid'],
           //   'posname': data['posname'],
@@ -386,9 +390,16 @@ class _PosConfigState extends State<PosConfig> {
           //   'address': data['address'],
           //   'logo': data['logo'],
           // }, 'branch');
-          if (Platform.isWindows) Helper().writeJsonToFile(data, 'branch.json');
+          if (Platform.isWindows) {
+            print('windows');
+            Helper().writeJsonToFile(data, 'branch.json');
+          }
 
-          if (Platform.isAndroid) Helper().JsonToFileWrite(data, 'branch.json');
+          if (Platform.isAndroid) {
+            print('android');
+            Helper().JsonToFileWrite(data, 'branch.json');
+          }
+
           branchlogo = data['logo'];
         }
 

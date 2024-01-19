@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:fiveLPOS/model/category.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
@@ -39,8 +40,8 @@ class ButtonStyleInfo {
 class MyDashboard extends StatefulWidget {
   final String employeeid;
   final String fullname;
-  final String accesstype;
-  final String positiontype;
+  final int accesstype;
+  final int positiontype;
   final String logo;
   final NetworkPrinter printer;
 
@@ -60,7 +61,7 @@ class MyDashboard extends StatefulWidget {
 class _MyDashboardState extends State<MyDashboard> {
   List<Map<String, dynamic>> itemsList = [];
   List<ProductPriceModel> productList = [];
-  List<String> categoryList = [];
+  List<CategoryModel> categoryList = [];
   List<String> discountList = [];
   List<String> paymentList = [];
   String companyname = '';
@@ -534,22 +535,39 @@ class _MyDashboardState extends State<MyDashboard> {
   Future<void> _getcategory() async {
     final results = await CategoryAPI().getCategory();
     final jsonData = json.encode(results['data']);
-
     setState(() {
       for (var data in json.decode(jsonData)) {
-        categoryList.add(data['categoryname']);
+        categoryList.add(CategoryModel(
+            data['categorycode'],
+            data['categoryname'],
+            data['status'],
+            data['createdby'],
+            data['createddate']));
       }
     });
   }
 
-  Future<void> _getcategoryitems(String category) async {
-    final result = await ProductPrice().getcategoryitems(category, branchid);
-    final List<dynamic> jsonData = json.decode(result['data']);
+  Future<void> _getcategoryitems(int category) async {
+    final result =
+        await ProductPrice().getcategoryitems(category.toString(), branchid);
+    final jsonData = json.decode(result['data']);
 
     if (result['msg'] == 'success') {
       setState(() {
-        productList =
-            jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
+        productList.clear();
+        // productList =
+        //     jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
+
+        for (var data in jsonData) {
+          productList.add(ProductPriceModel(
+              data['productid'],
+              data['description'],
+              data['barcode'],
+              data['productimage'],
+              data['price'],
+              data['category'],
+              data['quantity']));
+        }
       });
     }
   }
@@ -755,8 +773,6 @@ class _MyDashboardState extends State<MyDashboard> {
             );
           });
     } else {
-      _getcategoryitems(category);
-
       showDialog(
           context: context,
           barrierDismissible: false,
@@ -765,6 +781,8 @@ class _MyDashboardState extends State<MyDashboard> {
               message: 'Loading',
             );
           });
+
+      _getcategoryitems(category);
 
       Future.delayed(const Duration(milliseconds: 1200), () {
         Navigator.of(context).pop();
@@ -1333,6 +1351,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
   void _clearItems() {
     setState(() {
+      productList.clear();
       itemsList.clear();
       discountDetail.clear();
       _referenceidController.clear();
@@ -1813,10 +1832,10 @@ class _MyDashboardState extends State<MyDashboard> {
               child: ElevatedButton(
                 onPressed: () {
                   // Add your button press logic here
-                  _showcategoryitems(context, categoryList[index]);
+                  _showcategoryitems(context, categoryList[index].categorycode);
                 },
                 child: Text(
-                  categoryList[index],
+                  categoryList[index].categoryname,
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,

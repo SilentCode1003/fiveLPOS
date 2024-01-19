@@ -270,6 +270,8 @@ class EmailPage extends StatelessWidget {
     if (Platform.isAndroid) {
       email = await Helper().JsonToFileRead('email.json');
     }
+
+    
   }
 
   @override

@@ -80,6 +80,8 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.of(context).pop();
       final jsonData = json.encode(response['data']);
       final results = json.decode(jsonData);
+
+      print(results);
       UserInfoModel userinfomodel = UserInfoModel(
           results[0]['employeeid'].toString(),
           results[0]['fullname'],

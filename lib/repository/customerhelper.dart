@@ -70,10 +70,6 @@ class Helper {
 
       print(file);
 
-      if (file.existsSync()) {
-        return;
-      }
-
       // Convert the data to a JSON string
       String jsonString = jsonEncode(jsnonData);
 

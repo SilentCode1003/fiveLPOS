@@ -1,8 +1,8 @@
 class Config {
-  // static const String apiUrl = 'http://192.168.30.18:3050/';
-  // static const String apiUrl = 'http://localhost:3050/';
   static const String apiUrl = 'http://192.168.30.18:3050/';
-  // static const String apiUrl = 'https://salesinventory.5lsolutions.com/';
+  // static const String apiUrl = 'http://localhost:3050/';
+  // static const String apiUrl = 'http://192.168.30.22:3050/';
+  //static const String apiUrl = 'https://salesinventory.5lsolutions.com/';
   // static const String apiUrl = 'https://sois.5lsolutions.com/';
 
   static const String authenticationLoginAPI = 'login/poslogin';

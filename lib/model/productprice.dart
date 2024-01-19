@@ -4,7 +4,7 @@ class ProductPriceModel {
   final String barcode;
   final String productimage;
   final String price;
-  final String category;
+  final int category;
   final int quantity;
 
   ProductPriceModel(this.productid, this.description, this.barcode,

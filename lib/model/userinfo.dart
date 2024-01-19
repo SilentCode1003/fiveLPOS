@@ -1,11 +1,11 @@
 class UserInfoModel {
   final String employeeid;
   final String fullname;
-  final String position;
+  final int position;
   final String contactinfo;
   final String datehired;
   final int usercode;
-  final String accesstype;
+  final int accesstype;
   final String status;
 
   UserInfoModel(this.employeeid, this.fullname, this.position, this.contactinfo,
