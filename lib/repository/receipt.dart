@@ -11,7 +11,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:fiveLPOS/api/promo.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:fiveLPOS/repository/dbhelper.dart';
-import '../repository/printing.dart';
 
 class Receipt {
   List<Map<String, dynamic>> items;
@@ -259,6 +258,9 @@ class Receipt {
     // }
 
     // await getConfig();
+
+    final PosPrintResult res = await printer.connect('192.168.10.120',
+        port: 9100, timeout: const Duration(seconds: 1));
 
     pdf.addPage(
       pw.Page(
@@ -732,121 +734,124 @@ class Receipt {
       ),
     );
 
-    // var printer = await LocalPrint().printnetwork('192.168.10.120');
+    if (res.msg != 'success') {
+    } else {
+      //Header
+      printer.text(branchname,
+          styles: const PosStyles(
+            align: PosAlign.center,
+            bold: true,
+            height: PosTextSize.size2,
+            width: PosTextSize.size2,
+          ));
 
-    //Header
-    printer.text(branchname,
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ));
-
-    printer.text(address,
-        styles: const PosStyles(align: PosAlign.center, bold: true));
-    printer.text(tin,
-        styles: const PosStyles(align: PosAlign.center, bold: true));
-    //Divider
-    printer.hr(len: 1);
-    //Transaction Info
-    printer.text('OR: ${officialreceipt()}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Date: ${datetime()}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    if (paymenttype == 'EPAYMENT' || paymenttype == 'SPLIT') {
-      printer.text('Ref. No.: $referenceid',
+      printer.text(address,
+          styles: const PosStyles(align: PosAlign.center, bold: true));
+      printer.text(tin,
+          styles: const PosStyles(align: PosAlign.center, bold: true));
+      //Divider
+      printer.hr(len: 1);
+      //Transaction Info
+      printer.text('OR: ${officialreceipt()}',
           styles: const PosStyles(align: PosAlign.left, bold: true));
-    }
-    if (paymenttype == 'EPAYMENT' || paymenttype == 'SPLIT') {
-      printer.text('Type: $epaymenttype',
+      printer.text('Date: ${datetime()}',
           styles: const PosStyles(align: PosAlign.left, bold: true));
-    }
-
-    //Devider
-    printer.hr(len: 1);
-    //POS Info
-    printer.text('Staff: ${staffname()}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('POS: $id',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Shift: $shift',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('SN#: $serial',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Branch: $branchid',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('MIN: $min',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text(ptu,
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    //Divider
-    printer.hr(len: 1);
-    //Items 8-TABS
-    printer.text('Description\tQty\tAmnt',
-        styles: const PosStyles(align: PosAlign.left, bold: true),
-        linesAfter: 1);
-    for (int index = 0; index < items.length; index++) {
-      if (items[index]['name'].length < 8) {
-        printer.text(
-            '${items[index]['name']}\t\t${items[index]['quantity']}\t${formatAsCurrency(items[index]['quantity'] * items[index]['price'])}',
-            styles: const PosStyles(align: PosAlign.left, bold: true));
-      } else {
-        printer.text(
-            '${items[index]['name']}\t${items[index]['quantity']}\t${formatAsCurrency(items[index]['quantity'] * items[index]['price'])}',
+      if (paymenttype == 'EPAYMENT' || paymenttype == 'SPLIT') {
+        printer.text('Ref. No.: $referenceid',
             styles: const PosStyles(align: PosAlign.left, bold: true));
       }
-    }
-    //Divider
-    printer.hr(len: 1);
-    //Summary
-    printer.text('Total Amount Due:\t${formatAsCurrency(totalamtdue(items))}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Cash:\t\t\t${customercash(cash)}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    if (paymenttype == 'SPLIT') {
-      printer.text('E-Cash:\t\t\t${customercash(ecash)}',
-          styles: const PosStyles(align: PosAlign.left, bold: true));
-    }
-    printer.text('Change:\t\t\t${change(totalamtdue(items), cash)}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Vatable:\t\t${formatAsCurrency(vatable(totalamtdue(items)))}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text(
-        'VAT Amt:\t\t${vatamt(totalamtdue(items), vatable(totalamtdue(items)))}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('VAT Exmpt:\t\t${vatexemptsales()}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Zero Rated:\t\t${zerorated()}',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    //Divider
-    printer.hr(len: 1);
-    //Customer Info
-    printer.text('Name:\t____________________',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Addr:\t____________________',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('TIN:\t____________________',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    printer.text('Style:\t____________________',
-        styles: const PosStyles(align: PosAlign.left, bold: true));
-    //Divider
-    printer.hr(len: 1);
-    //Message
-    printer.text('Thank you! Come again!',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-        linesAfter: 2);
-    printer.text('THIS IS A OFFICIAL RECEIPT',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-        linesAfter: 2);
-    //Divider
-    if (promodetails != '') printer.hr(len: 1);
-    //Promo
-    printer.text(promodetails,
-        styles: const PosStyles(align: PosAlign.center, bold: true));
+      if (paymenttype == 'EPAYMENT' || paymenttype == 'SPLIT') {
+        printer.text('Type: $epaymenttype',
+            styles: const PosStyles(align: PosAlign.left, bold: true));
+      }
 
-    printer.feed(1);
-    printer.cut();
+      //Devider
+      printer.hr(len: 1);
+      //POS Info
+      printer.text('Staff: ${staffname()}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('POS: $id',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('Shift: $shift',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('SN#: $serial',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('Branch: $branchid',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('MIN: $min',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text(ptu,
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      //Divider
+      printer.hr(len: 1);
+      //Items 8-TABS
+      printer.text('Description\tQty\tAmnt',
+          styles: const PosStyles(align: PosAlign.left, bold: true),
+          linesAfter: 1);
+      for (int index = 0; index < items.length; index++) {
+        if (items[index]['name'].length < 8) {
+          printer.text(
+              '${items[index]['name']}\t\t${items[index]['quantity']}\t${formatAsCurrency(items[index]['quantity'] * items[index]['price'])}',
+              styles: const PosStyles(align: PosAlign.left, bold: true));
+        } else {
+          printer.text(
+              '${items[index]['name']}\t${items[index]['quantity']}\t${formatAsCurrency(items[index]['quantity'] * items[index]['price'])}',
+              styles: const PosStyles(align: PosAlign.left, bold: true));
+        }
+      }
+      //Divider
+      printer.hr(len: 1);
+      //Summary
+      printer.text('Total Amount Due:\t${formatAsCurrency(totalamtdue(items))}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('Cash:\t\t\t${customercash(cash)}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      if (paymenttype == 'SPLIT') {
+        printer.text('E-Cash:\t\t\t${customercash(ecash)}',
+            styles: const PosStyles(align: PosAlign.left, bold: true));
+      }
+      printer.text('Change:\t\t\t${change(totalamtdue(items), cash)}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text(
+          'Vatable:\t\t${formatAsCurrency(vatable(totalamtdue(items)))}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text(
+          'VAT Amt:\t\t${vatamt(totalamtdue(items), vatable(totalamtdue(items)))}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('VAT Exmpt:\t\t${vatexemptsales()}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('Zero Rated:\t\t${zerorated()}',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      //Divider
+      printer.hr(len: 1);
+      //Customer Info
+      printer.text('Name:\t____________________',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('Addr:\t____________________',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('TIN:\t____________________',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      printer.text('Style:\t____________________',
+          styles: const PosStyles(align: PosAlign.left, bold: true));
+      //Divider
+      printer.hr(len: 1);
+      //Message
+      printer.text('Thank you! Come again!',
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+          linesAfter: 2);
+      printer.text('THIS IS A OFFICIAL RECEIPT',
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+          linesAfter: 2);
+      //Divider
+      if (promodetails != '') printer.hr(len: 1);
+      //Promo
+      printer.text(promodetails,
+          styles: const PosStyles(align: PosAlign.center, bold: true));
+
+      printer.feed(1);
+      printer.cut();
+    }
+
     return pdf.save();
   }
 }

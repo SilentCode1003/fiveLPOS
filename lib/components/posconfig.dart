@@ -11,6 +11,7 @@ import 'package:fiveLPOS/components/loginpage.dart';
 import 'package:fiveLPOS/repository/dbhelper.dart';
 import 'package:fiveLPOS/api/posconfig.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:desktop_window/desktop_window.dart';
 
 class PosConfig extends StatefulWidget {
   const PosConfig({super.key});
@@ -30,10 +31,12 @@ class _PosConfigState extends State<PosConfig> {
 
   String branchlogo = '';
 
+  String _windowSize = 'Unknown';
+
   @override
   void initState() {
-    _check();
     super.initState();
+    _check();
   }
 
   Future<void> _check() async {
@@ -46,11 +49,14 @@ class _PosConfigState extends State<PosConfig> {
       await createJsonFile('pos.json');
       await createJsonFile('branch.json');
       await createJsonFile('email.json');
+      await createJsonFile('printer.json');
 
       Map<String, dynamic> pos = await Helper().JsonToFileRead('pos.json');
       Map<String, dynamic> branch =
           await Helper().JsonToFileRead('branch.json');
       Map<String, dynamic> email = await Helper().JsonToFileRead('email.json');
+      Map<String, dynamic> printer =
+          await Helper().JsonToFileRead('printer.json');
 
       if (pos.isNotEmpty && branch.isNotEmpty && email.isNotEmpty) {
         // List<Map<String, dynamic>> branchconfig = await db.query('branch');
@@ -509,7 +515,26 @@ class _PosConfigState extends State<PosConfig> {
       }
 
       // Create a Map (or any other data structure) to convert to JSON
-      final Map<String, dynamic> jsonData = {'key': 'value'};
+      Map<String, dynamic> jsonData = {};
+      if (filename == 'branch.json') {
+        jsonData = {};
+      }
+
+      if (filename == 'pos.json') {
+        jsonData = {};
+      }
+
+      if (filename == 'email.json') {
+        jsonData = {};
+      }
+
+      if (filename == 'printer.json') {
+        jsonData = {
+          'printername': '',
+          'printerip': '',
+          'papersize': '',
+        };
+      }
 
       // Convert the Map to a JSON string
       final jsonString = jsonEncode(jsonData);
@@ -522,6 +547,7 @@ class _PosConfigState extends State<PosConfig> {
       print('Error creating JSON file: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

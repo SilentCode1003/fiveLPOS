@@ -8,7 +8,6 @@ import 'package:fiveLPOS/components/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:fiveLPOS/components/posconfig.dart';
 import 'package:fiveLPOS/repository/dbhelper.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() {
   if (Platform.isAndroid) {
@@ -45,12 +44,15 @@ void main() {
     //   // Handle any errors during database initialization
     //   print('Error opening database: $error');
     // });
+
+    
   }
 
   if (Platform.isWindows) {
     createJsonFile('pos.json');
     createJsonFile('email.json');
     createJsonFile('branch.json');
+    createJsonFile('printer.json');
   }
 
   runApp(const MyApp());
@@ -89,6 +91,8 @@ void createJsonFile(filename) {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+  get profile => CapabilityProfile.load();
+  get printer => NetworkPrinter(PaperSize.mm80, profile);
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +104,20 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Set the initial route
       home: const PosConfig(),
       routes: {
-        '/setting': (context) => const SettingsPage(),
+        '/setting': (context) => const SettingsPage(
+              employeeid: '',
+              fullname: '',
+              accesstype: 0,
+              positiontype: 0,
+              logo: '',
+            ),
+        '/dashboard': (context) => MyDashboard(
+            employeeid: 'employeeid',
+            fullname: 'fullname',
+            accesstype: 0,
+            positiontype: 0,
+            logo: 'logo',
+            printer: printer)
       },
     );
   }

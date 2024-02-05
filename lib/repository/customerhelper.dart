@@ -18,7 +18,7 @@ class Helper {
     final directory = Directory.current.path;
     final file = File('$directory/$filePath');
 
-    print(file);
+    print('JSON data read to: $file');
 
     // Check if the file exists
     if (!file.existsSync()) {
@@ -68,15 +68,13 @@ class Helper {
       final directory = Directory.current.path;
       final file = File('$directory/$filePath');
 
-      print(file);
-
       // Convert the data to a JSON string
       String jsonString = jsonEncode(jsnonData);
 
       // Write the JSON string to the file
       await file.writeAsString(jsonString);
 
-      print('Data written to ${file.path}');
+      print('Data written to ${file.path} data: $jsnonData');
     } catch (e) {
       print(e);
     }
@@ -91,7 +89,7 @@ class Helper {
 
       // Write JSON data to file
       final file = File(filePath);
-      
+
       await file.writeAsString(json.encode(jsonData));
 
       print('JSON data written to: $filePath');
@@ -105,7 +103,7 @@ class Helper {
     final filePath = '${directory.path}/$filename';
     final file = File(filePath);
 
-    print(file);
+    print('JSON data read to: $filePath');
 
     // Check if the file exists
     if (!file.existsSync()) {

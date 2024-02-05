@@ -1,20 +1,11 @@
 class EmailModel {
   final String emailaddress;
-  final String branchname;
-  final String tin;
-  final String address;
-  final String logo;
+  final String emailpassword;
+  final String emailserver;
 
-  EmailModel(
-      this.emailaddress, this.branchname, this.tin, this.address, this.logo);
+  EmailModel(this.emailaddress, this.emailpassword, this.emailserver);
 
   factory EmailModel.fromJson(Map<String, dynamic> json) {
-    return EmailModel(
-      json['branchid'],
-      json['branchname'],
-      json['tin'],
-      json['address'],
-      json['logo'],
-    );
+    return EmailModel(json['branchid'], json['emailpassword'], json['emailserver']);
   }
 }

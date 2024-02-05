@@ -1,16 +1,15 @@
-# pos2
+#fivePOS
 
-A new Flutter project.
+fivePOS is a Point of Sales Software develop by RnD team of 5L Solutions Supply's & Allied Services.
 
-## Getting Started
+This software is a revolutionize software in the new era of technology.
 
-This project is a starting point for a Flutter application.
+This software is capable to adapt on environtment like windows & android software environment.
 
-A few resources to get you started if this is your first Flutter project:
+What are the features of this software:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. This software can be setup on LAN, WAN & INTERNET.
+2. It has shifting sales like morning, mid and night shift.
+3. It has Promo & Discount functions.
+4. It can run on any devices like desktop, table or mobilephones (for mobile it could run on Android OS lolipop and up)
+5. It can setup IP Thermal Printer

@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:desktop_window/desktop_window.dart';
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fiveLPOS/components/dashboard.dart';
@@ -49,7 +52,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void initState() {
-    // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
+
+    super.initState();
+        // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
     setState(() {
       List<String> logo =
           utf8.decode(base64.decode(widget.logo)).split('<svg ');
@@ -58,8 +63,8 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     // print(branchlogo);
-    super.initState();
   }
+
 
   Future<void> _login() async {
     String username = _usernameController.text;
@@ -125,13 +130,24 @@ class _LoginPageState extends State<LoginPage> {
   void _printerinitiate() async {
     const PaperSize paper = PaperSize.mm80;
     final profile = await CapabilityProfile.load();
+    var printerconfig = {};
+    if (Platform.isWindows) {
+      printerconfig = await Helper().readJsonToFile('printer.json');
+    }
+    if (Platform.isAndroid) {
+      printerconfig = await Helper().JsonToFileRead('printer.json');
+    }
 
     print(profile.name);
 
     final printer = NetworkPrinter(paper, profile);
 
-    final PosPrintResult res = await printer.connect('192.168.10.120',
-        port: 9100, timeout: const Duration(seconds: 1));
+    final PosPrintResult res = await printer.connect(
+        printerconfig['key'] == 'value' || printerconfig['printerip'] == ''
+            ? '192.168.10.120'
+            : printerconfig['printerip'],
+        port: 9100,
+        timeout: const Duration(seconds: 1));
 
     print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
     _printer = printer;

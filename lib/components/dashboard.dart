@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:fiveLPOS/components/settings.dart';
 import 'package:fiveLPOS/model/category.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -26,6 +29,8 @@ import 'package:fiveLPOS/api/transaction.dart';
 import 'package:fiveLPOS/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
+import 'package:usb_serial/transaction.dart';
+import 'package:usb_serial/usb_serial.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -52,7 +57,8 @@ class MyDashboard extends StatefulWidget {
       required this.accesstype,
       required this.positiontype,
       required this.logo,
-      required this.printer});
+      required this.printer,
+      required});
 
   @override
   _MyDashboardState createState() => _MyDashboardState();
@@ -96,6 +102,15 @@ class _MyDashboardState extends State<MyDashboard> {
   String branchlogo = '';
   // String branchlogo = '';
 
+  UsbPort? _port;
+  String _status = "Idle";
+  List<Widget> _ports = [];
+  List<Widget> _serialData = [];
+
+  StreamSubscription<String>? _subscription;
+  Transaction<String>? _transactions;
+  UsbDevice? _device;
+
 //printer parameters
   @override
   void initState() {
@@ -108,6 +123,12 @@ class _MyDashboardState extends State<MyDashboard> {
     _getpayment();
     _getbranchdetail();
 
+    UsbSerial.usbEventStream!.listen((UsbEvent event) {
+      _getPorts();
+    });
+
+    _getPorts();
+
     super.initState();
   }
 
@@ -115,7 +136,94 @@ class _MyDashboardState extends State<MyDashboard> {
   void dispose() {
     _splitCashController.dispose();
     _splitAmountController.dispose();
+    _connectTo(null);
     super.dispose();
+  }
+
+  Future<bool> _connectTo(device) async {
+    _serialData.clear();
+
+    if (_subscription != null) {
+      _subscription!.cancel();
+      _subscription = null;
+    }
+
+    if (_transactions != null) {
+      _transactions!.dispose();
+      _transactions = null;
+    }
+
+    if (_port != null) {
+      _port!.close();
+      _port = null;
+    }
+
+    if (device == null) {
+      _device = null;
+      setState(() {
+        _status = "Disconnected";
+      });
+      return true;
+    }
+
+    _port = await device.create();
+    if (await (_port!.open()) != true) {
+      setState(() {
+        _status = "Failed to open port";
+      });
+      return false;
+    }
+    _device = device;
+
+    await _port!.setDTR(true);
+    await _port!.setRTS(true);
+    await _port!.setPortParameters(
+        115200, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
+
+    _transactions = Transaction.stringTerminated(
+        _port!.inputStream as Stream<Uint8List>, Uint8List.fromList([13, 10]));
+
+    _subscription = _transactions!.stream.listen((String line) {
+      setState(() {
+        _serialData.add(Text(line));
+        if (_serialData.length > 20) {
+          _serialData.removeAt(0);
+        }
+      });
+    });
+
+    setState(() {
+      _status = "Connected";
+    });
+    return true;
+  }
+
+  void _getPorts() async {
+    _ports = [];
+    List<UsbDevice> devices = await UsbSerial.listDevices();
+    if (!devices.contains(_device)) {
+      _connectTo(null);
+    }
+    print(devices);
+
+    devices.forEach((device) {
+      _ports.add(ListTile(
+          leading: Icon(Icons.usb),
+          title: Text(device.productName!),
+          subtitle: Text(device.manufacturerName!),
+          trailing: ElevatedButton(
+            child: Text(_device == device ? "Disconnect" : "Connect"),
+            onPressed: () {
+              _connectTo(_device == device ? null : device).then((res) {
+                _getPorts();
+              });
+            },
+          )));
+    });
+
+    setState(() {
+      print(_ports);
+    });
   }
 
 // #region API CALLS
@@ -368,6 +476,12 @@ class _MyDashboardState extends State<MyDashboard> {
                 printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
           }
         }
+      }
+
+      if (Platform.isAndroid) {
+        Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => pdfBytes,
+        );
       }
     }
   }
@@ -782,72 +896,69 @@ class _MyDashboardState extends State<MyDashboard> {
             );
           });
 
-      _getcategoryitems(category);
+      await _getcategoryitems(category)
+          .then((value) => Navigator.of(context).pop());
 
-      Future.delayed(const Duration(milliseconds: 1200), () {
-        Navigator.of(context).pop();
-
-        final List<Widget> product = List<Widget>.generate(
-            productList.length,
-            (index) => SizedBox(
-                  height: 80,
-                  width: 220,
-                  child: ElevatedButton(
-                    onPressed: (productList[index].quantity <= 0)
-                        ? null
-                        : () {
-                            // Add your button press logic here
-                            addItem(productList[index].description,
-                                double.parse(productList[index].price), 1);
-                          },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.memory(
-                            base64Decode(productList[index].productimage)),
-                        const SizedBox(
-                          width: 8,
+      final List<Widget> product = List<Widget>.generate(
+          productList.length,
+          (index) => SizedBox(
+                height: 80,
+                width: 220,
+                child: ElevatedButton(
+                  onPressed: (productList[index].quantity <= 0)
+                      ? null
+                      : () {
+                          // Add your button press logic here
+                          addItem(productList[index].description,
+                              double.parse(productList[index].price), 1);
+                        },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.memory(
+                          base64Decode(productList[index].productimage)),
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      SizedBox(
+                        width: 100,
+                        child: Text(
+                          productList[index].description,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
                         ),
-                        SizedBox(
-                          width: 100,
-                          child: Text(
-                            productList[index].description,
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ));
+                ),
+              ));
 
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Center(child: Text('Products')),
-              content: SingleChildScrollView(
-                child: Center(
-                  child: Wrap(
-                      spacing: 8, // Adjust the spacing between buttons
-                      runSpacing: 8, // Adjust the vertical spacing between rows
-                      children: product),
-                ),
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Center(child: Text('Products')),
+            content: SingleChildScrollView(
+              child: Center(
+                child: Wrap(
+                    spacing: 8, // Adjust the spacing between buttons
+                    runSpacing: 8, // Adjust the vertical spacing between rows
+                    children: product),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog
-                  },
-                  child: const Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      });
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -1074,7 +1185,18 @@ class _MyDashboardState extends State<MyDashboard> {
                           fixedSize:
                               MaterialStateProperty.all(const Size(120, 80))),
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/setting');
+                        // Navigator.pushReplacementNamed(context, '/setting');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SettingsPage(
+                                    employeeid: widget.employeeid,
+                                    fullname: widget.fullname,
+                                    accesstype: widget.accesstype,
+                                    positiontype: widget.positiontype,
+                                    logo: widget.logo,
+                                  )),
+                        );
                       },
                       child: const Text(
                         'SETTINGS',
@@ -1151,13 +1273,9 @@ class _MyDashboardState extends State<MyDashboard> {
 
       if (result['msg'] == 'success') {
         if (Platform.isAndroid) {
-          // Printing.layoutPdf(
-          //   onLayout: (PdfPageFormat format) async => pdfBytes,
-          // );
-
-          // Printing.directPrintPdf(
-          //     printer: const Printer(url: '192.168.10.120'),
-          //     onLayout: (PdfPageFormat format) => pdfBytes);
+          Printing.layoutPdf(
+              onLayout: (PdfPageFormat format) async => pdfBytes,
+              name: detailid.toString());
         } else if (Platform.isWindows) {
           List<Printer> printerList = await Printing.listPrinters();
           for (var localprinter in printerList) {
@@ -1310,7 +1428,6 @@ class _MyDashboardState extends State<MyDashboard> {
               );
             });
       } else {
-        // ignore: use_build_context_synchronously
         showDialog(
             context: context,
             builder: (BuildContext context) {
