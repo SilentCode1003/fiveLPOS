@@ -4,8 +4,10 @@ import 'dart:io';
 
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:fiveLPOS/api/employees.dart';
 import 'package:fiveLPOS/components/settings.dart';
 import 'package:fiveLPOS/model/category.dart';
+import 'package:fiveLPOS/model/employees.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -111,6 +113,9 @@ class _MyDashboardState extends State<MyDashboard> {
   Transaction<String>? _transactions;
   UsbDevice? _device;
 
+  String salesrepresentative = '';
+  List<String> employees = [];
+
 //printer parameters
   @override
   void initState() {
@@ -121,6 +126,7 @@ class _MyDashboardState extends State<MyDashboard> {
     _getcategory();
     _getdiscount();
     _getpayment();
+    _getemployees();
     _getbranchdetail();
 
     UsbSerial.usbEventStream!.listen((UsbEvent event) {
@@ -767,6 +773,17 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
+  Future<void> _getemployees() async {
+    final results = await EmployeesAPI().getEmployees();
+    final jsonData = json.encode(results['data']);
+
+    setState(() {
+      for (var data in json.decode(jsonData)) {
+        employees.add(data['fullname']);
+      }
+    });
+  }
+
 // #endregion
 // #region Payment methods
   String formatAsCurrency(double value) {
@@ -1249,7 +1266,7 @@ class _MyDashboardState extends State<MyDashboard> {
           paymentname,
           items,
           total,
-          cashier,
+          salesrepresentative,
           cashAmount.toString(),
           '0',
           branchid,
@@ -1522,7 +1539,7 @@ class _MyDashboardState extends State<MyDashboard> {
             cashamount,
             detailid,
             posid,
-            cashier,
+            salesrepresentative,
             shift,
             companyname,
             address,
@@ -2288,167 +2305,47 @@ class _MyDashboardState extends State<MyDashboard> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              content: Wrap(
-                                spacing: 4,
-                                runSpacing: 4,
+
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      _epayment();
+                                  DropdownMenu(
+                                    initialSelection: employees.first,
+                                    onSelected: (String? value) {
+                                      setState(() {
+                                        salesrepresentative = value!;
+                                      });
                                     },
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(120, 60),
-                                    ),
-                                    child: const Text('E-PAYMENT'),
+                                    dropdownMenuEntries: employees
+                                        .map<DropdownMenuEntry<String>>(
+                                            (String value) {
+                                      return DropdownMenuEntry<String>(
+                                          value: value, label: value);
+                                    }).toList(),
                                   ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: const Text('Cash Payment'),
-                                            content: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                    'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                const SizedBox(
-                                                  height: 16,
-                                                ), // Add spacing between text and text field
-
-                                                TextField(
-                                                  keyboardType:
-                                                      TextInputType.number,
-                                                  inputFormatters: [
-                                                    CurrencyInputFormatter(
-                                                      leadingSymbol:
-                                                          CurrencySymbols.PESO,
-                                                    ),
-                                                  ],
-                                                  onChanged: (value) {
-                                                    // Remove currency symbols and commas to get the numeric value
-                                                    String numericValue =
-                                                        value.replaceAll(
-                                                      RegExp(
-                                                          '[${CurrencySymbols.PESO},]'),
-                                                      '',
-                                                    );
-                                                    setState(() {
-                                                      cashAmount =
-                                                          double.tryParse(
-                                                                  numericValue) ??
-                                                              0;
-                                                    });
-                                                  },
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    hintText: 'Enter amount',
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            ////ARECEIPT
-                                            actions: [
-                                              ElevatedButton(
-                                                onPressed: () {
-                                                  String message = '';
-                                                  String title = '';
-
-                                                  if (cashAmount == 0) {
-                                                    message +=
-                                                        'Please enter cash tendered to proceed.';
-                                                    title += '[Enter Amount]';
-                                                  }
-                                                  if (cashAmount <
-                                                      calculateGrandTotal()) {
-                                                    message +=
-                                                        'Please enter the right amount of cash.';
-                                                    title +=
-                                                        '[Insufficient Funds]';
-                                                  }
-
-                                                  if (message != '') {
-                                                    showDialog(
-                                                        context: context,
-                                                        builder: (BuildContext
-                                                            context) {
-                                                          return AlertDialog(
-                                                            title: Text(title),
-                                                            content:
-                                                                Text(message),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () {
-                                                                  Navigator.of(
-                                                                          context)
-                                                                      .pop(); // Close the dialog
-                                                                },
-                                                                child:
-                                                                    const Text(
-                                                                        'OK'),
-                                                              ),
-                                                            ],
-                                                          );
-                                                        });
-                                                  } else {
-                                                    detailid++;
-                                                    _transaction(
-                                                        detailid.toString(),
-                                                        posid,
-                                                        helper
-                                                            .GetCurrentDatetime(),
-                                                        shift,
-                                                        'CASH',
-                                                        jsonEncode(itemsList),
-                                                        calculateGrandTotal()
-                                                            .toString(),
-                                                        widget.fullname,
-                                                        'CASH',
-                                                        'CASH');
-
-                                                    Navigator.of(context).pop();
-                                                    Navigator.of(context).pop();
-                                                  }
-                                                },
-                                                style: ButtonStyle(
-                                                  backgroundColor:
-                                                      MaterialStateProperty.all<
-                                                          Color>(
-                                                    Colors
-                                                        .brown, // Change the color here
-                                                  ),
-                                                  // Other button styles...
-                                                ),
-                                                child: const Text('Proceed'),
-                                              ),
-                                              TextButton(
-                                                  onPressed: () {
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                  child: const Text('Close'))
-                                            ],
-                                          );
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: [
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          _epayment();
                                         },
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(120, 60),
-                                    ),
-                                    child: const Text('CASH'),
-                                  ),
-                                  ElevatedButton(
-                                      onPressed: () {
-                                        _remaining();
-
-                                        showDialog(
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(120, 60),
+                                        ),
+                                        child: const Text('E-PAYMENT'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          showDialog(
                                             context: context,
                                             builder: (BuildContext context) {
                                               return AlertDialog(
                                                 title:
-                                                    const Text('Split Payment'),
+                                                    const Text('Cash Payment'),
                                                 content: Column(
                                                   mainAxisSize:
                                                       MainAxisSize.min,
@@ -2456,8 +2353,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     Text(
                                                         'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
                                                     const SizedBox(
-                                                      height: 10,
-                                                    ),
+                                                      height: 16,
+                                                    ), // Add spacing between text and text field
+
                                                     TextField(
                                                       keyboardType:
                                                           TextInputType.number,
@@ -2469,92 +2367,18 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         ),
                                                       ],
                                                       onChanged: (value) {
+                                                        // Remove currency symbols and commas to get the numeric value
                                                         String numericValue =
                                                             value.replaceAll(
                                                           RegExp(
                                                               '[${CurrencySymbols.PESO},]'),
                                                           '',
                                                         );
-
                                                         setState(() {
-                                                          splitcash =
+                                                          cashAmount =
                                                               double.tryParse(
                                                                       numericValue) ??
                                                                   0;
-
-                                                          _remaining();
-                                                        });
-                                                      },
-                                                      controller:
-                                                          _splitCashController,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                        hintText:
-                                                            'Enter amount',
-                                                        border:
-                                                            OutlineInputBorder(),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(
-                                                      height: 50,
-                                                    ),
-                                                    DropdownMenu(
-                                                      initialSelection:
-                                                          paymentList.first,
-                                                      onSelected:
-                                                          (String? value) {
-                                                        setState(() {
-                                                          splitEPaymentType =
-                                                              value!;
-                                                        });
-                                                      },
-                                                      dropdownMenuEntries:
-                                                          paymentList.map<
-                                                              DropdownMenuEntry<
-                                                                  String>>((String
-                                                              value) {
-                                                        return DropdownMenuEntry<
-                                                                String>(
-                                                            value: value,
-                                                            label: value);
-                                                      }).toList(),
-                                                    ),
-                                                    TextField(
-                                                      controller:
-                                                          _splitReferenceidController,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                              labelText:
-                                                                  'Reference ID'),
-                                                    ),
-                                                    const SizedBox(
-                                                      height: 10,
-                                                    ),
-                                                    TextField(
-                                                      controller:
-                                                          _splitAmountController,
-                                                      inputFormatters: [
-                                                        CurrencyInputFormatter(
-                                                          leadingSymbol:
-                                                              CurrencySymbols
-                                                                  .PESO,
-                                                        ),
-                                                      ],
-                                                      onChanged: (value) {
-                                                        String numericValue =
-                                                            value.replaceAll(
-                                                          RegExp(
-                                                              '[${CurrencySymbols.PESO},]'),
-                                                          '',
-                                                        );
-
-                                                        setState(() {
-                                                          splitepayamount =
-                                                              double.tryParse(
-                                                                      numericValue) ??
-                                                                  0;
-
-                                                          _remaining();
                                                         });
                                                       },
                                                       decoration:
@@ -2567,110 +2391,349 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     ),
                                                   ],
                                                 ),
+                                                ////ARECEIPT
                                                 actions: [
                                                   ElevatedButton(
-                                                      onPressed: () {
-                                                        String
-                                                            splitReferenceid =
-                                                            _splitReferenceidController
-                                                                .text;
+                                                    onPressed: () {
+                                                      String message = '';
+                                                      String title = '';
 
-                                                        double totaltendered =
-                                                            splitcash +
-                                                                splitepayamount;
+                                                      if (cashAmount == 0) {
+                                                        message +=
+                                                            'Please enter cash tendered to proceed.';
+                                                        title +=
+                                                            '[Enter Amount]';
+                                                      }
+                                                      if (cashAmount <
+                                                          calculateGrandTotal()) {
+                                                        message +=
+                                                            'Please enter the right amount of cash.';
+                                                        title +=
+                                                            '[Insufficient Funds]';
+                                                      }
 
-                                                        String message = '';
-                                                        String title = '';
-
-                                                        if (totaltendered ==
-                                                            0) {
-                                                          message +=
-                                                              'Please enter amount to proceed.\n';
-                                                          title +=
-                                                              '[Enter Amount]';
-                                                        }
-                                                        if (totaltendered <
-                                                            calculateGrandTotal()) {
-                                                          message +=
-                                                              'Please enter the right amount received from e-payment or cash.\n';
-                                                          title +=
-                                                              '[Insufficient Funds]';
-                                                        }
-                                                        if (splitReferenceid ==
-                                                            '') {
-                                                          message +=
-                                                              'Please enter reference id.\n';
-                                                          title +=
-                                                              '[Reference ID]';
-                                                        }
-
-                                                        if (remaining > 0) {
-                                                          message +=
-                                                              'Remaining: $remaining\n';
-                                                          title +=
-                                                              '[Remaining Balance]';
-                                                        }
-
-                                                        if (splitEPaymentType ==
-                                                            'Select Payment Type') {
-                                                          message +=
-                                                              'Please select payment type\n';
-                                                          title +=
-                                                              '[Payment Type]';
-                                                        }
-
-                                                        if (message != '') {
-                                                          showDialog(
-                                                              context: context,
-                                                              builder:
-                                                                  (BuildContext
-                                                                      context) {
-                                                                return AlertDialog(
-                                                                  title: Text(
-                                                                      title),
-                                                                  content: Text(
-                                                                      message),
-                                                                );
-                                                              });
-                                                        } else {
-                                                          detailid++;
-
-                                                          _splitpayment(
-                                                            splitcash,
-                                                            splitepayamount,
-                                                            'SPLIT',
-                                                            splitReferenceid,
-                                                            splitEPaymentType,
+                                                      if (message != '') {
+                                                        showDialog(
+                                                            context: context,
+                                                            builder:
+                                                                (BuildContext
+                                                                    context) {
+                                                              return AlertDialog(
+                                                                title:
+                                                                    Text(title),
+                                                                content: Text(
+                                                                    message),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed:
+                                                                        () {
+                                                                      Navigator.of(
+                                                                              context)
+                                                                          .pop(); // Close the dialog
+                                                                    },
+                                                                    child:
+                                                                        const Text(
+                                                                            'OK'),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            });
+                                                      } else {
+                                                        detailid++;
+                                                        _transaction(
                                                             detailid.toString(),
-                                                            widget.fullname,
+                                                            posid,
+                                                            helper
+                                                                .GetCurrentDatetime(),
+                                                            shift,
+                                                            'CASH',
                                                             jsonEncode(
                                                                 itemsList),
-                                                          );
+                                                            calculateGrandTotal()
+                                                                .toString(),
+                                                            widget.fullname,
+                                                            'CASH',
+                                                            'CASH');
 
-                                                          Navigator.pop(
-                                                              context);
-
-                                                          Navigator.pop(
-                                                              context);
-                                                        }
-                                                      },
-                                                      child:
-                                                          const Text('Submit')),
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                      }
+                                                    },
+                                                    style: ButtonStyle(
+                                                      backgroundColor:
+                                                          MaterialStateProperty
+                                                              .all<Color>(
+                                                        Colors
+                                                            .brown, // Change the color here
+                                                      ),
+                                                      // Other button styles...
+                                                    ),
+                                                    child:
+                                                        const Text('Proceed'),
+                                                  ),
                                                   TextButton(
                                                       onPressed: () {
                                                         Navigator.of(context)
-                                                            .pop(); // Close the dialog
+                                                            .pop();
                                                       },
                                                       child:
                                                           const Text('Close'))
                                                 ],
                                               );
-                                            });
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size(120, 60),
+                                            },
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(120, 60),
+                                        ),
+                                        child: const Text('CASH'),
                                       ),
-                                      child: const Text('SPLIT'))
+                                      ElevatedButton(
+                                          onPressed: () {
+                                            _remaining();
+
+                                            showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title: const Text(
+                                                        'Split Payment'),
+                                                    content: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Text(
+                                                            'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                        const SizedBox(
+                                                          height: 10,
+                                                        ),
+                                                        TextField(
+                                                          keyboardType:
+                                                              TextInputType
+                                                                  .number,
+                                                          inputFormatters: [
+                                                            CurrencyInputFormatter(
+                                                              leadingSymbol:
+                                                                  CurrencySymbols
+                                                                      .PESO,
+                                                            ),
+                                                          ],
+                                                          onChanged: (value) {
+                                                            String
+                                                                numericValue =
+                                                                value
+                                                                    .replaceAll(
+                                                              RegExp(
+                                                                  '[${CurrencySymbols.PESO},]'),
+                                                              '',
+                                                            );
+
+                                                            setState(() {
+                                                              splitcash = double
+                                                                      .tryParse(
+                                                                          numericValue) ??
+                                                                  0;
+
+                                                              _remaining();
+                                                            });
+                                                          },
+                                                          controller:
+                                                              _splitCashController,
+                                                          decoration:
+                                                              const InputDecoration(
+                                                            hintText:
+                                                                'Enter amount',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 50,
+                                                        ),
+                                                        DropdownMenu(
+                                                          initialSelection:
+                                                              paymentList.first,
+                                                          onSelected:
+                                                              (String? value) {
+                                                            setState(() {
+                                                              splitEPaymentType =
+                                                                  value!;
+                                                            });
+                                                          },
+                                                          dropdownMenuEntries:
+                                                              paymentList.map<
+                                                                  DropdownMenuEntry<
+                                                                      String>>((String
+                                                                  value) {
+                                                            return DropdownMenuEntry<
+                                                                    String>(
+                                                                value: value,
+                                                                label: value);
+                                                          }).toList(),
+                                                        ),
+                                                        TextField(
+                                                          controller:
+                                                              _splitReferenceidController,
+                                                          decoration:
+                                                              const InputDecoration(
+                                                                  labelText:
+                                                                      'Reference ID'),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 10,
+                                                        ),
+                                                        TextField(
+                                                          controller:
+                                                              _splitAmountController,
+                                                          inputFormatters: [
+                                                            CurrencyInputFormatter(
+                                                              leadingSymbol:
+                                                                  CurrencySymbols
+                                                                      .PESO,
+                                                            ),
+                                                          ],
+                                                          onChanged: (value) {
+                                                            String
+                                                                numericValue =
+                                                                value
+                                                                    .replaceAll(
+                                                              RegExp(
+                                                                  '[${CurrencySymbols.PESO},]'),
+                                                              '',
+                                                            );
+
+                                                            setState(() {
+                                                              splitepayamount =
+                                                                  double.tryParse(
+                                                                          numericValue) ??
+                                                                      0;
+
+                                                              _remaining();
+                                                            });
+                                                          },
+                                                          decoration:
+                                                              const InputDecoration(
+                                                            hintText:
+                                                                'Enter amount',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    actions: [
+                                                      ElevatedButton(
+                                                          onPressed: () {
+                                                            String
+                                                                splitReferenceid =
+                                                                _splitReferenceidController
+                                                                    .text;
+
+                                                            double
+                                                                totaltendered =
+                                                                splitcash +
+                                                                    splitepayamount;
+
+                                                            String message = '';
+                                                            String title = '';
+
+                                                            if (totaltendered ==
+                                                                0) {
+                                                              message +=
+                                                                  'Please enter amount to proceed.\n';
+                                                              title +=
+                                                                  '[Enter Amount]';
+                                                            }
+                                                            if (totaltendered <
+                                                                calculateGrandTotal()) {
+                                                              message +=
+                                                                  'Please enter the right amount received from e-payment or cash.\n';
+                                                              title +=
+                                                                  '[Insufficient Funds]';
+                                                            }
+                                                            if (splitReferenceid ==
+                                                                '') {
+                                                              message +=
+                                                                  'Please enter reference id.\n';
+                                                              title +=
+                                                                  '[Reference ID]';
+                                                            }
+
+                                                            if (remaining > 0) {
+                                                              message +=
+                                                                  'Remaining: $remaining\n';
+                                                              title +=
+                                                                  '[Remaining Balance]';
+                                                            }
+
+                                                            if (splitEPaymentType ==
+                                                                'Select Payment Type') {
+                                                              message +=
+                                                                  'Please select payment type\n';
+                                                              title +=
+                                                                  '[Payment Type]';
+                                                            }
+
+                                                            if (message != '') {
+                                                              showDialog(
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (BuildContext
+                                                                          context) {
+                                                                    return AlertDialog(
+                                                                      title: Text(
+                                                                          title),
+                                                                      content: Text(
+                                                                          message),
+                                                                    );
+                                                                  });
+                                                            } else {
+                                                              detailid++;
+
+                                                              _splitpayment(
+                                                                splitcash,
+                                                                splitepayamount,
+                                                                'SPLIT',
+                                                                splitReferenceid,
+                                                                splitEPaymentType,
+                                                                detailid
+                                                                    .toString(),
+                                                                widget.fullname,
+                                                                jsonEncode(
+                                                                    itemsList),
+                                                              );
+
+                                                              Navigator.pop(
+                                                                  context);
+
+                                                              Navigator.pop(
+                                                                  context);
+                                                            }
+                                                          },
+                                                          child: const Text(
+                                                              'Submit')),
+                                                      TextButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop(); // Close the dialog
+                                                          },
+                                                          child: const Text(
+                                                              'Close'))
+                                                    ],
+                                                  );
+                                                });
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            minimumSize: const Size(120, 60),
+                                          ),
+                                          child: const Text('SPLIT'))
+                                    ],
+                                  ),
                                 ],
                               ),
                               actions: [
