@@ -10,17 +10,17 @@ class LocalPrint {
 
     final printer = NetworkPrinter(paper, profile);
 
-    final PosPrintResult res = await printer.connect('192.168.10.120',
+    final PosPrintResult res = await printer.connect('${ipaddress}',
         port: 9100, timeout: const Duration(seconds: 1));
 
     if (res == PosPrintResult.success) {
-      print('Print result: ${res.msg}');
-      printer.text('TEST');
-      printer.feed(5);
-      printer.cut();
+      // print('Print result: ${res.msg}');
+      // printer.text('TEST');
+      // printer.feed(5);
+      // printer.cut();
+
+      await testReceipt(printer);
       return printer;
-      // await testReceipt(printer);
-      // printer.disconnect();
     } else {
       print('Print result: ${res.msg}');
       return printer;

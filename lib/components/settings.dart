@@ -37,6 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
   PaperSize papersize = PaperSize.mm80;
   String printername = '';
   String printerip = '';
+  bool isenable = false;
 
   var _printer;
   @override
@@ -82,8 +83,8 @@ class _SettingsPageState extends State<SettingsPage> {
       var printer = await Helper().readJsonToFile('printer.json');
       print(printer);
       if (printer['printername'] != null) {
-        PrinterModel model = PrinterModel(
-            printer['printername'], printer['printerip'], printer['papersize']);
+        PrinterModel model = PrinterModel(printer['printername'],
+            printer['printerip'], printer['papersize'], printer['isenable']);
 
         setState(() {
           printername = model.printername;
@@ -91,22 +92,24 @@ class _SettingsPageState extends State<SettingsPage> {
           papersize =
               model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
         });
+        isenable = model.isenable;
       }
     }
 
     if (Platform.isAndroid) {
-      var printer = await Helper().JsonToFileRead('email.json');
+      var printer = await Helper().JsonToFileRead('printer.json');
 
       print(printer);
       if (printer['printername'] != null) {
-        PrinterModel model = PrinterModel(
-            printer['printername'], printer['printerip'], printer['papersize']);
+        PrinterModel model = PrinterModel(printer['printername'],
+            printer['printerip'], printer['papersize'], printer['isenable']);
 
         setState(() {
           printername = model.printername;
           printerip = model.printerip;
           papersize =
               model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
+          isenable = model.isenable;
         });
       }
     }
@@ -119,6 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _printerinitiate() async {
+    Map<String, dynamic> printerConfig = {};
     papersize = PaperSize.mm80;
     final profile = await CapabilityProfile.load();
 
@@ -126,11 +130,25 @@ class _SettingsPageState extends State<SettingsPage> {
 
     final printer = NetworkPrinter(papersize, profile);
 
-    final PosPrintResult res = await printer.connect('192.168.10.120',
-        port: 9100, timeout: const Duration(seconds: 1));
+    if (Platform.isWindows) {
+      printerConfig = await Helper().readJsonToFile('printer.json');
+    }
+
+    if (Platform.isAndroid) {
+      printerConfig = await Helper().JsonToFileRead('printer.json');
+    }
+
+    final PosPrintResult res = await printer.connect(printerConfig['printerip'],
+        port: 9100, timeout: const Duration(seconds: 5));
 
     print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
+
     _printer = printer;
+    printer.disconnect();
+  }
+
+  void isPrinterStatus() {
+    _getprinterconfig();
   }
 
   @override
@@ -213,6 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 positiontype: widget.positiontype,
                                 logo: widget.logo,
                                 printer: _printer,
+                                printerstatus: '',
                               )),
                     );
                   },
@@ -228,10 +247,11 @@ class _SettingsPageState extends State<SettingsPage> {
     switch (currentPage) {
       case 0:
         return PrinterPage(
-          printername: printername,
-          ipaddress: printerip,
-          papersize: papersize,
-        );
+            printername: printername,
+            ipaddress: printerip,
+            papersize: papersize,
+            isenable: isenable,
+            getPrinterConfig: isPrinterStatus);
       case 1:
         return EmailPage(
           emailaddress: emailaddress,
@@ -252,11 +272,16 @@ class PrinterPage extends StatelessWidget {
   final String printername;
   final String ipaddress;
   final PaperSize papersize;
+  final bool isenable;
+  final Function() getPrinterConfig;
+
   const PrinterPage(
       {super.key,
       required this.printername,
       required this.ipaddress,
-      required this.papersize});
+      required this.papersize,
+      required this.isenable,
+      required this.getPrinterConfig});
 
   @override
   Widget build(BuildContext context) {
@@ -265,24 +290,50 @@ class PrinterPage extends StatelessWidget {
     TextEditingController _printeripaddress =
         TextEditingController(text: ipaddress);
     TextEditingController _printerpaperwidth =
-        TextEditingController(text: papersize.value == 1 ? 'mm80' : 'mm58');
-
-    print(papersize.value);
+        TextEditingController(text: papersize.value == 1 ? 'mm58' : 'mm80');
+    bool _isenable = isenable;
 
     Future<void> savePrinterConfig(jsnonData) async {
-      print(jsnonData);
-      showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return CircularProgressBar(
-              status: '..Writing JSON data..',
-            );
-          });
-
-      await Helper()
-          .writeJsonToFile(jsnonData, 'printer.json')
-          .then((value) => Navigator.of(context).pop());
+      if (Platform.isWindows) {
+        await Helper()
+            .writeJsonToFile(jsnonData, 'printer.json')
+            .then((value) => showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Success'),
+                    content: Text('Printer configuration saved!'),
+                    icon: Icon(Icons.check),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  );
+                }));
+      }
+      if (Platform.isAndroid) {
+        await Helper()
+            .JsonToFileWrite(jsnonData, 'printer.json')
+            .then((value) => showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Success'),
+                    content: Text('Printer configuration saved!'),
+                    icon: Icon(Icons.check),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  );
+                }));
+      }
     }
 
     return Center(
@@ -372,7 +423,8 @@ class PrinterPage extends StatelessWidget {
                         savePrinterConfig({
                           'printername': _printername.text,
                           'printerip': _printeripaddress.text,
-                          'papersize': _printerpaperwidth.text
+                          'papersize': _printerpaperwidth.text,
+                          'isenable': false,
                         });
                       },
                       child: const Text(
@@ -398,7 +450,45 @@ class PrinterPage extends StatelessWidget {
                         'TEST PRINT',
                         style: TextStyle(
                             fontSize: 22, fontWeight: FontWeight.w600),
-                      )))
+                      ))),
+              const SizedBox(
+                height: 10,
+              ),
+              Container(
+                  constraints: const BoxConstraints(
+                    minHeight: 40,
+                    minWidth: 200.0,
+                    maxWidth: 380.0,
+                  ),
+                  child: (_isenable == false)
+                      ? ElevatedButton(
+                          onPressed: () {
+                            savePrinterConfig({
+                              'printername': _printername.text,
+                              'printerip': _printeripaddress.text,
+                              'papersize': _printerpaperwidth.text,
+                              'isenable': true,
+                            });
+                          },
+                          child: const Text(
+                            'ENABLE',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w600),
+                          ))
+                      : ElevatedButton(
+                          onPressed: () {
+                            savePrinterConfig({
+                              'printername': _printername.text,
+                              'printerip': _printeripaddress.text,
+                              'papersize': _printerpaperwidth.text,
+                              'isenable': false,
+                            });
+                          },
+                          child: const Text(
+                            'DISABLE',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w600),
+                          ))),
             ]),
       ),
     );
@@ -426,19 +516,46 @@ class EmailPage extends StatelessWidget {
     TextEditingController _smtpserver = TextEditingController(text: smtp);
 
     Future<void> saveEmailConfig(jsnonData) async {
-      print(jsnonData);
-      showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return CircularProgressBar(
-              status: '..Writing JSON data..',
-            );
-          });
-
-      await Helper()
-          .writeJsonToFile(jsnonData, 'email.json')
-          .then((value) => Navigator.of(context).pop());
+      if (Platform.isWindows) {
+        await Helper()
+            .writeJsonToFile(jsnonData, 'email.json')
+            .then((value) => showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Success'),
+                    content: Text('Email configuration saved!'),
+                    icon: Icon(Icons.check),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  );
+                }));
+      }
+      if (Platform.isAndroid) {
+        await Helper()
+            .JsonToFileWrite(jsnonData, 'email.json')
+            .then((value) => showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text('Success'),
+                    content: Text('Email configuration saved!'),
+                    icon: Icon(Icons.check),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  );
+                }));
+      }
     }
 
     return Center(
@@ -540,9 +657,42 @@ class EmailPage extends StatelessWidget {
 class ProductPage extends StatelessWidget {
   const ProductPage({super.key});
 
+  get label => null;
+
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 320,
+              height: 60,
+              child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.production_quantity_limits),
+                  label: const Text('Item Name')),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 320,
+              height: 60,
+              child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.category_sharp),
+                  label: const Text(
+                    'Category',
+                  )),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -550,7 +700,51 @@ class DiscountPromoPage extends StatelessWidget {
   const DiscountPromoPage({super.key});
 
   @override
+ Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 320,
+              height: 60,
+              child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.discount),
+                  label: const Text('Discounts')),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 320,
+              height: 60,
+              child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.list),
+                  label: const Text(
+                    'Promo',
+                  )),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ItemPage extends StatelessWidget {
+  const ItemPage({super.key});
+
+  @override
   Widget build(BuildContext context) {
-    return Container();
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [],
+    );
   }
 }

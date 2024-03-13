@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:esc_pos_printer/esc_pos_printer.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
@@ -20,21 +22,22 @@ class ReprintingReceipt {
   String referenceid;
   double cash;
   double ecash;
+  NetworkPrinter printer;
 
   ReprintingReceipt(
-    this.ornumber,
-    this.ordate,
-    this.ordescription,
-    this.orpaymenttype,
-    this.posid,
-    this.shift,
-    this.cashier,
-    this.total,
-    this.epaymentname,
-    this.referenceid,
-    this.cash,
-    this.ecash,
-  );
+      this.ornumber,
+      this.ordate,
+      this.ordescription,
+      this.orpaymenttype,
+      this.posid,
+      this.shift,
+      this.cashier,
+      this.total,
+      this.epaymentname,
+      this.referenceid,
+      this.cash,
+      this.ecash,
+      this.printer);
 
   Helper helper = Helper();
   DatabaseHelper dbHelper = DatabaseHelper();
@@ -589,27 +592,27 @@ class ReprintingReceipt {
               ),
 
               //////PROMO//////////
-              pw.Container(
-                height: 0.5, // Set the height of the divider
-                color: PdfColors.grey600, // Change this to your desired color
-                margin: const pw.EdgeInsets.symmetric(
-                    vertical: 5), // Adjust vertical spacing
-              ),
-              pw.Text(
-                'You have free humberger',
-                style:
-                    pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text(
-                'PROMO CODE: AAE45845',
-                style:
-                    pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text(
-                'DTI FTEB Permit No.: 151601',
-                style:
-                    pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-              ),
+              // pw.Container(
+              //   height: 0.5, // Set the height of the divider
+              //   color: PdfColors.grey600, // Change this to your desired color
+              //   margin: const pw.EdgeInsets.symmetric(
+              //       vertical: 5), // Adjust vertical spacing
+              // ),
+              // pw.Text(
+              //   'You have free humberger',
+              //   style:
+              //       pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+              // ),
+              // pw.Text(
+              //   'PROMO CODE: AAE45845',
+              //   style:
+              //       pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+              // ),
+              // pw.Text(
+              //   'DTI FTEB Permit No.: 151601',
+              //   style:
+              //       pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+              // ),
             ],
           );
         },

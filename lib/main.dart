@@ -44,8 +44,6 @@ void main() {
     //   // Handle any errors during database initialization
     //   print('Error opening database: $error');
     // });
-
-    
   }
 
   if (Platform.isWindows) {
@@ -112,12 +110,14 @@ class MyApp extends StatelessWidget {
               logo: '',
             ),
         '/dashboard': (context) => MyDashboard(
-            employeeid: 'employeeid',
-            fullname: 'fullname',
-            accesstype: 0,
-            positiontype: 0,
-            logo: 'logo',
-            printer: printer)
+              employeeid: 'employeeid',
+              fullname: 'fullname',
+              accesstype: 0,
+              positiontype: 0,
+              logo: 'logo',
+              printer: printer,
+              printerstatus: '',
+            )
       },
     );
   }

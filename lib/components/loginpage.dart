@@ -45,16 +45,15 @@ class _LoginPageState extends State<LoginPage> {
   String tin = '';
   String address = '';
   String branchlogo = '';
-
+  var _printerStatus;
   // DatabaseHelper dbHelper = DatabaseHelper();
 
   var _printer;
 
   @override
   void initState() {
-
     super.initState();
-        // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
+    // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
     setState(() {
       List<String> logo =
           utf8.decode(base64.decode(widget.logo)).split('<svg ');
@@ -64,7 +63,6 @@ class _LoginPageState extends State<LoginPage> {
 
     // print(branchlogo);
   }
-
 
   Future<void> _login() async {
     String username = _usernameController.text;
@@ -101,18 +99,19 @@ class _LoginPageState extends State<LoginPage> {
         context,
         MaterialPageRoute(
             builder: (context) => MyDashboard(
-                  accesstype: userinfomodel.accesstype,
-                  employeeid: userinfomodel.employeeid,
-                  fullname: userinfomodel.fullname,
-                  positiontype: userinfomodel.position,
-                  logo: branchlogo,
-                  printer: _printer,
-                )),
+                accesstype: userinfomodel.accesstype,
+                employeeid: userinfomodel.employeeid,
+                fullname: userinfomodel.fullname,
+                positiontype: userinfomodel.position,
+                logo: branchlogo,
+                printer: _printer,
+                printerstatus: _printerStatus)),
       );
     } else {
       Navigator.of(context).pop();
       showDialog(
         context: context,
+         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('Access'),
           content: const Text('Incorrect username and password'),
@@ -150,7 +149,13 @@ class _LoginPageState extends State<LoginPage> {
         timeout: const Duration(seconds: 1));
 
     print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
+    _printerStatus = res.msg;
     _printer = printer;
+
+    // printer.text('INITIAL PRINT');
+    // printer.text('INITIAL PRINT');
+    // printer.feed(1);
+    // printer.cut();
   }
 
   @override

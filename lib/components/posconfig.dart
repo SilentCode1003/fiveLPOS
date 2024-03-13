@@ -96,23 +96,24 @@ class _PosConfigState extends State<PosConfig> {
           // }
         }
 
-        if (email.isNotEmpty) {
-          //for (var email in emailconfig) {
-          // String name = pos['posid'];
-          print(
-              '${email['emailaddress']} ${email['emailpassword']} ${email['emailserver']}');
+        // if (email.isNotEmpty) {
+        //   //for (var email in emailconfig) {
+        //   // String name = pos['posid'];
+        //   print(
+        //       '${email['emailaddress']} ${email['emailpassword']} ${email['emailserver']}');
 
-          setState(() {
-            _emailAddressController.text = email['emailaddress'];
-            _emailPasswordController.text = email['emailpassword'];
-            _emailServerController.text = email['emailserver'];
-          });
-          // Process data
-          //}
-        }
+        //   setState(() {
+        //     _emailAddressController.text = email['emailaddress'];
+        //     _emailPasswordController.text = email['emailpassword'];
+        //     _emailServerController.text = email['emailserver'];
+        //   });
+        //   // Process data
+        //   //}
+        // }
 
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text('Not yet configured'),
             content: const Text('Please enter POS ID and SYNC to Server'),
@@ -171,23 +172,24 @@ class _PosConfigState extends State<PosConfig> {
           // }
         }
 
-        if (email.isNotEmpty) {
-          //for (var email in emailconfig) {
-          // String name = pos['posid'];
-          print(
-              '${email['emailaddress']} ${email['emailpassword']} ${email['emailserver']}');
+        // if (email.isNotEmpty) {
+        //   //for (var email in emailconfig) {
+        //   // String name = pos['posid'];
+        //   print(
+        //       '${email['emailaddress']} ${email['emailpassword']} ${email['emailserver']}');
 
-          setState(() {
-            _emailAddressController.text = email['emailaddress'];
-            _emailPasswordController.text = email['emailpassword'];
-            _emailServerController.text = email['emailserver'];
-          });
-          // Process data
-          //}
-        }
+        //   setState(() {
+        //     _emailAddressController.text = email['emailaddress'];
+        //     _emailPasswordController.text = email['emailpassword'];
+        //     _emailServerController.text = email['emailserver'];
+        //   });
+        //   // Process data
+        //   //}
+        // }
 
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text('Not yet configured'),
             content: const Text('Please enter POS ID and SYNC to Server'),
@@ -264,6 +266,7 @@ class _PosConfigState extends State<PosConfig> {
       Navigator.pop(context);
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('Success'),
           content: Text('POS ${_posidController.text} sync successfully'),
@@ -344,6 +347,7 @@ class _PosConfigState extends State<PosConfig> {
 
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text('Not Found'),
             content: const Text('POS ID has no confuguration'),
@@ -420,6 +424,7 @@ class _PosConfigState extends State<PosConfig> {
       } else {
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text('Not Found'),
             content: const Text('Branch ID has no confuguration'),
@@ -548,58 +553,120 @@ class _PosConfigState extends State<PosConfig> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SizedBox(
-          width: 400,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      body: SafeArea(
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
               const Text(
-                'POS Config',
+                'POS Configuration',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              TextFormField(
-                controller: _branchidController,
-                decoration: const InputDecoration(labelText: 'BRANCH ID'),
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: TextFormField(
+                  controller: _branchidController,
+                  focusNode: FocusNode(),
+                  autofocus: true,
+                  obscureText: false,
+                  decoration: InputDecoration(
+                    labelText: 'Branch ID',
+                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    hintText: 'Branch ID',
+                    hintStyle: TextStyle(fontWeight: FontWeight.normal),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              TextFormField(
-                controller: _posidController,
-                decoration: const InputDecoration(labelText: 'POS ID'),
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: TextFormField(
+                  controller: _posidController,
+                  focusNode: FocusNode(),
+                  autofocus: true,
+                  obscureText: false,
+                  decoration: InputDecoration(
+                    labelText: 'POS ID',
+                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    hintText: 'POS ID',
+                    hintStyle: TextStyle(fontWeight: FontWeight.normal),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              const SizedBox(height: 32),
-              const Text(
-                'Email Config',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              TextFormField(
-                controller: _emailAddressController,
-                decoration: const InputDecoration(labelText: 'EMAIL ADDRESS'),
-              ),
-              TextFormField(
-                controller: _emailPasswordController,
-                decoration: const InputDecoration(labelText: 'EMAIL PASSWORD'),
-              ),
-              TextFormField(
-                controller: _emailServerController,
-                decoration: const InputDecoration(labelText: 'EMAIL SERVER'),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
-                  _sync();
-                },
-                style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 80)),
-                child: const Text('SYNC'),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    _sync();
+                  },
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 80)),
+                  child: const Text('SYNC'),
+                ),
               )
             ]),
-          ),
-        ),
       ),
     );
   }

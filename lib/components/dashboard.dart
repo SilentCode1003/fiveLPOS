@@ -5,9 +5,11 @@ import 'dart:io';
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:fiveLPOS/api/employees.dart';
+import 'package:fiveLPOS/api/services.dart';
 import 'package:fiveLPOS/components/settings.dart';
 import 'package:fiveLPOS/model/category.dart';
 import 'package:fiveLPOS/model/employees.dart';
+import 'package:fiveLPOS/model/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -51,6 +53,7 @@ class MyDashboard extends StatefulWidget {
   final int positiontype;
   final String logo;
   final NetworkPrinter printer;
+  final String printerstatus;
 
   const MyDashboard(
       {super.key,
@@ -60,7 +63,7 @@ class MyDashboard extends StatefulWidget {
       required this.positiontype,
       required this.logo,
       required this.printer,
-      required});
+      required this.printerstatus});
 
   @override
   _MyDashboardState createState() => _MyDashboardState();
@@ -70,6 +73,7 @@ class _MyDashboardState extends State<MyDashboard> {
   List<Map<String, dynamic>> itemsList = [];
   List<ProductPriceModel> productList = [];
   List<CategoryModel> categoryList = [];
+  List<ServiceModel> serviceList = [];
   List<String> discountList = [];
   List<String> paymentList = [];
   String companyname = '';
@@ -96,6 +100,8 @@ class _MyDashboardState extends State<MyDashboard> {
   final TextEditingController _discountFullnameController =
       TextEditingController();
   final TextEditingController _discountIDController = TextEditingController();
+  final TextEditingController _salesrepresentativeController =
+      TextEditingController();
 
   Helper helper = Helper();
   DatabaseHelper dbHelper = DatabaseHelper();
@@ -248,6 +254,7 @@ class _MyDashboardState extends State<MyDashboard> {
         String svglogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
 
         branchlogo = svglogo;
+        companyname = branch['branchname'];
       });
     }
 
@@ -260,6 +267,7 @@ class _MyDashboardState extends State<MyDashboard> {
         String svglogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
 
         branchlogo = svglogo;
+        companyname = branch['branchname'];
       });
     }
     // for (var branch in branchconfig) {
@@ -386,21 +394,10 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _getdetails(BuildContext context, detailid) async {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return LoadingSpinner(
-            message: 'Loading',
-          );
-        });
-
     final results = await SalesDetails().getdetails(detailid);
     final jsonData = json.encode(results['data']);
 
-    if (results['msg'] == 'success') {
-      Navigator.of(context).pop();
-    }
+    print(jsonData);
 
     if (jsonData.length == 2) {
       showDialog(
@@ -471,7 +468,8 @@ class _MyDashboardState extends State<MyDashboard> {
               epaymentname,
               referenceid,
               cash.toDouble(),
-              ecash.toDouble())
+              ecash.toDouble(),
+              widget.printer)
           .printReceipt();
 
       if (Platform.isWindows) {
@@ -578,7 +576,8 @@ class _MyDashboardState extends State<MyDashboard> {
                 epaymentname,
                 referenceid,
                 cash.toDouble(),
-                ecash.toDouble())
+                ecash.toDouble(),
+                widget.printer)
             .printReceipt();
 
         List<Map<String, dynamic>> items =
@@ -642,12 +641,14 @@ class _MyDashboardState extends State<MyDashboard> {
     final jsonData = json.decode(results['data']);
     String description = '';
     double price = 0;
+    double stocks = 0;
 
     setState(() {
       for (var data in jsonData) {
         description = data['description'];
         price = double.parse(data['price']);
-        addItem(description, price, 1);
+        stocks = double.parse(data['quantity']);
+        addItem(description, price, 1, stocks);
       }
     });
   }
@@ -716,6 +717,7 @@ class _MyDashboardState extends State<MyDashboard> {
         if (calculateGrandTotal() == 0) {
           showDialog(
               context: context,
+              barrierDismissible: false,
               builder: (BuildContext context) {
                 return AlertDialog(
                   title: const Text('Discount'),
@@ -745,7 +747,7 @@ class _MyDashboardState extends State<MyDashboard> {
               'amount': discount,
             }
           ];
-          addItem('Discount ($type)', discount, 1);
+          addItem('Discount ($type)', discount, 1, 0);
         }
       }
     });
@@ -787,12 +789,13 @@ class _MyDashboardState extends State<MyDashboard> {
 // #endregion
 // #region Payment methods
   String formatAsCurrency(double value) {
-    return '₱ ${toCurrencyString(value.toString())}';
+    return '${toCurrencyString(value.toString())}';
   }
 
   Future<void> confirmAndRemove(int index) async {
     bool shouldRemove = await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirm Removal'),
@@ -827,6 +830,7 @@ class _MyDashboardState extends State<MyDashboard> {
     if (newQuantity < 1) {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Confirm Quantity'),
@@ -867,14 +871,33 @@ class _MyDashboardState extends State<MyDashboard> {
 
   double cashAmount = 0;
 
-  void addItem(name, price, quantity) {
+  void addItem(name, price, quantity, stocks) {
     setState(() {
       int existingIndex = itemsList.indexWhere((item) => item['name'] == name);
 
       if (existingIndex != -1) {
         setState(() {
           int newQuantity = itemsList[existingIndex]['quantity'] + quantity;
-          itemsList[existingIndex]['quantity'] = newQuantity;
+          if (newQuantity > stocks) {
+            showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Alert'),
+                    content: Text('Stocks available $stocks'),
+                    icon: Icon(Icons.warning),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  );
+                });
+          } else {
+            itemsList[existingIndex]['quantity'] = newQuantity;
+          }
         });
       } else {
         setState(() {
@@ -888,6 +911,7 @@ class _MyDashboardState extends State<MyDashboard> {
     if (isStartShift != false) {
       showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Shift'),
@@ -926,8 +950,11 @@ class _MyDashboardState extends State<MyDashboard> {
                       ? null
                       : () {
                           // Add your button press logic here
-                          addItem(productList[index].description,
-                              double.parse(productList[index].price), 1);
+                          addItem(
+                              productList[index].description,
+                              double.parse(productList[index].price),
+                              1,
+                              productList[index].quantity);
                         },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -939,14 +966,25 @@ class _MyDashboardState extends State<MyDashboard> {
                         width: 8,
                       ),
                       SizedBox(
-                        width: 100,
-                        child: Text(
-                          productList[index].description,
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                          width: 100,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${productList[index].description}',
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                              Text(
+                                'Stocks: ${productList[index].quantity}',
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          )),
                     ],
                   ),
                 ),
@@ -954,6 +992,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Center(child: Text('Products')),
@@ -982,6 +1021,7 @@ class _MyDashboardState extends State<MyDashboard> {
   void others() {
     showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Others'),
@@ -1084,6 +1124,7 @@ class _MyDashboardState extends State<MyDashboard> {
                         Navigator.of(context).pop();
                         showDialog(
                             context: context,
+                            barrierDismissible: false,
                             builder: (BuildContext context) {
                               return AlertDialog(
                                 title: const Text('Customer Email'),
@@ -1140,6 +1181,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                             Navigator.of(context).pop();
                                             showDialog(
                                                 context: context,
+                                                barrierDismissible: false,
                                                 builder:
                                                     (BuildContext context) {
                                                   return AlertDialog(
@@ -1163,6 +1205,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                         } else {
                                           showDialog(
                                               context: context,
+                                              barrierDismissible: false,
                                               builder: (BuildContext context) {
                                                 return AlertDialog(
                                                   title: const Text('Invalid'),
@@ -1235,6 +1278,131 @@ class _MyDashboardState extends State<MyDashboard> {
         });
   }
 
+  void services() async {
+    // showDialog(
+    //     context: context,
+    //     barrierDismissible: false,
+    //     builder: (BuildContext context) {
+    //       return LoadingSpinner(
+    //         message: 'Loading',
+    //       );
+    //     });
+
+    await ServicesAPI().getServices('ACTIVE').then((result) {
+      if (result['msg'] == 'success') {
+        setState(() {
+          serviceList.clear();
+          // productList =
+          //     jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
+
+          for (var data in result['data']) {
+            serviceList.add(ServiceModel(
+                data['id'],
+                data['name'],
+                data['price'],
+                data['status'],
+                data['createdby'],
+                data['createddate']));
+          }
+        });
+
+        final List<Widget> serviceitems = List<Widget>.generate(
+            serviceList.length,
+            (index) => SizedBox(
+                  height: 80,
+                  width: 120,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Add your button press logic here
+                      // _showcategoryitems(
+                      //     context, serviceList[index].categorycode);
+
+                      addItem(
+                          'Service (${serviceList[index].name})',
+                          double.parse(serviceList[index].price.toString()),
+                          1,
+                          999);
+                    },
+                    child: Text(
+                      serviceList[index].name,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ));
+
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Services'),
+                content: SingleChildScrollView(
+                  child: Center(
+                    child:
+                        Wrap(spacing: 8, runSpacing: 8, children: serviceitems),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Close'))
+                ],
+              );
+            });
+      }
+    });
+  }
+
+  void addons() {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Add-ons'),
+            content: SingleChildScrollView(
+              child: Center(
+                child: Wrap(spacing: 8, runSpacing: 8, children: []),
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Close'))
+            ],
+          );
+        });
+  }
+
+  void package() {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Package'),
+            content: SingleChildScrollView(
+              child: Center(
+                child: Wrap(spacing: 8, runSpacing: 8, children: []),
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Close'))
+            ],
+          );
+        });
+  }
+
   bool isValidEmail(String email) {
     String emailRegex = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
     RegExp regex = RegExp(emailRegex);
@@ -1266,7 +1434,7 @@ class _MyDashboardState extends State<MyDashboard> {
           paymentname,
           items,
           total,
-          salesrepresentative,
+          salesrepresentative == '' ? widget.fullname : salesrepresentative,
           cashAmount.toString(),
           '0',
           branchid,
@@ -1285,14 +1453,26 @@ class _MyDashboardState extends State<MyDashboard> {
               referenceid,
               paymentname,
               0,
-              widget.printer)
+              widget.printer,
+              salesrepresentative)
           .printReceipt();
+      Map<String, dynamic> printerconfig = {};
+      if (Platform.isWindows) {
+        printerconfig = await Helper().readJsonToFile('printer.json');
+      }
+
+      if (Platform.isAndroid) {
+        printerconfig = await Helper().JsonToFileRead('printer.json');
+      }
 
       if (result['msg'] == 'success') {
         if (Platform.isAndroid) {
-          Printing.layoutPdf(
-              onLayout: (PdfPageFormat format) async => pdfBytes,
-              name: detailid.toString());
+          if (printerconfig['isenable']) {
+          } else {
+            Printing.layoutPdf(
+                onLayout: (PdfPageFormat format) async => pdfBytes,
+                name: detailid.toString());
+          }
         } else if (Platform.isWindows) {
           List<Printer> printerList = await Printing.listPrinters();
           for (var localprinter in printerList) {
@@ -1306,10 +1486,11 @@ class _MyDashboardState extends State<MyDashboard> {
 
         showDialog(
             context: context,
+            barrierDismissible: false,
             builder: (BuildContext context) {
               return AlertDialog(
                 title: const Text('Success'),
-                content: const Text('Transaction process successfully!'),
+                content: const Text('Transaction successfull'),
                 actions: [
                   TextButton(
                     onPressed: () async {
@@ -1336,6 +1517,7 @@ class _MyDashboardState extends State<MyDashboard> {
                         Navigator.of(context).pop();
                         showDialog(
                             context: context,
+                            barrierDismissible: false,
                             builder: (BuildContext context) {
                               return AlertDialog(
                                 title: const Text('Customer Email'),
@@ -1387,6 +1569,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                             Navigator.of(context).pop();
                                             showDialog(
                                                 context: context,
+                                                barrierDismissible: false,
                                                 builder:
                                                     (BuildContext context) {
                                                   return AlertDialog(
@@ -1412,6 +1595,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                         } else {
                                           showDialog(
                                               context: context,
+                                              barrierDismissible: false,
                                               builder: (BuildContext context) {
                                                 return AlertDialog(
                                                   title: const Text('Invalid'),
@@ -1447,6 +1631,7 @@ class _MyDashboardState extends State<MyDashboard> {
       } else {
         showDialog(
             context: context,
+            barrierDismissible: false,
             builder: (BuildContext context) {
               return AlertDialog(
                 title: const Text('Error'),
@@ -1466,6 +1651,7 @@ class _MyDashboardState extends State<MyDashboard> {
     } catch (e) {
       showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Transaction Error'),
@@ -1539,7 +1725,7 @@ class _MyDashboardState extends State<MyDashboard> {
             cashamount,
             detailid,
             posid,
-            salesrepresentative,
+            widget.fullname,
             shift,
             companyname,
             address,
@@ -1548,7 +1734,8 @@ class _MyDashboardState extends State<MyDashboard> {
             referenceid,
             epaymentname,
             epayamount,
-            widget.printer)
+            widget.printer,
+            salesrepresentative)
         .printReceipt();
 
     if (result['msg'] == 'success') {
@@ -1574,6 +1761,7 @@ class _MyDashboardState extends State<MyDashboard> {
       // ignore: use_build_context_synchronously
       showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Success'),
@@ -1698,6 +1886,7 @@ class _MyDashboardState extends State<MyDashboard> {
       // ignore: use_build_context_synchronously
       showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Error'),
@@ -1726,6 +1915,7 @@ class _MyDashboardState extends State<MyDashboard> {
                 onPressed: () {
                   showDialog(
                       context: context,
+                      barrierDismissible: false,
                       builder: (BuildContext context) {
                         return AlertDialog(
                           title: Text(discountList[index]),
@@ -1774,6 +1964,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Discounts'),
@@ -1805,6 +1996,7 @@ class _MyDashboardState extends State<MyDashboard> {
                   onPressed: () {
                     showDialog(
                         context: context,
+                        barrierDismissible: false,
                         builder: (BuildContext context) {
                           return AlertDialog(
                             title: Text(
@@ -1872,6 +2064,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                   if (message != '') {
                                     showDialog(
                                         context: context,
+                                        barrierDismissible: false,
                                         builder: (BuildContext context) {
                                           return AlertDialog(
                                             title: Text(title),
@@ -1931,6 +2124,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Select E-Payment Type'),
@@ -1979,6 +2173,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     List<String> options = ['Select Payment Type', 'Gcash', 'Paymaya', 'Card'];
     String splitEPaymentType = options.first;
+    String selectedSalesRepresentative = employees.first;
 
     return Scaffold(
       appBar: AppBar(
@@ -2002,6 +2197,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
                   showDialog(
                       context: context,
+                      barrierDismissible: false,
                       builder: (BuildContext context) {
                         return AlertDialog(
                           title: const Text('Logut'),
@@ -2048,17 +2244,17 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
                 child: SingleChildScrollView(
                   child: DataTable(
-                    columnSpacing: 10,
+                    columnSpacing: 20,
                     columns: const [
                       DataColumn(
                           label: Text(
-                        'Name',
+                        'Desc',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                       DataColumn(
                           label: Text(
-                        'Price',
+                        'Pr',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
@@ -2070,7 +2266,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       )),
                       DataColumn(
                           label: Text(
-                        'Total',
+                        'Ttl',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
@@ -2082,7 +2278,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       double totalCost = product['price'] * product['quantity'];
                       return DataRow(cells: [
                         DataCell(SizedBox(
-                            width: 70,
+                            width: 120,
                             child: Text(
                               product['name'],
                               textAlign: TextAlign.left,
@@ -2099,7 +2295,7 @@ class _MyDashboardState extends State<MyDashboard> {
                             child: Row(
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.remove, size: 20),
+                                  icon: const Icon(Icons.remove, size: 12),
                                   color: const Color.fromARGB(255, 213, 86, 86),
                                   onPressed: () {
                                     if (product['quantity'] > 0) {
@@ -2111,6 +2307,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                 Expanded(
                                   child: SizedBox(
                                     child: TextField(
+                                      style: const TextStyle(fontSize: 12),
                                       keyboardType: TextInputType.number,
                                       onChanged: (newQuantity) {
                                         int parsedQuantity =
@@ -2119,11 +2316,12 @@ class _MyDashboardState extends State<MyDashboard> {
                                       },
                                       controller: TextEditingController(
                                           text: product['quantity'].toString()),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.add, size: 20),
+                                  icon: const Icon(Icons.add, size: 12),
                                   color: const Color.fromARGB(255, 92, 213, 86),
                                   onPressed: () {
                                     updateQuantity(
@@ -2134,12 +2332,10 @@ class _MyDashboardState extends State<MyDashboard> {
                             ),
                           ),
                         ),
-                        DataCell(Text(formatAsCurrency(totalCost))),
-                        // DataCell(IconButton(
-                        //   icon: const Icon(Icons.delete),
-                        //   color: const Color.fromARGB(255, 58, 58, 67),
-                        //   onPressed: () => confirmAndRemove(index),
-                        // )),
+                        DataCell(SizedBox(
+                          width: 70,
+                          child: Text(formatAsCurrency(totalCost)),
+                        )),
                       ]);
                     }).toList(),
                   ),
@@ -2248,25 +2444,25 @@ class _MyDashboardState extends State<MyDashboard> {
                       ],
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(
-                              10.0), // Adjust padding as needed
-                          child: const FaIcon(FontAwesomeIcons.barcode,
-                              size: 28), // Adjust size as needed
-                        ),
-                        const Text('SCAN'),
-                      ],
-                    ),
-                  ),
+                  // ElevatedButton(
+                  //   onPressed: () {},
+                  //   style: ButtonStyle(
+                  //     fixedSize: MaterialStateProperty.all(
+                  //         const Size(120, 80)), // Adjust the size here
+                  //   ),
+                  //   child: Column(
+                  //     mainAxisAlignment: MainAxisAlignment.center,
+                  //     children: [
+                  //       Container(
+                  //         padding: const EdgeInsets.all(
+                  //             10.0), // Adjust padding as needed
+                  //         child: const FaIcon(FontAwesomeIcons.barcode,
+                  //             size: 28), // Adjust size as needed
+                  //       ),
+                  //       const Text('SCAN'),
+                  //     ],
+                  //   ),
+                  // ),
                   ElevatedButton(
                     onPressed: () {
                       if (kDebugMode) {
@@ -2275,6 +2471,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       if (itemsList.isEmpty) {
                         showDialog(
                             context: context,
+                            barrierDismissible: false,
                             builder: (BuildContext context) {
                               return AlertDialog(
                                 title: const Text('Empty Transaction'),
@@ -2294,6 +2491,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       } else {
                         showDialog(
                           context: context,
+                          barrierDismissible: false,
                           builder: (BuildContext context) {
                             return AlertDialog(
                               // alignment: Alignment.center,
@@ -2314,8 +2512,10 @@ class _MyDashboardState extends State<MyDashboard> {
                                   DropdownMenu(
                                     initialSelection: employees.first,
                                     onSelected: (String? value) {
+                                      selectedSalesRepresentative = value!;
                                       setState(() {
-                                        salesrepresentative = value!;
+                                        salesrepresentative =
+                                            selectedSalesRepresentative;
                                       });
                                     },
                                     dropdownMenuEntries: employees
@@ -2342,6 +2542,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                         onPressed: () {
                                           showDialog(
                                             context: context,
+                                            barrierDismissible: false,
                                             builder: (BuildContext context) {
                                               return AlertDialog(
                                                 title:
@@ -2415,6 +2616,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                       if (message != '') {
                                                         showDialog(
                                                             context: context,
+                                                            barrierDismissible:
+                                                                false,
                                                             builder:
                                                                 (BuildContext
                                                                     context) {
@@ -2496,6 +2699,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
                                             showDialog(
                                                 context: context,
+                                                barrierDismissible: false,
                                                 builder:
                                                     (BuildContext context) {
                                                   return AlertDialog(
@@ -2681,6 +2885,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                               showDialog(
                                                                   context:
                                                                       context,
+                                                                  barrierDismissible:
+                                                                      false,
                                                                   builder:
                                                                       (BuildContext
                                                                           context) {
@@ -2702,7 +2908,11 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                 splitEPaymentType,
                                                                 detailid
                                                                     .toString(),
-                                                                widget.fullname,
+                                                                salesrepresentative ==
+                                                                        ''
+                                                                    ? widget
+                                                                        .fullname
+                                                                    : salesrepresentative,
                                                                 jsonEncode(
                                                                     itemsList),
                                                               );
@@ -2774,20 +2984,6 @@ class _MyDashboardState extends State<MyDashboard> {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(
-              height: 5,
-            ), //END
-
-            Container(
-              color: Colors.grey[200],
-              padding: const EdgeInsets.all(8.0),
-              child: Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
                   ElevatedButton(
                     onPressed: () {
                       others();
@@ -2814,14 +3010,93 @@ class _MyDashboardState extends State<MyDashboard> {
             ),
             const SizedBox(
               height: 5,
-            ), //END
-
+            ), //DIVIDER START
             const Center(
-              child: Text('Categories',
+              child: Text('Services & Add-ons',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 5),
-
+            Container(
+              color: Colors.grey[200],
+              padding: const EdgeInsets.all(8.0),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      services();
+                    },
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                          const Size(120, 80)), // Adjust the size here
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(
+                              10.0), // Adjust padding as needed
+                          child: const FaIcon(FontAwesomeIcons.handHolding,
+                              size: 32), // Adjust size as needed
+                        ),
+                        const Text('SERVICES'),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      package();
+                    },
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                          const Size(120, 80)), // Adjust the size here
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(
+                              10.0), // Adjust padding as needed
+                          child: const FaIcon(FontAwesomeIcons.boxesStacked,
+                              size: 32), // Adjust size as needed
+                        ),
+                        const Text('PACKAGE'),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      addons();
+                    },
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                          const Size(120, 80)), // Adjust the size here
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(
+                              10.0), // Adjust padding as needed
+                          child: const FaIcon(FontAwesomeIcons.boxTissue,
+                              size: 32), // Adjust size as needed
+                        ),
+                        const Text('ADD-ONS'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(
+              height: 5,
+            ), //END
+            const Center(
+              child: Text('Product Categories',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 5),
             Wrap(
                 spacing: 8, // Adjust the spacing between buttons
                 runSpacing: 8, // Adjust the vertical spacing between rows
