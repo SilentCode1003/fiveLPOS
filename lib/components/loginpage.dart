@@ -77,53 +77,54 @@ class _LoginPageState extends State<LoginPage> {
           );
         });
 
-    final response = await Login().authenticate(username, password);
+    await Login().authenticate(username, password).then((response) {
+      if (response['msg'] == 'success') {
+        Navigator.of(context).pop();
+        final jsonData = json.encode(response['data']);
+        final results = json.decode(jsonData);
 
-    if (response['msg'] == 'success') {
-      Navigator.of(context).pop();
-      final jsonData = json.encode(response['data']);
-      final results = json.decode(jsonData);
+        print(results);
 
-      print(results);
-      UserInfoModel userinfomodel = UserInfoModel(
-          results[0]['employeeid'].toString(),
-          results[0]['fullname'],
-          results[0]['position'],
-          results[0]['contactinfo'],
-          results[0]['datehired'],
-          results[0]['usercode'],
-          results[0]['accesstype'],
-          results[0]['status']);
+        UserInfoModel userinfomodel = UserInfoModel(
+            results[0]['employeeid'].toString(),
+            results[0]['fullname'],
+            results[0]['position'],
+            results[0]['contactinfo'],
+            results[0]['datehired'],
+            results[0]['usercode'],
+            results[0]['accesstype'],
+            results[0]['status']);
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => MyDashboard(
-                accesstype: userinfomodel.accesstype,
-                employeeid: userinfomodel.employeeid,
-                fullname: userinfomodel.fullname,
-                positiontype: userinfomodel.position,
-                logo: branchlogo,
-                printer: _printer,
-                printerstatus: _printerStatus)),
-      );
-    } else {
-      Navigator.of(context).pop();
-      showDialog(
-        context: context,
-         barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Access'),
-          content: const Text('Incorrect username and password'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => MyDashboard(
+                  accesstype: userinfomodel.accesstype,
+                  employeeid: userinfomodel.employeeid,
+                  fullname: userinfomodel.fullname,
+                  positiontype: userinfomodel.position,
+                  logo: branchlogo,
+                  printer: _printer,
+                  printerstatus: _printerStatus)),
+        );
+      } else {
+        Navigator.of(context).pop();
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Access'),
+            content: const Text('Incorrect username and password'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    });
   }
 
   void _printerinitiate() async {
@@ -137,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
       printerconfig = await Helper().JsonToFileRead('printer.json');
     }
 
-    print(profile.name);
+    // print(profile.name);
 
     final printer = NetworkPrinter(paper, profile);
 
@@ -148,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
         port: 9100,
         timeout: const Duration(seconds: 1));
 
-    print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
+    // print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
     _printerStatus = res.msg;
     _printer = printer;
 

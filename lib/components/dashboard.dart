@@ -3,16 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:fiveLPOS/api/employees.dart';
+import 'package:fiveLPOS/api/package.dart';
 import 'package:fiveLPOS/api/services.dart';
 import 'package:fiveLPOS/components/settings.dart';
 import 'package:fiveLPOS/model/category.dart';
-import 'package:fiveLPOS/model/employees.dart';
+import 'package:fiveLPOS/model/servicepackage.dart';
 import 'package:fiveLPOS/model/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -33,8 +32,6 @@ import 'package:fiveLPOS/api/transaction.dart';
 import 'package:fiveLPOS/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
-import 'package:usb_serial/transaction.dart';
-import 'package:usb_serial/usb_serial.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -74,6 +71,7 @@ class _MyDashboardState extends State<MyDashboard> {
   List<ProductPriceModel> productList = [];
   List<CategoryModel> categoryList = [];
   List<ServiceModel> serviceList = [];
+  List<ServicePackageModel> packageList = [];
   List<String> discountList = [];
   List<String> paymentList = [];
   String companyname = '';
@@ -100,8 +98,8 @@ class _MyDashboardState extends State<MyDashboard> {
   final TextEditingController _discountFullnameController =
       TextEditingController();
   final TextEditingController _discountIDController = TextEditingController();
-  final TextEditingController _salesrepresentativeController =
-      TextEditingController();
+  // final TextEditingController _salesrepresentativeController =
+  //     TextEditingController();
 
   Helper helper = Helper();
   DatabaseHelper dbHelper = DatabaseHelper();
@@ -110,15 +108,6 @@ class _MyDashboardState extends State<MyDashboard> {
   String branchlogo = '';
   // String branchlogo = '';
 
-  UsbPort? _port;
-  String _status = "Idle";
-  List<Widget> _ports = [];
-  List<Widget> _serialData = [];
-
-  StreamSubscription<String>? _subscription;
-  Transaction<String>? _transactions;
-  UsbDevice? _device;
-
   String salesrepresentative = '';
   List<String> employees = [];
 
@@ -126,20 +115,13 @@ class _MyDashboardState extends State<MyDashboard> {
   @override
   void initState() {
     // TODO: implement initState
-    // _getbranch();
-    // _getbranchdetail();
+    _getbranchdetail();
     _getposconfig();
     _getcategory();
     _getdiscount();
     _getpayment();
     _getemployees();
     _getbranchdetail();
-
-    UsbSerial.usbEventStream!.listen((UsbEvent event) {
-      _getPorts();
-    });
-
-    _getPorts();
 
     super.initState();
   }
@@ -148,94 +130,7 @@ class _MyDashboardState extends State<MyDashboard> {
   void dispose() {
     _splitCashController.dispose();
     _splitAmountController.dispose();
-    _connectTo(null);
     super.dispose();
-  }
-
-  Future<bool> _connectTo(device) async {
-    _serialData.clear();
-
-    if (_subscription != null) {
-      _subscription!.cancel();
-      _subscription = null;
-    }
-
-    if (_transactions != null) {
-      _transactions!.dispose();
-      _transactions = null;
-    }
-
-    if (_port != null) {
-      _port!.close();
-      _port = null;
-    }
-
-    if (device == null) {
-      _device = null;
-      setState(() {
-        _status = "Disconnected";
-      });
-      return true;
-    }
-
-    _port = await device.create();
-    if (await (_port!.open()) != true) {
-      setState(() {
-        _status = "Failed to open port";
-      });
-      return false;
-    }
-    _device = device;
-
-    await _port!.setDTR(true);
-    await _port!.setRTS(true);
-    await _port!.setPortParameters(
-        115200, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
-
-    _transactions = Transaction.stringTerminated(
-        _port!.inputStream as Stream<Uint8List>, Uint8List.fromList([13, 10]));
-
-    _subscription = _transactions!.stream.listen((String line) {
-      setState(() {
-        _serialData.add(Text(line));
-        if (_serialData.length > 20) {
-          _serialData.removeAt(0);
-        }
-      });
-    });
-
-    setState(() {
-      _status = "Connected";
-    });
-    return true;
-  }
-
-  void _getPorts() async {
-    _ports = [];
-    List<UsbDevice> devices = await UsbSerial.listDevices();
-    if (!devices.contains(_device)) {
-      _connectTo(null);
-    }
-    print(devices);
-
-    devices.forEach((device) {
-      _ports.add(ListTile(
-          leading: Icon(Icons.usb),
-          title: Text(device.productName!),
-          subtitle: Text(device.manufacturerName!),
-          trailing: ElevatedButton(
-            child: Text(_device == device ? "Disconnect" : "Connect"),
-            onPressed: () {
-              _connectTo(_device == device ? null : device).then((res) {
-                _getPorts();
-              });
-            },
-          )));
-    });
-
-    setState(() {
-      print(_ports);
-    });
   }
 
 // #region API CALLS
@@ -1380,27 +1275,75 @@ class _MyDashboardState extends State<MyDashboard> {
         });
   }
 
-  void package() {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Package'),
-            content: SingleChildScrollView(
-              child: Center(
-                child: Wrap(spacing: 8, runSpacing: 8, children: []),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Close'))
-            ],
-          );
+  void package() async {
+    await PackageAPI().getPackage('ACTIVE').then((result) {
+      if (result['msg'] == 'success') {
+        setState(() {
+          packageList.clear();
+          // productList =
+          //     jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
+
+          for (var data in result['data']) {
+            packageList.add(ServicePackageModel(
+                data['id'],
+                data['name'],
+                data['details'],
+                data['price'],
+                data['status'],
+                data['createdby'],
+                data['createddate']));
+          }
         });
+
+        final List<Widget> packageitems = List<Widget>.generate(
+            packageList.length,
+            (index) => SizedBox(
+                  height: 80,
+                  width: 120,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Add your button press logic here
+                      // _showcategoryitems(
+                      //     context, packageList[index].categorycode);
+
+                      addItem(
+                          '${packageList[index].name}',
+                          double.parse(packageList[index].price.toString()),
+                          1,
+                          999);
+                    },
+                    child: Text(
+                      packageList[index].name,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ));
+
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Package'),
+                content: SingleChildScrollView(
+                  child: Center(
+                    child:
+                        Wrap(spacing: 8, runSpacing: 8, children: packageitems),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Close'))
+                ],
+              );
+            });
+      }
+    });
   }
 
   bool isValidEmail(String email) {
@@ -2173,7 +2116,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     List<String> options = ['Select Payment Type', 'Gcash', 'Paymaya', 'Card'];
     String splitEPaymentType = options.first;
-    String selectedSalesRepresentative = employees.first;
+    String selectedSalesRepresentative = '';
 
     return Scaffold(
       appBar: AppBar(

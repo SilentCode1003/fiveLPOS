@@ -881,7 +881,7 @@ class Receipt {
                 //////THIS IS A OFFICIAL RECEIPT//////////
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'THIS IS A OFFICIAL RECEIPT',
+                  'THIS IS A OFFICIAL RECEIPT\n\n',
                   style: pw.TextStyle(
                       fontSize: 10, fontWeight: pw.FontWeight.bold),
                 ),
