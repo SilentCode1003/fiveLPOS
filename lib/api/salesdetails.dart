@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:fiveLPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class SalesDetails {
   Future<Map<String, dynamic>> getdetailid(String posid) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.getdetailidAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getdetailidAPI}');
     final response = await http.post(url, body: {'posid': posid});
 
     final responseData = json.decode(response.body);
@@ -20,7 +31,15 @@ class SalesDetails {
   }
 
   Future<Map<String, dynamic>> getdetails(String detailid) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.getdetailsAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getdetailsAPI}');
     final response = await http.post(url, body: {'detailid': detailid});
 
     final responseData = json.decode(response.body);

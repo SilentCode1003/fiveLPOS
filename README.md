@@ -1,15 +1,12 @@
-#fivePOS
+# fivePOS
 
-fivePOS is a Point of Sales Software develop by RnD team of 5L Solutions Supply's & Allied Services.
+## Description
 
-This software is a revolutionize software in the new era of technology.
+- fivePOS is an Android POS System with consolidator system Sales Inventory System. This system is a revolutionary system in the work of POS. In the near version this will be running on different environtment such Linux, Windows & MAC.
 
-This software is capable to adapt on environtment like windows & android software environment.
+- five POS is not yet BIR accredited but SME's can use this if they want to track sales and to ease sales using the POS system.
 
-What are the features of this software:
+### Version 1.2.8
 
-1. This software can be setup on LAN, WAN & INTERNET.
-2. It has shifting sales like morning, mid and night shift.
-3. It has Promo & Discount functions.
-4. It can run on any devices like desktop, table or mobilephones (for mobile it could run on Android OS lolipop and up)
-5. It can setup IP Thermal Printer
+- Unofficial release of apk not listed to googplay
+- Under UAT

@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:fiveLPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class POSShiftLogAPI {
   Future<Map<String, dynamic>> getPOSShift(String posid) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.getPOSShiftAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getPOSShiftAPI}');
     final response = await http.post(url, body: {
       'posid': posid,
     });
@@ -23,7 +34,15 @@ class POSShiftLogAPI {
 
   Future<Map<String, dynamic>> startShift(
       String posid, String cashier, String detailid) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.startShiftAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.startShiftAPI}');
     final response = await http.post(url, body: {
       'posid': posid,
       'cashier': cashier,
@@ -43,7 +62,15 @@ class POSShiftLogAPI {
 
   Future<Map<String, dynamic>> endShift(
       String posid, String receiptending) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.endShiftAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.endShiftAPI}');
     final response = await http
         .post(url, body: {'posid': posid, 'receiptending': receiptending});
 

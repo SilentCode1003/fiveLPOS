@@ -196,10 +196,12 @@ class Receipt {
     final jsonData = json.encode(results['data']);
     String promoDetails = '';
 
-    for (var data in json.decode(jsonData)) {
-      if (totalamtdue(items) > double.parse(data['condition'])) {
-        promoDetails =
-            '${data['name']}\n\n${data['description']}\nDTI: ${data['dtipermit']}\nUntil: ${data['startdate']} to ${data['enddate']}';
+    if (jsonData.isNotEmpty) {
+      for (var data in json.decode(jsonData)) {
+        if (totalamtdue(items) > double.parse(data['condition'])) {
+          promoDetails =
+              '${data['name']}\n\n${data['description']}\nDTI: ${data['dtipermit']}\nUntil: ${data['startdate']} to ${data['enddate']}';
+        }
       }
     }
 
@@ -314,8 +316,8 @@ class Receipt {
 
       printer.text(address,
           styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.text(tin,
-          styles: const PosStyles(align: PosAlign.center, bold: true));
+      // printer.text(tin,
+      //     styles: const PosStyles(align: PosAlign.center, bold: true));
       //Divider
       printer.hr(len: 1);
       //Transaction Info
@@ -347,10 +349,10 @@ class Receipt {
           styles: const PosStyles(align: PosAlign.left, bold: true));
       printer.text('Branch: $branchid',
           styles: const PosStyles(align: PosAlign.left, bold: true));
-      printer.text('MIN: $min',
-          styles: const PosStyles(align: PosAlign.left, bold: true));
-      printer.text(ptu,
-          styles: const PosStyles(align: PosAlign.left, bold: true));
+      //  printer.text('MIN: $min',
+      //     styles: const PosStyles(align: PosAlign.left, bold: true));
+      // printer.text(ptu,
+      //     styles: const PosStyles(align: PosAlign.left, bold: true));
       //Divider
       printer.hr(len: 1);
       //Items 8-TABS
@@ -448,16 +450,16 @@ class Receipt {
                         style: const pw.TextStyle(fontSize: 8),
                         textAlign: pw.TextAlign.center,
                       ),
-                      pw.Text(
-                        tin,
-                        style: const pw.TextStyle(fontSize: 8),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                      pw.Text(
-                        ptu,
-                        style: const pw.TextStyle(fontSize: 8),
-                        textAlign: pw.TextAlign.center,
-                      ),
+                      // pw.Text(
+                      //   tin,
+                      //   style: const pw.TextStyle(fontSize: 8),
+                      //   textAlign: pw.TextAlign.center,
+                      // ),
+                      // pw.Text(
+                      //   ptu,
+                      //   style: const pw.TextStyle(fontSize: 8),
+                      //   textAlign: pw.TextAlign.center,
+                      // ),
                     ]),
 
                 //////////////////////////////////////////////////////////////////////////////////////////
@@ -554,13 +556,13 @@ class Receipt {
                         style: const pw.TextStyle(fontSize: 8),
                       ),
                     ),
-                    pw.Container(
-                      width: 100,
-                      child: pw.Text(
-                        'MIN: $min',
-                        style: const pw.TextStyle(fontSize: 8),
-                      ),
-                    ),
+                    // pw.Container(
+                    //   width: 100,
+                    //   child: pw.Text(
+                    //     'MIN: $min',
+                    //     style: const pw.TextStyle(fontSize: 8),
+                    //   ),
+                    // ),
                   ],
                 ),
                 pw.Row(
@@ -872,11 +874,11 @@ class Receipt {
                       vertical: 5), // Adjust vertical spacing
                 ),
                 pw.SizedBox(height: 10),
-                pw.Text(
-                  'Eco-friendly and DIY Limewash Paint',
-                  style: pw.TextStyle(
-                      fontSize: 10, fontWeight: pw.FontWeight.bold),
-                ),
+                // pw.Text(
+                //   'Eco-friendly and DIY Limewash Paint',
+                //   style: pw.TextStyle(
+                //       fontSize: 10, fontWeight: pw.FontWeight.bold),
+                // ),
 
                 //////THIS IS A OFFICIAL RECEIPT//////////
                 pw.SizedBox(height: 10),

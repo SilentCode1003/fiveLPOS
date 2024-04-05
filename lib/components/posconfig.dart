@@ -29,6 +29,8 @@ class _PosConfigState extends State<PosConfig> {
   final TextEditingController _emailServerController = TextEditingController();
   DatabaseHelper dbHelper = DatabaseHelper();
 
+  final TextEditingController _serverController = TextEditingController();
+
   String branchlogo = '';
 
   String _windowSize = 'Unknown';
@@ -50,6 +52,7 @@ class _PosConfigState extends State<PosConfig> {
       await createJsonFile('branch.json');
       await createJsonFile('email.json');
       await createJsonFile('printer.json');
+      await createJsonFile('server.json');
 
       Map<String, dynamic> pos = await Helper().JsonToFileRead('pos.json');
       Map<String, dynamic> branch =
@@ -58,7 +61,7 @@ class _PosConfigState extends State<PosConfig> {
       Map<String, dynamic> printer =
           await Helper().JsonToFileRead('printer.json');
 
-      if (pos.isNotEmpty && branch.isNotEmpty && email.isNotEmpty) {
+      if (pos.isNotEmpty && branch.isNotEmpty) {
         // List<Map<String, dynamic>> branchconfig = await db.query('branch');
         // for (var branch in branchconfig) {
         setState(() {
@@ -208,7 +211,6 @@ class _PosConfigState extends State<PosConfig> {
   Future<void> _sync() async {
     String branch = '';
     String pos = '';
-    String email = '';
 
     showDialog(
         context: context,
@@ -218,6 +220,19 @@ class _PosConfigState extends State<PosConfig> {
             status: 'Loading...',
           );
         });
+
+    Map<String, dynamic> serverconfig = {};
+    serverconfig = {'uri': _serverController.text};
+
+    if (Platform.isWindows) {
+      print('windows');
+      Helper().writeJsonToFile(serverconfig, 'server.json');
+    }
+
+    if (Platform.isAndroid) {
+      print('android');
+      Helper().JsonToFileWrite(serverconfig, 'server.json');
+    }
 
     branch = await _getbranch();
 
@@ -246,20 +261,7 @@ class _PosConfigState extends State<PosConfig> {
           });
     }
 
-    email = await _emailconfig();
-    if (email != 'success') {
-    } else {
-      showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return CircularProgressBar(
-              status: 'Email Done Syncing...',
-            );
-          });
-    }
-
-    if (email == '' || branch == '' || pos == '') {
+    if (branch == '' || pos == '') {
       Navigator.pop(context);
       Navigator.pop(context);
     } else {
@@ -621,6 +623,51 @@ class _PosConfigState extends State<PosConfig> {
                     labelText: 'POS ID',
                     labelStyle: TextStyle(fontWeight: FontWeight.bold),
                     hintText: 'POS ID',
+                    hintStyle: TextStyle(fontWeight: FontWeight.normal),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.black,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: TextFormField(
+                  controller: _serverController,
+                  focusNode: FocusNode(),
+                  autofocus: true,
+                  obscureText: false,
+                  decoration: InputDecoration(
+                    labelText: 'Server',
+                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    hintText: 'https://example.com/',
                     hintStyle: TextStyle(fontWeight: FontWeight.normal),
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(

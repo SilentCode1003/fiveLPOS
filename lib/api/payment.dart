@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:fiveLPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class PaymentAPI {
   Future<Map<String, dynamic>> getPayment() async {
-    final url = Uri.parse('${Config.apiUrl}${Config.getPaymentAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getPaymentAPI}');
     final response = await http.get(url);
 
     final responseData = json.decode(response.body);

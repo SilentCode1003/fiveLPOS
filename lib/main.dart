@@ -51,6 +51,7 @@ void main() {
     createJsonFile('email.json');
     createJsonFile('branch.json');
     createJsonFile('printer.json');
+    createJsonFile('server.json');
   }
 
   runApp(const MyApp());

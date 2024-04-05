@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:esc_pos_printer/esc_pos_printer.dart';
+import 'package:fiveLPOS/api/addon.dart';
 import 'package:fiveLPOS/api/employees.dart';
 import 'package:fiveLPOS/api/package.dart';
 import 'package:fiveLPOS/api/services.dart';
 import 'package:fiveLPOS/components/settings.dart';
+import 'package:fiveLPOS/model/addon.dart';
 import 'package:fiveLPOS/model/category.dart';
 import 'package:fiveLPOS/model/servicepackage.dart';
 import 'package:fiveLPOS/model/services.dart';
@@ -72,6 +74,7 @@ class _MyDashboardState extends State<MyDashboard> {
   List<CategoryModel> categoryList = [];
   List<ServiceModel> serviceList = [];
   List<ServicePackageModel> packageList = [];
+  List<AddonModel> addonList = [];
   List<String> discountList = [];
   List<String> paymentList = [];
   String companyname = '';
@@ -121,7 +124,7 @@ class _MyDashboardState extends State<MyDashboard> {
     _getdiscount();
     _getpayment();
     _getemployees();
-    _getbranchdetail();
+    // _getbranchdetail();
 
     super.initState();
   }
@@ -532,20 +535,42 @@ class _MyDashboardState extends State<MyDashboard> {
 
   Future<void> _search() async {
     String serial = _serialNumberController.text;
-    final results = await ProductPrice().getitemserial(serial);
+    final results = await ProductPrice().getitemserial(serial, branchid);
     final jsonData = json.decode(results['data']);
     String description = '';
     double price = 0;
     double stocks = 0;
 
-    setState(() {
-      for (var data in jsonData) {
-        description = data['description'];
-        price = double.parse(data['price']);
-        stocks = double.parse(data['quantity']);
-        addItem(description, price, 1, stocks);
-      }
-    });
+    print('Data Length: ${jsonData.length}');
+
+    if (jsonData.length != 0) {
+      setState(() {
+        for (var data in jsonData) {
+          print(data);
+          description = data['description'];
+          price = double.parse(data['price'].toString());
+          stocks = double.parse(data['quantity'].toString());
+          addItem(description, price, 1, stocks);
+        }
+      });
+    } else {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('Alert'),
+              content: Text('Item not found with SN:${_serialNumberController.text}'),
+              icon: Icon(Icons.warning),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
   }
 
   Future<void> _getcategory() async {
@@ -722,6 +747,8 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   void updateQuantity(int index, int newQuantity) {
+    print('entry: $newQuantity stocks: ${itemsList[index]['stocks']}');
+
     if (newQuantity < 1) {
       showDialog(
         context: context,
@@ -751,7 +778,28 @@ class _MyDashboardState extends State<MyDashboard> {
       );
     } else {
       setState(() {
-        itemsList[index]['quantity'] = newQuantity;
+        if (newQuantity <= itemsList[index]['stocks']) {
+          print('true');
+          itemsList[index]['quantity'] = newQuantity;
+        } else {
+          showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Alert'),
+                  content:
+                      Text('Stocks available ${itemsList[index]['stocks']}'),
+                  icon: const Icon(Icons.warning),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+        }
       });
     }
   }
@@ -770,34 +818,59 @@ class _MyDashboardState extends State<MyDashboard> {
     setState(() {
       int existingIndex = itemsList.indexWhere((item) => item['name'] == name);
 
-      if (existingIndex != -1) {
-        setState(() {
-          int newQuantity = itemsList[existingIndex]['quantity'] + quantity;
-          if (newQuantity > stocks) {
-            showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text('Alert'),
-                    content: Text('Stocks available $stocks'),
-                    icon: Icon(Icons.warning),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                });
-          } else {
-            itemsList[existingIndex]['quantity'] = newQuantity;
-          }
-        });
+      if (stocks == 0) {
+        print(stocks);
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              return AlertDialog(
+                title: Text('Alert'),
+                content: Text('Stocks available $stocks'),
+                icon: Icon(Icons.warning),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
       } else {
-        setState(() {
-          itemsList.add({'name': name, 'price': price, 'quantity': quantity});
-        });
+        if (existingIndex != -1) {
+          setState(() {
+            int newQuantity = itemsList[existingIndex]['quantity'] + quantity;
+            if (newQuantity > stocks) {
+              showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Alert'),
+                      content: Text('Stocks available $stocks'),
+                      icon: Icon(Icons.warning),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    );
+                  });
+            } else {
+              itemsList[existingIndex]['quantity'] = newQuantity;
+            }
+          });
+        } else {
+          setState(() {
+            itemsList.add({
+              'name': name,
+              'price': price,
+              'quantity': quantity,
+              'stocks': stocks
+            });
+          });
+        }
       }
     });
   }
@@ -1213,7 +1286,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       //     context, serviceList[index].categorycode);
 
                       addItem(
-                          'Service (${serviceList[index].name})',
+                          serviceList[index].name,
                           double.parse(serviceList[index].price.toString()),
                           1,
                           999);
@@ -1252,27 +1325,77 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
-  void addons() {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Add-ons'),
-            content: SingleChildScrollView(
-              child: Center(
-                child: Wrap(spacing: 8, runSpacing: 8, children: []),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Close'))
-            ],
-          );
+  void addons() async {
+    await AddonAPI().getAddons('ACTIVE').then((result) {
+      if (result['msg'] == 'success') {
+        setState(() {
+          addonList.clear();
+          // productList =
+          //     jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
+
+          for (var data in result['data']) {
+            addonList.add(AddonModel(
+                data['id'],
+                data['name'],
+                data['type'],
+                data['price'],
+                data['status'],
+                data['createdby'],
+                data['createddate']));
+          }
         });
+
+        final List<Widget> serviceitems = List<Widget>.generate(
+            addonList.length,
+            (index) => SizedBox(
+                  height: 80,
+                  width: 120,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Add your button press logic here
+                      // _showcategoryitems(
+                      //     context, addonList[index].categorycode);
+
+                      addItem(
+                          (addonList[index].type == 'SERVICE')
+                              ? '${addonList[index].name} (Service)'
+                              : '${addonList[index].name} (Product)',
+                          double.parse(addonList[index].price.toString()),
+                          1,
+                          999);
+                    },
+                    child: Text(
+                      addonList[index].name,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ));
+
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Services'),
+                content: SingleChildScrollView(
+                  child: Center(
+                    child:
+                        Wrap(spacing: 8, runSpacing: 8, children: serviceitems),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Close'))
+                ],
+              );
+            });
+      }
+    });
   }
 
   void package() async {
@@ -1592,6 +1715,7 @@ class _MyDashboardState extends State<MyDashboard> {
             });
       }
     } catch (e) {
+      print(e);
       showDialog(
           context: context,
           barrierDismissible: false,

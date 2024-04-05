@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:fiveLPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class ServicesAPI {
   Future<Map<String, dynamic>> getServices(String stat) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.servicesAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.servicesAPI}');
     final response = await http.post(url, body: {'status': stat});
 
     final responseData = json.decode(response.body);

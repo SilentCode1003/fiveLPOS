@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:fiveLPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class DiscountAPI {
   Future<Map<String, dynamic>> getDiscountRate(String type) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.discountRateAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.discountRateAPI}');
     final response = await http.post(url, body: {'name': type});
 
     final responseData = json.decode(response.body);
@@ -20,7 +31,15 @@ class DiscountAPI {
   }
 
   Future<Map<String, dynamic>> getDiscount() async {
-    final url = Uri.parse('${Config.apiUrl}${Config.getDiscountAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getDiscountAPI}');
     final response = await http.get(url);
 
     final responseData = json.decode(response.body);
@@ -36,7 +55,15 @@ class DiscountAPI {
 
   Future<Map<String, dynamic>> salesDiscount(String detailid, String discountid,
       List<Map<String, dynamic>> customerinfo, String amount) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.salesDiscountAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.salesDiscountAPI}');
     final response = await http.post(url, body: {
       'detailid': detailid,
       'discountid': discountid,

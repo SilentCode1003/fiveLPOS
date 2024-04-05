@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:fiveLPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
@@ -20,7 +22,15 @@ class POSTransaction {
       String ecash,
       String branch,
       String discountdetail) async {
-    final url = Uri.parse('${Config.apiUrl}${Config.salesDetailAPI}');
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.salesDetailAPI}');
     final response = await http.post(url, body: {
       'detailid': detailid,
       'date': date,

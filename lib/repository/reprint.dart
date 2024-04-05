@@ -164,16 +164,16 @@ class ReprintingReceipt {
                       style: const pw.TextStyle(fontSize: 8),
                       textAlign: pw.TextAlign.center,
                     ),
-                    pw.Text(
-                      tin,
-                      style: const pw.TextStyle(fontSize: 8),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                    pw.Text(
-                      ptu,
-                      style: const pw.TextStyle(fontSize: 8),
-                      textAlign: pw.TextAlign.center,
-                    ),
+                    // pw.Text(
+                    //   tin,
+                    //   style: const pw.TextStyle(fontSize: 8),
+                    //   textAlign: pw.TextAlign.center,
+                    // ),
+                    // pw.Text(
+                    //   ptu,
+                    //   style: const pw.TextStyle(fontSize: 8),
+                    //   textAlign: pw.TextAlign.center,
+                    // ),
                   ]),
 
               //////////////////////////////////////////////////////////////////////////////////////////
@@ -270,13 +270,13 @@ class ReprintingReceipt {
                       style: const pw.TextStyle(fontSize: 8),
                     ),
                   ),
-                  pw.Container(
-                    width: 100,
-                    child: pw.Text(
-                      'MIN: $min',
-                      style: const pw.TextStyle(fontSize: 8),
-                    ),
-                  ),
+                  // pw.Container(
+                  //   width: 100,
+                  //   child: pw.Text(
+                  //     'MIN: $min',
+                  //     style: const pw.TextStyle(fontSize: 8),
+                  //   ),
+                  // ),
                 ],
               ),
 
@@ -576,12 +576,12 @@ class ReprintingReceipt {
                 margin: const pw.EdgeInsets.symmetric(
                     vertical: 5), // Adjust vertical spacing
               ),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'Eco-friendly and DIY Limewash Paint',
-                style:
-                    pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-              ),
+              // pw.SizedBox(height: 10),
+              // pw.Text(
+              //   'Eco-friendly and DIY Limewash Paint',
+              //   style:
+              //       pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+              // ),
 
               //////THIS IS A OFFICIAL RECEIPT//////////
               pw.SizedBox(height: 10),

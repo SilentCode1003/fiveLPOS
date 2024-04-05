@@ -165,52 +165,54 @@ class _LoginPageState extends State<LoginPage> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                  height: 200,
-                  width: double.infinity,
-                  alignment: Alignment.center,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                    height: 200,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                        width: double.maxFinite,
+                        height: double.maxFinite,
+                        child: ClipOval(
+                          child: SvgPicture.string(branchlogo),
+                        ))),
+                Padding(
+                  padding: const EdgeInsets.all(40),
                   child: SizedBox(
-                      width: double.maxFinite,
-                      height: double.maxFinite,
-                      child: ClipOval(
-                        child: SvgPicture.string(branchlogo),
-                      ))),
-              Padding(
-                padding: const EdgeInsets.all(40),
-                child: SizedBox(
-                  width: 400,
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _usernameController,
-                        decoration:
-                            const InputDecoration(labelText: 'Username'),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration:
-                            const InputDecoration(labelText: 'Password'),
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onLongPress: () {
-                          _login();
-                        },
-                        style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 80)),
-                        onPressed: _login,
-                        child: const Text('Login'),
-                      ),
-                    ],
+                    width: 400,
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _usernameController,
+                          decoration:
+                              const InputDecoration(labelText: 'Username'),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration:
+                              const InputDecoration(labelText: 'Password'),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          onLongPress: () {
+                            _login();
+                          },
+                          style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 80)),
+                          onPressed: _login,
+                          child: const Text('Login'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

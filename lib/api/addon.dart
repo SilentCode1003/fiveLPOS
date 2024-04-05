@@ -6,8 +6,8 @@ import 'package:fiveLPOS/repository/customerhelper.dart';
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
-class CategoryAPI {
-  Future<Map<String, dynamic>> getCategory() async {
+class AddonAPI {
+  Future<Map<String, dynamic>> getAddons(String stat) async {
     Map<String, dynamic> api = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
@@ -16,13 +16,21 @@ class CategoryAPI {
     if (Platform.isAndroid) {
       api = await Helper().JsonToFileRead('server.json');
     }
-    final url = Uri.parse('${api['uri']}${Config.getCategoryAPI}');
-    final response = await http.get(url);
+    final url = Uri.parse('${api['uri']}${Config.addonAPI}');
+    final response = await http.post(url, body: {'status': stat});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;
     final msg = responseData['msg'];
     final results = responseData['data'];
+
+    final jsonData = json.encode(results);
+
+    // File file = File('assets/branch.json');
+    // if (file.existsSync()) {
+    // } else {
+    //   await file.writeAsString(jsonData);
+    // }
 
     Map<String, dynamic> data = {};
     data = {'msg': msg, 'status': status, 'data': results};
