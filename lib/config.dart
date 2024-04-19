@@ -1,6 +1,6 @@
 class Config {
   // static const String apiUrl = 'http://192.168.40.91:3050/';
-  // static const String apiUrl = 'https://salesinventory.5lsolutions.com/';
+  static const String apiUrl = 'https://salesinventory.5lsolutions.com/';
   // static const String apiUrl = 'http://172.16.2.200:7000/';
 
   static const String authenticationLoginAPI = 'login/poslogin';

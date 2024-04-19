@@ -90,6 +90,7 @@ class _MyDashboardState extends State<MyDashboard> {
   double splitcash = 0;
   double splitepayamount = 0;
   double remaining = 0;
+  int discountItemCounter = 0;
 
   final TextEditingController _serialNumberController = TextEditingController();
   final TextEditingController _referenceidController = TextEditingController();
@@ -113,6 +114,9 @@ class _MyDashboardState extends State<MyDashboard> {
 
   String salesrepresentative = '';
   List<String> employees = [];
+
+  final TextEditingController _searchController = TextEditingController();
+  List<ProductPriceModel> filteredList = [];
 
 //printer parameters
   @override
@@ -316,8 +320,8 @@ class _MyDashboardState extends State<MyDashboard> {
             );
           });
     } else {
-      int cash = 0;
-      int ecash = 0;
+      dynamic cash = 0;
+      dynamic ecash = 0;
       String ornumber = '';
       String ordate = '';
       String ordescription = '';
@@ -560,7 +564,8 @@ class _MyDashboardState extends State<MyDashboard> {
           builder: (context) {
             return AlertDialog(
               title: Text('Alert'),
-              content: Text('Item not found with SN:${_serialNumberController.text}'),
+              content: Text(
+                  'Item not found with SN:${_serialNumberController.text}'),
               icon: Icon(Icons.warning),
               actions: [
                 TextButton(
@@ -578,12 +583,15 @@ class _MyDashboardState extends State<MyDashboard> {
     final jsonData = json.encode(results['data']);
     setState(() {
       for (var data in json.decode(jsonData)) {
-        categoryList.add(CategoryModel(
-            data['categorycode'],
-            data['categoryname'],
-            data['status'],
-            data['createdby'],
-            data['createddate']));
+        if (data['categoryname'] == 'Material') {
+        } else {
+          categoryList.add(CategoryModel(
+              data['categorycode'],
+              data['categoryname'],
+              data['status'],
+              data['createdby'],
+              data['createddate']));
+        }
       }
     });
   }
@@ -654,8 +662,12 @@ class _MyDashboardState extends State<MyDashboard> {
                 );
               });
         } else {
-          String fullname = _discountFullnameController.text;
-          String id = _discountIDController.text;
+          String fullname = _discountFullnameController.text == ''
+              ? 'N/A'
+              : _discountFullnameController.text;
+          String id = _discountIDController.text == ''
+              ? 'N/A'
+              : _discountIDController.text;
 
           discountDetail = [
             {
@@ -667,7 +679,10 @@ class _MyDashboardState extends State<MyDashboard> {
               'amount': discount,
             }
           ];
-          addItem('Discount ($type)', discount, 1, 0);
+
+          addItem('Discount ($type)', discount, 1, 1);
+
+          discountItemCounter += 1;
         }
       }
     });
@@ -875,6 +890,115 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
+  void filterList(String query) {
+    filteredList = productList
+        .where((item) =>
+            item.description.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    final List<Widget> product = List<Widget>.generate(
+        filteredList.length,
+        (index) => SizedBox(
+              height: 80,
+              width: 220,
+              child: ElevatedButton(
+                onPressed: (filteredList[index].quantity <= 0)
+                    ? null
+                    : () {
+                        // Add your button press logic here
+                        addItem(
+                            filteredList[index].description,
+                            double.parse(filteredList[index].price),
+                            1,
+                            filteredList[index].quantity);
+                      },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.memory(
+                        base64Decode(filteredList[index].productimage)),
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    SizedBox(
+                        width: 100,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${filteredList[index].description}',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            Text(
+                              'Stocks: ${filteredList[index].quantity}',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        )),
+                  ],
+                ),
+              ),
+            ));
+
+    // Update the bottom sheet content
+    Navigator.of(context).pop();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('Products')),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      filterList(value);
+                    },
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Search',
+                      hintText: 'Enter search keyword',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: product.isEmpty
+                      ? const Text('No Product Found')
+                      : Wrap(
+                          spacing: 8, // Adjust the spacing between buttons
+                          runSpacing:
+                              8, // Adjust the vertical spacing between rows
+                          children: product),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showcategoryitems(BuildContext context, category) async {
     if (isStartShift != false) {
       showDialog(
@@ -958,18 +1082,41 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
               ));
 
-      showDialog(
+      showModalBottomSheet(
         context: context,
-        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Center(child: Text('Products')),
             content: SingleChildScrollView(
               child: Center(
-                child: Wrap(
-                    spacing: 8, // Adjust the spacing between buttons
-                    runSpacing: 8, // Adjust the vertical spacing between rows
-                    children: product),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          filterList(value);
+                        },
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          labelText: 'Search',
+                          hintText: 'Enter search keyword',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Wrap(
+                          spacing: 8, // Adjust the spacing between buttons
+                          runSpacing:
+                              8, // Adjust the vertical spacing between rows
+                          children: product),
+                    ),
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -1980,45 +2127,72 @@ class _MyDashboardState extends State<MyDashboard> {
               width: 120,
               child: ElevatedButton(
                 onPressed: () {
-                  showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text(discountList[index]),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              TextField(
-                                controller: _discountIDController,
-                                decoration:
-                                    const InputDecoration(labelText: 'ID'),
-                              ),
-                              TextField(
-                                controller: _discountFullnameController,
-                                decoration: const InputDecoration(
-                                    labelText: 'Fullname'),
+                  if (discountItemCounter > 1) {
+                    showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Warning'),
+                            content: const Text(
+                                'This POS is only accepts one discount'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context)
+                                      .pop(); // Close the dialog
+                                },
+                                child: const Text('Ok'),
                               ),
                             ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(); // Close the dialog
-                              },
-                              child: const Text('Close'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                _getdiscountrate(discountList[index]);
-                                Navigator.of(context).pop(); // Close the dialog
-                              },
-                              child: const Text('Apply'),
-                            ),
-                          ],
-                        );
-                      });
+                          );
+                        });
+                  } else {
+                    (discountList[index] == 'PWD' ||
+                            discountList[index] == 'Senior')
+                        ? showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text(discountList[index]),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    TextField(
+                                      controller: _discountIDController,
+                                      decoration: const InputDecoration(
+                                          labelText: 'ID'),
+                                    ),
+                                    TextField(
+                                      controller: _discountFullnameController,
+                                      decoration: const InputDecoration(
+                                          labelText: 'Fullname'),
+                                    ),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('Close'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      _getdiscountrate(discountList[index]);
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('Apply'),
+                                  ),
+                                ],
+                              );
+                            })
+                        : _getdiscountrate(discountList[index]);
+                  }
                 },
                 child: Text(
                   discountList[index],
@@ -2315,25 +2489,25 @@ class _MyDashboardState extends State<MyDashboard> {
                     columns: const [
                       DataColumn(
                           label: Text(
-                        'Desc',
+                        'Description',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                       DataColumn(
                           label: Text(
-                        'Pr',
+                        'Price',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                       DataColumn(
                           label: Text(
-                        'Qty',
+                        'Quantity',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                       DataColumn(
                           label: Text(
-                        'Ttl',
+                        'Total',
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
@@ -2368,6 +2542,14 @@ class _MyDashboardState extends State<MyDashboard> {
                                     if (product['quantity'] > 0) {
                                       updateQuantity(
                                           index, product['quantity'] - 1);
+                                    }
+
+                                    print(product['name']);
+
+                                    if (product['name']
+                                        .toString()
+                                        .contains('Discount')) {
+                                      discountItemCounter -= 1;
                                     }
                                   },
                                 ),
@@ -3066,7 +3248,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.gears,
-                              size: 32), // Adjust size as needed
+                              size: 24), // Adjust size as needed
                         ),
                         const Text('OTHERS'),
                       ],
@@ -3075,6 +3257,20 @@ class _MyDashboardState extends State<MyDashboard> {
                 ],
               ),
             ),
+
+            const SizedBox(
+              height: 5,
+            ), //END
+            const Center(
+              child: Text('Product Categories',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 5),
+            Wrap(
+                spacing: 8, // Adjust the spacing between buttons
+                runSpacing: 8, // Adjust the vertical spacing between rows
+                children: category),
+
             const SizedBox(
               height: 5,
             ), //DIVIDER START
@@ -3105,7 +3301,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.handHolding,
-                              size: 32), // Adjust size as needed
+                              size: 24), // Adjust size as needed
                         ),
                         const Text('SERVICES'),
                       ],
@@ -3126,7 +3322,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.boxesStacked,
-                              size: 32), // Adjust size as needed
+                              size: 24), // Adjust size as needed
                         ),
                         const Text('PACKAGE'),
                       ],
@@ -3147,7 +3343,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.boxTissue,
-                              size: 32), // Adjust size as needed
+                              size: 24), // Adjust size as needed
                         ),
                         const Text('ADD-ONS'),
                       ],
@@ -3156,18 +3352,6 @@ class _MyDashboardState extends State<MyDashboard> {
                 ],
               ),
             ),
-            const SizedBox(
-              height: 5,
-            ), //END
-            const Center(
-              child: Text('Product Categories',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 5),
-            Wrap(
-                spacing: 8, // Adjust the spacing between buttons
-                runSpacing: 8, // Adjust the vertical spacing between rows
-                children: category),
           ],
         ),
       ),
