@@ -4,11 +4,10 @@ import 'dart:ui';
 
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:image/src/image.dart';
+import 'package:image/image.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:fiveLPOS/api/promo.dart';
@@ -231,8 +230,10 @@ class Receipt {
     return byteData!.buffer.asUint8List();
   }
 
-  void svgPrintSvg(logo) async {
+  Future<Uint8List> svgPrintSvg(logo) async {
     final Uint8List pngBytes = await svgToRaster('<svg ${logo[1]}', 100, 100);
+
+    return pngBytes;
   }
 
   Future<Uint8List> printReceipt() async {
@@ -290,6 +291,9 @@ class Receipt {
     tin = 'VAT REG TIN: ${branch['tin']}';
     address = branch['address'];
     logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
+
+    var svgLogo = await svgPrintSvg(logo);
+
     // }
 
     // await getConfig();
@@ -306,6 +310,12 @@ class Receipt {
     }
 
     if (Platform.isAndroid && printerconfig['isenable']) {
+      final ByteData data = await rootBundle.load('assets/logo.png');
+      final Uint8List bytes = data.buffer.asUint8List();
+      final Image? image = decodeImage(bytes);
+
+      printer.drawer();
+      printer.image(image!);
       printer.text(branchname,
           styles: const PosStyles(
             align: PosAlign.center,
@@ -378,7 +388,7 @@ class Receipt {
       printer.text('Cash:\t\t\t${customercash(cash)}',
           styles: const PosStyles(align: PosAlign.left, bold: true));
       if (paymenttype == 'SPLIT') {
-        printer.text('E-Cash:\t\t\t${customercash(ecash)}',
+        printer.text('$epaymenttype:\t\t\t${customercash(ecash)}',
             styles: const PosStyles(align: PosAlign.left, bold: true));
       }
       printer.text('Change:\t\t\t${change(totalamtdue(items), cash)}',
@@ -404,15 +414,15 @@ class Receipt {
           styles: const PosStyles(align: PosAlign.left, bold: true));
       printer.text('Style:\t____________________',
           styles: const PosStyles(align: PosAlign.left, bold: true));
-      //Divider
-      printer.hr(len: 1);
-      //Message
-      printer.text('Thank you! Come again!',
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-          linesAfter: 2);
-      printer.text('THIS IS A OFFICIAL RECEIPT',
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-          linesAfter: 2);
+      // //Divider
+      // printer.hr(len: 1);
+      // //Message
+      // printer.text('Thank you! Come again!',
+      //     styles: const PosStyles(align: PosAlign.center, bold: true),
+      //     linesAfter: 2);
+      // printer.text('THIS IS A OFFICIAL RECEIPT',
+      //     styles: const PosStyles(align: PosAlign.center, bold: true),
+      //     linesAfter: 2);
       //Divider
       if (promodetails != '') printer.hr(len: 1);
       //Promo
@@ -686,7 +696,7 @@ class Receipt {
                       pw.Container(
                         width: 100,
                         child: pw.Text(
-                          'E-Cash:',
+                          '$epaymenttype:',
                           style: const pw.TextStyle(fontSize: 8),
                         ),
                       ),
@@ -881,12 +891,12 @@ class Receipt {
                 // ),
 
                 //////THIS IS A OFFICIAL RECEIPT//////////
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  'THIS IS A OFFICIAL RECEIPT\n\n',
-                  style: pw.TextStyle(
-                      fontSize: 10, fontWeight: pw.FontWeight.bold),
-                ),
+                // pw.SizedBox(height: 10),
+                // pw.Text(
+                //   'THIS IS A OFFICIAL RECEIPT\n\n',
+                //   style: pw.TextStyle(
+                //       fontSize: 10, fontWeight: pw.FontWeight.bold),
+                // ),
                 //////PROMO//////////
                 pw.Container(
                   height: 0.5, // Set the height of the divider

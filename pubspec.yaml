@@ -54,9 +54,10 @@ dependencies:
   image: ^3.3.0
   # esc_pos_printer: ^4.1.0
   pdf: ^3.4.1
-  esc_pos_utils: ^1.0.0
+  esc_pos_utils: ^1.1.0
   esc_pos_printer: ^4.1.0
   desktop_window: ^0.4.0
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

@@ -385,9 +385,9 @@ class _MyDashboardState extends State<MyDashboard> {
       }
 
       if (Platform.isAndroid) {
-        Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async => pdfBytes,
-        );
+        // Printing.layoutPdf(
+        //   onLayout: (PdfPageFormat format) async => pdfBytes,
+        // );
       }
     }
   }
@@ -1098,7 +1098,6 @@ class _MyDashboardState extends State<MyDashboard> {
                         onChanged: (value) {
                           filterList(value);
                         },
-                        autofocus: true,
                         decoration: InputDecoration(
                           labelText: 'Search',
                           hintText: 'Enter search keyword',
@@ -1667,7 +1666,7 @@ class _MyDashboardState extends State<MyDashboard> {
               paymentname,
               0,
               widget.printer,
-              salesrepresentative)
+              salesrepresentative == '' ? cashier : salesrepresentative)
           .printReceipt();
       Map<String, dynamic> printerconfig = {};
       if (Platform.isWindows) {
@@ -1949,7 +1948,7 @@ class _MyDashboardState extends State<MyDashboard> {
             epaymentname,
             epayamount,
             widget.printer,
-            salesrepresentative)
+            salesrepresentative == '' ? widget.fullname : salesrepresentative)
         .printReceipt();
 
     if (result['msg'] == 'success') {
@@ -1963,13 +1962,13 @@ class _MyDashboardState extends State<MyDashboard> {
         //     printer: const Printer(url: ''),
         //     onLayout: (PdfPageFormat format) => pdfBytes);
       } else if (Platform.isWindows) {
-        // List<Printer> printerList = await Printing.listPrinters();
-        // for (var printer in printerList) {
-        //   if (printer.isDefault) {
-        //     Printing.directPrintPdf(
-        //         printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
-        //   }
-        // }
+        List<Printer> printerList = await Printing.listPrinters();
+        for (var printer in printerList) {
+          if (printer.isDefault) {
+            Printing.directPrintPdf(
+                printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
+          }
+        }
       }
 
       // ignore: use_build_context_synchronously
@@ -2413,7 +2412,7 @@ class _MyDashboardState extends State<MyDashboard> {
             ));
 
     List<String> options = ['Select Payment Type', 'Gcash', 'Paymaya', 'Card'];
-    String splitEPaymentType = options.first;
+    String splitEPaymentType = options[1];
     String selectedSalesRepresentative = '';
 
     return Scaffold(
@@ -3144,6 +3143,15 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                           title),
                                                                       content: Text(
                                                                           message),
+                                                                      actions: [
+                                                                        TextButton(
+                                                                            onPressed:
+                                                                                () {
+                                                                              Navigator.pop(context);
+                                                                            },
+                                                                            child:
+                                                                                const Text('Close'))
+                                                                      ],
                                                                     );
                                                                   });
                                                             } else {

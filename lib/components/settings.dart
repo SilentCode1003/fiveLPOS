@@ -43,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     // TODO: implement initState
-    _printerinitiate();
+    //_printerinitiate();
     _getemailconfig();
     _getprinterconfig();
     super.initState();

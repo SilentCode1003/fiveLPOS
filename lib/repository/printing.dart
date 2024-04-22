@@ -2,7 +2,7 @@ import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 
 class LocalPrint {
-  Future<NetworkPrinter> printnetwork(ipaddress) async {
+  Future<NetworkPrinter> printnetwork(String ipaddress) async {
     const PaperSize paper = PaperSize.mm80;
     final profile = await CapabilityProfile.load();
 
@@ -14,6 +14,7 @@ class LocalPrint {
         port: 9100, timeout: const Duration(seconds: 1));
 
     if (res == PosPrintResult.success) {
+      print(res.msg);
       // print('Print result: ${res.msg}');
       // printer.text('TEST');
       // printer.feed(5);
