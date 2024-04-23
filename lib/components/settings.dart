@@ -4,7 +4,9 @@ import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:fiveLPOS/components/circularprogressbar.dart';
 import 'package:fiveLPOS/components/dashboard.dart';
+import 'package:fiveLPOS/model/branch.dart';
 import 'package:fiveLPOS/model/email.dart';
+import 'package:fiveLPOS/model/pos.dart';
 import 'package:fiveLPOS/model/printer.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:fiveLPOS/repository/printing.dart';
@@ -16,13 +18,15 @@ class SettingsPage extends StatefulWidget {
   final int accesstype;
   final int positiontype;
   final String logo;
+  final NetworkPrinter printer;
   const SettingsPage(
       {super.key,
       required this.employeeid,
       required this.fullname,
       required this.accesstype,
       required this.positiontype,
-      required this.logo});
+      required this.logo,
+      required this.printer});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -39,13 +43,27 @@ class _SettingsPageState extends State<SettingsPage> {
   String printerip = '';
   bool isenable = false;
 
+  String branchid = '';
+  String branchname = '';
+
+  int posid = 0;
+  String posname = '';
+  String serial = '';
+  String min = '';
+  String ptu = '';
+  String status = '';
+  String createdby = '';
+  String createddate = '';
+
   var _printer;
   @override
   void initState() {
     // TODO: implement initState
-    //_printerinitiate();
+    _printerinitiate();
     _getemailconfig();
     _getprinterconfig();
+    _getbranchconfig();
+    _getposconfig();
     super.initState();
   }
 
@@ -74,6 +92,74 @@ class _SettingsPageState extends State<SettingsPage> {
         emailaddress = model.emailaddress;
         emailpassword = model.emailpassword;
         smtp = model.emailserver;
+      });
+    }
+  }
+
+  Future<void> _getbranchconfig() async {
+    if (Platform.isWindows) {
+      var branch = await Helper().readJsonToFile('branch.json');
+
+      print(branch);
+      BranchModel model =
+          BranchModel(branch['branchid'], branch['branchname'], '', '', '');
+
+      setState(() {
+        branchid = model.branchid;
+        branchname = model.branchname;
+      });
+    }
+
+    if (Platform.isAndroid) {
+      var branch = await Helper().JsonToFileRead('branch.json');
+      print(branch);
+      BranchModel model =
+          BranchModel(branch['branchid'], branch['branchname'], '', '', '');
+
+      setState(() {
+        branchid = model.branchid;
+        branchname = model.branchname;
+      });
+    }
+  }
+
+  Future<void> _getposconfig() async {
+    if (Platform.isWindows) {
+      var pos = await Helper().readJsonToFile('pos.json');
+
+      print(pos);
+      POSModel model = POSModel(
+          pos['posid'],
+          pos['posname'],
+          pos['serial'],
+          pos['min'],
+          pos['ptu'],
+          pos['status'],
+          pos['createdby'],
+          pos['createddate']);
+
+      setState(() {
+        posid = model.posid;
+        posname = model.posname;
+      });
+    }
+
+    if (Platform.isAndroid) {
+      var pos = await Helper().JsonToFileRead('pos.json');
+      print(pos);
+      POSModel model = POSModel(
+          pos['posid'],
+          pos['posname'],
+          pos['serial'],
+          pos['min'],
+          pos['ptu'],
+          pos['status'],
+          pos['createdby'],
+          pos['createddate']);
+
+      setState(() {
+        posid = model.posid;
+        posname = model.posname;
       });
     }
   }
@@ -142,9 +228,7 @@ class _SettingsPageState extends State<SettingsPage> {
         port: 9100, timeout: const Duration(seconds: 5));
 
     print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
-
     _printer = printer;
-    printer.disconnect();
   }
 
   void isPrinterStatus() {
@@ -160,13 +244,16 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(padding: EdgeInsets.zero, children: <Widget>[
           DrawerHeader(
               decoration: BoxDecoration(color: Colors.teal.shade400),
-              child: const Column(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Branch: 5L Main'),
-                  Text('ID: 9999'),
-                  Text('POS ID: 1000'),
+                  Text('Branch: $branchname'),
+                  Text('ID: $branchid'),
+                  Text('POS ID: $posid'),
+                  Text('Serial: $serial'),
+                  Text('MIN: $min'),
+                  Text('PTU: $ptu'),
                 ],
               )),
           ListTile(
@@ -189,29 +276,26 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pop(context);
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.gif_box),
-            title: const Text('Products'),
-            onTap: () {
-              setState(() {
-                currentPage = 2;
-              });
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.discount),
-            title: const Text('Discounts & Promo'),
-            onTap: () {
-              setState(() {
-                currentPage = 3;
-              });
-              Navigator.pop(context);
-            },
-          ),
-          const SizedBox(
-            height: 250,
-          ),
+          // ListTile(
+          //   leading: const Icon(Icons.gif_box),
+          //   title: const Text('Products'),
+          //   onTap: () {
+          //     setState(() {
+          //       currentPage = 2;
+          //     });
+          //     Navigator.pop(context);
+          //   },
+          // ),
+          // ListTile(
+          //   leading: const Icon(Icons.discount),
+          //   title: const Text('Discounts & Promo'),
+          //   onTap: () {
+          //     setState(() {
+          //       currentPage = 3;
+          //     });
+          //     Navigator.pop(context);
+          //   },
+          // ),
           const Divider(
             thickness: 4,
           ),
@@ -247,11 +331,13 @@ class _SettingsPageState extends State<SettingsPage> {
     switch (currentPage) {
       case 0:
         return PrinterPage(
-            printername: printername,
-            ipaddress: printerip,
-            papersize: papersize,
-            isenable: isenable,
-            getPrinterConfig: isPrinterStatus);
+          printername: printername,
+          ipaddress: printerip,
+          papersize: papersize,
+          isenable: isenable,
+          getPrinterConfig: isPrinterStatus,
+          printer: _printer,
+        );
       case 1:
         return EmailPage(
           emailaddress: emailaddress,
@@ -274,6 +360,7 @@ class PrinterPage extends StatelessWidget {
   final PaperSize papersize;
   final bool isenable;
   final Function() getPrinterConfig;
+  final NetworkPrinter printer;
 
   const PrinterPage(
       {super.key,
@@ -281,7 +368,8 @@ class PrinterPage extends StatelessWidget {
       required this.ipaddress,
       required this.papersize,
       required this.isenable,
-      required this.getPrinterConfig});
+      required this.getPrinterConfig,
+      required this.printer});
 
   @override
   Widget build(BuildContext context) {
@@ -444,7 +532,7 @@ class PrinterPage extends StatelessWidget {
                   child: ElevatedButton(
                       onPressed: () {
                         String ipaddress = _printeripaddress.text;
-                        LocalPrint().printnetwork(ipaddress);
+                        LocalPrint().printnetwork(printer, ipaddress);
                       },
                       child: const Text(
                         'TEST PRINT',
@@ -700,7 +788,7 @@ class DiscountPromoPage extends StatelessWidget {
   const DiscountPromoPage({super.key});
 
   @override
- Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

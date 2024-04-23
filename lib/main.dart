@@ -103,12 +103,13 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Set the initial route
       home: const PosConfig(),
       routes: {
-        '/setting': (context) => const SettingsPage(
+        '/setting': (context) => SettingsPage(
               employeeid: '',
               fullname: '',
               accesstype: 0,
               positiontype: 0,
               logo: '',
+              printer: printer,
             ),
         '/dashboard': (context) => MyDashboard(
               employeeid: 'employeeid',

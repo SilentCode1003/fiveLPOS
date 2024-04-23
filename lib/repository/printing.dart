@@ -2,30 +2,46 @@ import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 
 class LocalPrint {
-  Future<NetworkPrinter> printnetwork(String ipaddress) async {
-    const PaperSize paper = PaperSize.mm80;
-    final profile = await CapabilityProfile.load();
+  Future<void> printnetwork(NetworkPrinter printer, String ipaddress) async {
+    // printer.text('Bold text', styles: const PosStyles(bold: true));
+    // printer.text('Reverse text', styles: const PosStyles(reverse: true));
+    // printer.text('Underlined text',
+    //     styles: const PosStyles(underline: true), linesAfter: 1);
+    // printer.text('Align left', styles: const PosStyles(align: PosAlign.left));
+    // printer.text('Align center',
+    //     styles: const PosStyles(align: PosAlign.center));
+    // printer.text('Align right',
+    //     styles: const PosStyles(align: PosAlign.right), linesAfter: 1);
 
-    print(profile.name);
+    printer.text('TEST PRINT', styles: const PosStyles(bold: true));
+    printer.text('Company: 5L Solutions Supplys & Allied Services',
+        styles: const PosStyles(bold: true));
+    printer.text('Developer: Joseph A. Orencio',
+        styles: const PosStyles(bold: true));
 
-    final printer = NetworkPrinter(paper, profile);
+    printer.feed(2);
+    printer.cut();
 
-    final PosPrintResult res = await printer.connect('${ipaddress}',
-        port: 9100, timeout: const Duration(seconds: 1));
+    // const PaperSize paper = PaperSize.mm80;
+    // final profile = await CapabilityProfile.load();
 
-    if (res == PosPrintResult.success) {
-      print(res.msg);
-      // print('Print result: ${res.msg}');
-      // printer.text('TEST');
-      // printer.feed(5);
-      // printer.cut();
+    // print(profile.name);
 
-      await testReceipt(printer);
-      return printer;
-    } else {
-      print('Print result: ${res.msg}');
-      return printer;
-    }
+    // final printer = NetworkPrinter(paper, profile);
+
+    // final PosPrintResult res = await printer.connect('${ipaddress}',
+    //     port: 9100, timeout: const Duration(seconds: 1));
+
+    // if (res == PosPrintResult.success) {
+    //   print(res.msg);
+    //   // print('Print result: ${res.msg}');
+    //   // printer.text('TEST');
+    //   // printer.feed(5);
+    //   // printer.cut();
+
+    // } else {
+    //   print('Print result: ${res.msg}');
+    // }
   }
 
   Future<void> testReceipt(NetworkPrinter printer) async {

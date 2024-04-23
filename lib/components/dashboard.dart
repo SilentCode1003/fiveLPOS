@@ -137,6 +137,7 @@ class _MyDashboardState extends State<MyDashboard> {
   void dispose() {
     _splitCashController.dispose();
     _splitAmountController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -952,49 +953,85 @@ class _MyDashboardState extends State<MyDashboard> {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Center(child: Text('Products')),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      filterList(value);
-                    },
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      labelText: 'Search',
-                      hintText: 'Enter search keyword',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
+        return SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  onChanged: (value) {
+                    filterList(value);
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Search',
+                    hintText: 'Enter search keyword',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SingleChildScrollView(
+                  child: Center(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: product,
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: product.isEmpty
-                      ? const Text('No Product Found')
-                      : Wrap(
-                          spacing: 8, // Adjust the spacing between buttons
-                          runSpacing:
-                              8, // Adjust the vertical spacing between rows
-                          children: product),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Close'),
-            ),
-          ],
         );
+        // return AlertDialog(
+        //   title: const Center(child: Text('Products')),
+        //   content: SingleChildScrollView(
+        //     child: Column(
+        //       children: [
+        //         Padding(
+        //           padding: const EdgeInsets.all(8.0),
+        //           child: TextField(
+        //             controller: _searchController,
+        //             onChanged: (value) {
+        //               filterList(value);
+        //             },
+        //             autofocus: true,
+        //             decoration: InputDecoration(
+        //               labelText: 'Search',
+        //               hintText: 'Enter search keyword',
+        //               prefixIcon: Icon(Icons.search),
+        //               border: OutlineInputBorder(),
+        //             ),
+        //           ),
+        //         ),
+        //         Padding(
+        //           padding: const EdgeInsets.all(8.0),
+        //           child: product.isEmpty
+        //               ? const Text('No Product Found')
+        //               : Wrap(
+        //                   spacing: 8, // Adjust the spacing between buttons
+        //                   runSpacing:
+        //                       8, // Adjust the vertical spacing between rows
+        //                   children: product),
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        //   actions: [
+        //     TextButton(
+        //       onPressed: () {
+        //         Navigator.of(context).pop(); // Close the dialog
+        //       },
+        //       child: const Text('Close'),
+        //     ),
+        //   ],
+        // );
       },
     );
   }
@@ -1085,48 +1122,86 @@ class _MyDashboardState extends State<MyDashboard> {
       showModalBottomSheet(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Center(child: Text('Products')),
-            content: SingleChildScrollView(
-              child: Center(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          filterList(value);
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Search',
-                          hintText: 'Enter search keyword',
-                          prefixIcon: Icon(Icons.search),
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Wrap(
-                          spacing: 8, // Adjust the spacing between buttons
-                          runSpacing:
-                              8, // Adjust the vertical spacing between rows
-                          children: product),
-                    ),
-                  ],
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      filterList(value);
+                    },
+                    decoration: InputDecoration(
+                        labelText: 'Enter Product Name',
+                        hintText: 'Alrik',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: Icon(Icons.close))),
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Center(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: product,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                child: const Text('Close'),
-              ),
-            ],
           );
+
+          // return AlertDialog(
+          //   title: const Center(child: Text('Products')),
+          //   content: SingleChildScrollView(
+          //     child: Center(
+          //       child: Column(
+          //         children: [
+          //           Padding(
+          //             padding: const EdgeInsets.all(8.0),
+          //             child: TextField(
+          //               controller: _searchController,
+          //               onChanged: (value) {
+          //                 filterList(value);
+          //               },
+          //               decoration: InputDecoration(
+          //                 labelText: 'Search',
+          //                 hintText: 'Enter search keyword',
+          //                 prefixIcon: Icon(Icons.search),
+          //                 border: OutlineInputBorder(),
+          //               ),
+          //             ),
+          //           ),
+          //           Padding(
+          //             padding: const EdgeInsets.all(8.0),
+          //             child: Wrap(
+          //                 spacing: 8, // Adjust the spacing between buttons
+          //                 runSpacing:
+          //                     8, // Adjust the vertical spacing between rows
+          //                 children: product),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ),
+          //   actions: [
+          //     TextButton(
+          //       onPressed: () {
+          //         Navigator.of(context).pop(); // Close the dialog
+          //       },
+          //       child: const Text('Close'),
+          //     ),
+          //   ],
+          // );
         },
       );
     }
@@ -1369,6 +1444,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                     accesstype: widget.accesstype,
                                     positiontype: widget.positiontype,
                                     logo: widget.logo,
+                                    printer: widget.printer,
                                   )),
                         );
                       },
@@ -1893,6 +1969,8 @@ class _MyDashboardState extends State<MyDashboard> {
       _splitAmountController.clear();
       _discountFullnameController.clear();
       _discountIDController.clear();
+
+      discountItemCounter = 0;
     });
   }
 
@@ -2126,7 +2204,7 @@ class _MyDashboardState extends State<MyDashboard> {
               width: 120,
               child: ElevatedButton(
                 onPressed: () {
-                  if (discountItemCounter > 1) {
+                  if (discountItemCounter == 1) {
                     showDialog(
                         context: context,
                         barrierDismissible: false,
@@ -2159,15 +2237,27 @@ class _MyDashboardState extends State<MyDashboard> {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    TextField(
-                                      controller: _discountIDController,
-                                      decoration: const InputDecoration(
-                                          labelText: 'ID'),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: TextField(
+                                        controller: _discountIDController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'ID',
+                                          hintText: '123456',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
                                     ),
-                                    TextField(
-                                      controller: _discountFullnameController,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Fullname'),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: TextField(
+                                        controller: _discountFullnameController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Fullname',
+                                          hintText: 'Juan Dela Cruz',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
