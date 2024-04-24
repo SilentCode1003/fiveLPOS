@@ -24,4 +24,5 @@ class Config {
   static const String servicesAPI = 'service/getactive';
   static const String packageAPI = 'servicepackage/getactive';
   static const String addonAPI = 'addon/getactive';
+  static const String refundAPI = 'salesdetails/refund';
 }

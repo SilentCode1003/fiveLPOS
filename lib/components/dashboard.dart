@@ -118,6 +118,9 @@ class _MyDashboardState extends State<MyDashboard> {
   final TextEditingController _searchController = TextEditingController();
   List<ProductPriceModel> filteredList = [];
 
+  final TextEditingController _refundORController = TextEditingController();
+  final TextEditingController _refundReasonController = TextEditingController();
+
 //printer parameters
   @override
   void initState() {
@@ -138,6 +141,8 @@ class _MyDashboardState extends State<MyDashboard> {
     _splitCashController.dispose();
     _splitAmountController.dispose();
     _searchController.dispose();
+    _refundORController.dispose();
+    _refundReasonController.dispose();
     super.dispose();
   }
 
@@ -967,11 +972,15 @@ class _MyDashboardState extends State<MyDashboard> {
                     filterList(value);
                   },
                   decoration: InputDecoration(
-                    labelText: 'Search',
-                    hintText: 'Enter search keyword',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
+                      labelText: 'Search',
+                      hintText: 'Enter search keyword',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          icon: Icon(Icons.close))),
                 ),
               ),
               Padding(
@@ -1267,6 +1276,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                       TextField(
                                         controller: _receiptORController,
                                         keyboardType: TextInputType.number,
+                                        maxLength: 9,
                                         decoration: const InputDecoration(
                                             labelText: 'OR Number',
                                             hintText: '200000001'),
@@ -1296,6 +1306,71 @@ class _MyDashboardState extends State<MyDashboard> {
                       },
                       child: const Text(
                         'RE-PRINT',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize:
+                              MaterialStateProperty.all(const Size(120, 80))),
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('REFUND'),
+                                content: SizedBox(
+                                  height: 400,
+                                  width: 320,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: _refundORController,
+                                        keyboardType: TextInputType.number,
+                                        maxLength: 9,
+                                        decoration: const InputDecoration(
+                                            labelText: 'OR Number',
+                                            hintText: '200000001'),
+                                      ),
+                                      TextField(
+                                        controller: _refundReasonController,
+                                        keyboardType: TextInputType.number,
+                                        maxLength: 300,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Reason',
+                                            hintText:
+                                                'Please enter reason of refund'),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () async {
+                                      // String receiptOR =
+                                      //     _receiptORController.text.trim();
+                                      // Navigator.of(context).pop();
+                                      // _getdetails(context, receiptOR);
+
+                                      _refund();
+                                    },
+                                    child: const Text('Proceed'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              );
+                            });
+                      },
+                      child: const Text(
+                        'REFUND',
                         style: TextStyle(
                             fontSize: 12, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
@@ -2479,6 +2554,98 @@ class _MyDashboardState extends State<MyDashboard> {
         });
   }
 
+  Future<void> _refund() async {
+    String reason = _refundReasonController.text;
+    String ornumber = _refundORController.text;
+    final results =
+        await SalesDetails().refund(ornumber, reason, widget.fullname);
+    final jsonData = json.encode(results['data']);
+
+    print(results);
+
+    if (jsonData.length == 2) {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Not Found'),
+              content: Text('OR Number $ornumber not found'),
+              icon: Icon(Icons.warning),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    } else {
+      if (results['msg'] == 'refunded') {
+        return showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Already Exist'),
+                content: Text('OR Number $ornumber already refunded!'),
+                icon: Icon(Icons.warning),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+      }
+
+      if (results['msg'] == 'ornotexist') {
+        return showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Not Exist'),
+                content: Text('OR Number $ornumber does not exist!'),
+                icon: Icon(Icons.warning),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+      }
+
+      return showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: Text('OR Number $ornumber successfully refunded!'),
+              icon: Icon(Icons.check),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
+  }
+
 // #endregion
   @override
   Widget build(BuildContext context) {
@@ -2501,7 +2668,7 @@ class _MyDashboardState extends State<MyDashboard> {
               ),
             ));
 
-    List<String> options = ['Select Payment Type', 'Gcash', 'Paymaya', 'Card'];
+    List<String> options = ['Select Payment Type', 'GCASH', 'PAYMAYA', 'CARD'];
     String splitEPaymentType = options[1];
     String selectedSalesRepresentative = '';
 
@@ -2686,16 +2853,16 @@ class _MyDashboardState extends State<MyDashboard> {
                 child: Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Total',
-                        style: TextStyle(
+                      Text(
+                        'OR:  $detailid',
+                        style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        ':  ${formatAsCurrency(calculateGrandTotal())}',
-                        style: const TextStyle(
+                        'Total :  ${formatAsCurrency(calculateGrandTotal())}',
+                        style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
