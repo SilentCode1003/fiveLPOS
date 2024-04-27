@@ -8,6 +8,7 @@ import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fiveLPOS/components/dashboard.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/userinfo.dart';
 import '../api/login.dart';
@@ -54,6 +55,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
+    _loadRememberedCredentials();
     setState(() {
       List<String> logo =
           utf8.decode(base64.decode(widget.logo)).split('<svg ');
@@ -62,6 +64,20 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     // print(branchlogo);
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _usernameController.text = prefs.getString('username') ?? '';
+      _passwordController.text = prefs.getString('password') ?? '';
+    });
+  }
+
+  Future<void> _saveRememberedCredentials() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('username', _usernameController.text);
+    prefs.setString('password', _passwordController.text);
   }
 
   Future<void> _login() async {
@@ -94,6 +110,8 @@ class _LoginPageState extends State<LoginPage> {
             results[0]['usercode'],
             results[0]['accesstype'],
             results[0]['status']);
+
+        _saveRememberedCredentials();
 
         Navigator.push(
           context,

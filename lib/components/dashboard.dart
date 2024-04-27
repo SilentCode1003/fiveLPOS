@@ -1133,8 +1133,8 @@ class _MyDashboardState extends State<MyDashboard> {
         builder: (BuildContext context) {
           return SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -1276,7 +1276,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                       TextField(
                                         controller: _receiptORController,
                                         keyboardType: TextInputType.number,
-                                        maxLength: 9,
                                         decoration: const InputDecoration(
                                             labelText: 'OR Number',
                                             hintText: '200000001'),
@@ -1329,15 +1328,14 @@ class _MyDashboardState extends State<MyDashboard> {
                                     children: [
                                       TextField(
                                         controller: _refundORController,
-                                        keyboardType: TextInputType.number,
-                                        maxLength: 9,
+                                        keyboardType: TextInputType.multiline,
                                         decoration: const InputDecoration(
                                             labelText: 'OR Number',
                                             hintText: '200000001'),
                                       ),
                                       TextField(
                                         controller: _refundReasonController,
-                                        keyboardType: TextInputType.number,
+                                        keyboardType: TextInputType.multiline,
                                         maxLength: 300,
                                         decoration: const InputDecoration(
                                             labelText: 'Reason',
@@ -2855,10 +2853,20 @@ class _MyDashboardState extends State<MyDashboard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'OR:  $detailid',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Text(
+                            'Shift:  $shift',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 10,),
+                          Text(
+                            'OR:  $detailid',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                       Text(
                         'Total :  ${formatAsCurrency(calculateGrandTotal())}',

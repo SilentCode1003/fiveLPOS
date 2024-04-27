@@ -10,3 +10,16 @@
 
 - Unofficial release of apk not listed to googplay
 - Under UAT
+
+### Version 1.2.9
+
+- Fix Discount
+- Added Refund
+- Added display for last OR
+- Remove Product , Discount & Promo
+- Revise display of product items
+- Revise names on Items Datatable
+
+### Version 1.2.10
+
+-Change keyboard type on refund
