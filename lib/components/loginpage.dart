@@ -122,8 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                   fullname: userinfomodel.fullname,
                   positiontype: userinfomodel.position,
                   logo: branchlogo,
-                  printer: _printer,
-                  printerstatus: _printerStatus)),
+                  printer: _printer,)),
         );
       } else {
         Navigator.of(context).pop();

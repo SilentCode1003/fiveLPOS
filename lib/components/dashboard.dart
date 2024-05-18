@@ -7,11 +7,14 @@ import 'package:fiveLPOS/api/addon.dart';
 import 'package:fiveLPOS/api/employees.dart';
 import 'package:fiveLPOS/api/package.dart';
 import 'package:fiveLPOS/api/services.dart';
+import 'package:fiveLPOS/api/shiftreport.dart';
 import 'package:fiveLPOS/components/settings.dart';
 import 'package:fiveLPOS/model/addon.dart';
 import 'package:fiveLPOS/model/category.dart';
 import 'package:fiveLPOS/model/servicepackage.dart';
 import 'package:fiveLPOS/model/services.dart';
+import 'package:fiveLPOS/model/shiftreport.dart';
+import 'package:fiveLPOS/repository/endshiftreceipt.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
@@ -34,6 +37,7 @@ import 'package:fiveLPOS/api/transaction.dart';
 import 'package:fiveLPOS/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
+import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -51,8 +55,7 @@ class MyDashboard extends StatefulWidget {
   final int accesstype;
   final int positiontype;
   final String logo;
-  final NetworkPrinter printer;
-  final String printerstatus;
+  final NetworkPrinter? printer;
 
   const MyDashboard(
       {super.key,
@@ -61,8 +64,7 @@ class MyDashboard extends StatefulWidget {
       required this.accesstype,
       required this.positiontype,
       required this.logo,
-      required this.printer,
-      required this.printerstatus});
+      required this.printer});
 
   @override
   _MyDashboardState createState() => _MyDashboardState();
@@ -85,7 +87,11 @@ class _MyDashboardState extends State<MyDashboard> {
   String branchid = '';
   bool isStartShift = false;
   bool isEndShift = false;
+  String businessdate = '';
   List<Map<String, dynamic>> discountDetail = [];
+  List<SoldItemModel> shiftsolditems = [];
+  List<SummaryPaymentModel> shiftsummarypayment = [];
+  List<StaffSalesModel> shiftstaffsales = [];
 
   double splitcash = 0;
   double splitepayamount = 0;
@@ -199,6 +205,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     for (var data in json.decode(jsonData)) {
       print('processing');
+      businessdate = data['date'];
       shift = data['shift'];
       if (data['status'] != 'START') {
         setState(() {
@@ -258,6 +265,12 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _endShift(BuildContext context, posid) async {
+    String receiptbeginning = '';
+    String receiptending = '';
+    String totalsales = '';
+    String salesbeginning = '';
+    String salesending = '';
+
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -275,7 +288,99 @@ class _MyDashboardState extends State<MyDashboard> {
       setState(() {
         isStartShift = false;
       });
+
+      final shiftreport =
+          await ShiftReportAPI().getShiftReport(businessdate, posid, shift);
+      final shiftreportJson = json.encode(shiftreport['data']);
+
+      print(shiftreport);
+
+      for (var data in json.decode(shiftreportJson)) {
+        ShiftReportModel report = ShiftReportModel(
+            data['date'],
+            data['pos'],
+            data['shift'],
+            data['cashier'],
+            data['floating'],
+            data['cashfloat'],
+            data['salesbeginning'],
+            data['salesending'],
+            data['totalsales'],
+            data['receiptbeginning'],
+            data['receiptending'],
+            data['status'],
+            data['approvedby'],
+            data['approveddate']);
+        setState(() {
+          receiptbeginning = report.receiptbeginning;
+          receiptending = report.receiptending;
+          totalsales = report.totalsales.toString();
+          salesbeginning = report.salesbeginning;
+          salesending = report.salesending;
+        });
+      }
+
+      print('begin:$receiptbeginning end:$receiptending');
+
+      final solditems = await ShiftReportAPI()
+          .getShiftItemSold(receiptbeginning, receiptending);
+      final solditemJson = json.encode(solditems['data']);
+
+      for (var data in json.decode(solditemJson)) {
+        setState(() {
+          shiftsolditems.add(SoldItemModel(
+              data['item'], data['price'], data['quantity'], data['total']));
+        });
+      }
+
+      print(shiftsolditems);
+
+      final summarypayment = await ShiftReportAPI()
+          .getShiftSummaryPayment(receiptbeginning, receiptending);
+      final summarypaymentJson = json.encode(summarypayment['data']);
+
+      for (var data in json.decode(summarypaymentJson)) {
+        setState(() {
+          shiftsummarypayment
+              .add(SummaryPaymentModel(data['paymenttype'], data['total']));
+        });
+      }
+
+      print(shiftsummarypayment);
+
+      final staffsales = await ShiftReportAPI()
+          .getShiftStaffSales(receiptbeginning, receiptending);
+      final staffsalesJson = json.encode(staffsales['data']);
+
+      for (var data in json.decode(staffsalesJson)) {
+        setState(() {
+          shiftstaffsales
+              .add(StaffSalesModel(data['salesstaff'], data['total']));
+        });
+      }
+
+      print(shiftstaffsales);
     }
+
+    await EndShiftReceipt(
+            ShiftReceiptModel(
+                businessdate,
+                posid,
+                shift,
+                widget.fullname,
+                salesbeginning,
+                salesending,
+                totalsales,
+                receiptbeginning,
+                receiptending,
+                shiftsolditems,
+                shiftsummarypayment,
+                shiftstaffsales),
+            widget.printer!)
+        .printZReading();
+
+    _clearItems();
+
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pop(context);
       Navigator.pop(context);
@@ -348,7 +453,7 @@ class _MyDashboardState extends State<MyDashboard> {
           shift = data['shift'];
           cashier = data['cashier'];
           total = data['total'];
-          epaymentname = data['epaymentname'];
+          epaymentname = data['paymentmethod'];
           referenceid = data['referenceid'];
 
           if (orpaymenttype == 'SPLIT') {
@@ -377,7 +482,7 @@ class _MyDashboardState extends State<MyDashboard> {
               referenceid,
               cash.toDouble(),
               ecash.toDouble(),
-              widget.printer)
+              widget.printer!)
           .printReceipt();
 
       if (Platform.isWindows) {
@@ -485,7 +590,7 @@ class _MyDashboardState extends State<MyDashboard> {
                 referenceid,
                 cash.toDouble(),
                 ecash.toDouble(),
-                widget.printer)
+                widget.printer!)
             .printReceipt();
 
         List<Map<String, dynamic>> items =
@@ -1517,7 +1622,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                     accesstype: widget.accesstype,
                                     positiontype: widget.positiontype,
                                     logo: widget.logo,
-                                    printer: widget.printer,
+                                    printer: widget.printer!,
                                   )),
                         );
                       },
@@ -1673,7 +1778,7 @@ class _MyDashboardState extends State<MyDashboard> {
             barrierDismissible: false,
             builder: (BuildContext context) {
               return AlertDialog(
-                title: const Text('Services'),
+                title: const Text('ADD ONS'),
                 content: SingleChildScrollView(
                   child: Center(
                     child:
@@ -1814,7 +1919,7 @@ class _MyDashboardState extends State<MyDashboard> {
               referenceid,
               paymentname,
               0,
-              widget.printer,
+              widget.printer!,
               salesrepresentative == '' ? cashier : salesrepresentative)
           .printReceipt();
       Map<String, dynamic> printerconfig = {};
@@ -1827,13 +1932,10 @@ class _MyDashboardState extends State<MyDashboard> {
       }
 
       if (result['msg'] == 'success') {
-        if (Platform.isAndroid) {
-          if (printerconfig['isenable']) {
-          } else {
-            Printing.layoutPdf(
-                onLayout: (PdfPageFormat format) async => pdfBytes,
-                name: detailid.toString());
-          }
+        if (Platform.isAndroid && !printerconfig['isenable'] && !printerconfig['isbluetooth']) {
+          Printing.layoutPdf(
+              onLayout: (PdfPageFormat format) async => pdfBytes,
+              name: detailid.toString());
         } else if (Platform.isWindows) {
           List<Printer> printerList = await Printing.listPrinters();
           for (var localprinter in printerList) {
@@ -2044,6 +2146,10 @@ class _MyDashboardState extends State<MyDashboard> {
       _discountIDController.clear();
 
       discountItemCounter = 0;
+
+      shiftsolditems.clear();
+      shiftstaffsales.clear();
+      shiftsummarypayment.clear();
     });
   }
 
@@ -2098,7 +2204,7 @@ class _MyDashboardState extends State<MyDashboard> {
             referenceid,
             epaymentname,
             epayamount,
-            widget.printer,
+            widget.printer!,
             salesrepresentative == '' ? widget.fullname : salesrepresentative)
         .printReceipt();
 
@@ -2739,7 +2845,7 @@ class _MyDashboardState extends State<MyDashboard> {
                 ),
                 child: SingleChildScrollView(
                   child: DataTable(
-                    columnSpacing: 20,
+                    columnSpacing: 1,
                     columns: const [
                       DataColumn(
                           label: Text(
@@ -2860,7 +2966,9 @@ class _MyDashboardState extends State<MyDashboard> {
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 10,),
+                          const SizedBox(
+                            width: 10,
+                          ),
                           Text(
                             'OR:  $detailid',
                             style: const TextStyle(
@@ -3561,7 +3669,29 @@ class _MyDashboardState extends State<MyDashboard> {
                 children: [
                   ElevatedButton(
                     onPressed: () {
-                      services();
+                      if (isStartShift != false) {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Shift'),
+                                content: const Text(
+                                    'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              );
+                            });
+                      } else {
+                        services();
+                      }
                     },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
@@ -3582,7 +3712,29 @@ class _MyDashboardState extends State<MyDashboard> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      package();
+                      if (isStartShift != false) {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Shift'),
+                                content: const Text(
+                                    'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              );
+                            });
+                      } else {
+                        package();
+                      }
                     },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(
@@ -3603,7 +3755,29 @@ class _MyDashboardState extends State<MyDashboard> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      addons();
+                      if (isStartShift != false) {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Shift'),
+                                content: const Text(
+                                    'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              );
+                            });
+                      } else {
+                        addons();
+                      }
                     },
                     style: ButtonStyle(
                       fixedSize: MaterialStateProperty.all(

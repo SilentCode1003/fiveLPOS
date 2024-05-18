@@ -571,8 +571,6 @@ class _PosConfigState extends State<PosConfig> {
                 padding: EdgeInsets.all(8),
                 child: TextFormField(
                   controller: _branchidController,
-                  focusNode: FocusNode(),
-                  autofocus: true,
                   obscureText: false,
                   decoration: InputDecoration(
                     labelText: 'Branch ID',
@@ -616,8 +614,6 @@ class _PosConfigState extends State<PosConfig> {
                 padding: EdgeInsets.all(8),
                 child: TextFormField(
                   controller: _posidController,
-                  focusNode: FocusNode(),
-                  autofocus: true,
                   obscureText: false,
                   decoration: InputDecoration(
                     labelText: 'POS ID',
@@ -661,8 +657,6 @@ class _PosConfigState extends State<PosConfig> {
                 padding: EdgeInsets.all(8),
                 child: TextFormField(
                   controller: _serverController,
-                  focusNode: FocusNode(),
-                  autofocus: true,
                   obscureText: false,
                   decoration: InputDecoration(
                     labelText: 'Server',

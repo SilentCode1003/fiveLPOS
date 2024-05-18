@@ -23,3 +23,9 @@
 ### Version 1.2.10
 
 -Change keyboard type on refund
+
+### Version 1.2.11
+
+-Revise printer config added bluetooth
+-Sales transactions, reprint receipts, and z-reading with bluetooth
+-Added Z-reading or sales summary printing
