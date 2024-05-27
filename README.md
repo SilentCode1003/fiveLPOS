@@ -29,3 +29,8 @@
 -Revise printer config added bluetooth
 -Sales transactions, reprint receipts, and z-reading with bluetooth
 -Added Z-reading or sales summary printing
+
+### Version 1.2.12
+
+-Added Order Slip Receipt
+-Upgrade to latest dart libraries
