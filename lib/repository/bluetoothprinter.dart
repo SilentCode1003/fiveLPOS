@@ -6,10 +6,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:flutter/material.dart' hide Image;
-import 'package:flutter_bluetooth_basic/src/bluetooth_device.dart';
+import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 
 // void main() => runApp(MyApp());
 
@@ -29,7 +28,7 @@ import 'package:flutter_bluetooth_basic/src/bluetooth_device.dart';
 // }
 
 class BluetoothPrinterPage extends StatefulWidget {
-  BluetoothPrinterPage({
+  const BluetoothPrinterPage({
     Key? key,
   }) : super(key: key);
 
@@ -57,7 +56,7 @@ class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
     setState(() {
       _devices = [];
     });
-    printerManager.startScan(Duration(seconds: 4));
+    printerManager.startScan(const Duration(seconds: 4));
   }
 
   void _stopScanDevices() {
@@ -76,7 +75,7 @@ class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
 
     bytes += ticket.image(image!);
     bytes += ticket.text('TEST PRINT',
-        styles: PosStyles(
+        styles: const PosStyles(
           bold: true,
           align: PosAlign.center,
           height: PosTextSize.size2,
@@ -98,86 +97,13 @@ class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
     return bytes;
   }
 
-  Future<List<int>> testTicket(
-      PaperSize paper, CapabilityProfile profile) async {
-    final Generator generator = Generator(paper, profile);
-    List<int> bytes = [];
-
-    bytes += generator.text(
-        'Regular: aA bB cC dD eE fF gG hH iI jJ kK lL mM nN oO pP qQ rR sS tT uU vV wW xX yY zZ');
-    // bytes += generator.text('Special 1: àÀ èÈ éÉ ûÛ üÜ çÇ ôÔ',
-    //     styles: PosStyles(codeTable: PosCodeTable.westEur));
-    // bytes += generator.text('Special 2: blåbærgrød',
-    //     styles: PosStyles(codeTable: PosCodeTable.westEur));
-
-    bytes += generator.text('Bold text', styles: PosStyles(bold: true));
-    bytes += generator.text('Reverse text', styles: PosStyles(reverse: true));
-    bytes += generator.text('Underlined text',
-        styles: PosStyles(underline: true), linesAfter: 1);
-    bytes +=
-        generator.text('Align left', styles: PosStyles(align: PosAlign.left));
-    bytes += generator.text('Align center',
-        styles: PosStyles(align: PosAlign.center));
-    bytes += generator.text('Align right',
-        styles: PosStyles(align: PosAlign.right), linesAfter: 1);
-
-    bytes += generator.row([
-      PosColumn(
-        text: 'col3',
-        width: 3,
-        styles: PosStyles(align: PosAlign.center, underline: true),
-      ),
-      PosColumn(
-        text: 'col6',
-        width: 6,
-        styles: PosStyles(align: PosAlign.center, underline: true),
-      ),
-      PosColumn(
-        text: 'col3',
-        width: 3,
-        styles: PosStyles(align: PosAlign.center, underline: true),
-      ),
-    ]);
-
-    bytes += generator.text('Text size 200%',
-        styles: PosStyles(
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ));
-
-    // Print image
-    // final ByteData data = await rootBundle.load('assets/logo.png');
-    // final Uint8List buf = data.buffer.asUint8List();
-    // final Image image = decodeImage(buf)!;
-    // bytes += generator.image(image);
-    // Print image using alternative commands
-    // bytes += generator.imageRaster(image);
-    // bytes += generator.imageRaster(image, imageFn: PosImageFn.graphics);
-
-    // Print barcode
-    final List<int> barData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 4];
-    bytes += generator.barcode(Barcode.upcA(barData));
-
-    // Print mixed (chinese + latin) text. Only for printers supporting Kanji mode
-    // bytes += generator.text(
-    //   'hello ! 中文字 # world @ éphémère &',
-    //   styles: PosStyles(codeTable: PosCodeTable.westEur),
-    //   containsChinese: true,
-    // );
-
-    bytes += generator.feed(2);
-
-    bytes += generator.cut();
-    return bytes;
-  }
-
   void _testPrint(PrinterBluetooth printer) async {
     print(
         'namae:${printer.name} address:${printer.address} type:${printer.type}');
     Map<String, dynamic> device = {
       'name': printer.name,
-      'address': printer.address,
-      'type': printer.type,
+      'address': printer..deviceName,
+      'type': printer.address,
       'isbluetooth': true,
       'printername': '',
       'printerip': '',
@@ -220,48 +146,48 @@ class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
             );
           });
 
-      setState(() async {
-        if (Platform.isWindows) {
-          await Helper()
-              .writeJsonToFile(device, 'printer.json')
-              .then((value) => showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Text('Success'),
-                      content: Text('Printer configuration saved!'),
-                      icon: Icon(Icons.check),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    );
-                  }));
-        }
-        if (Platform.isAndroid) {
-          await Helper()
-              .JsonToFileWrite(device, 'printer.json')
-              .then((value) => showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Text('Success'),
-                      content: Text('Printer configuration saved!'),
-                      icon: Icon(Icons.check),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    );
-                  }));
-        }
-      });
+      // setState(() {
+      //   if (Platform.isWindows) {
+      //     await Helper()
+      //         .writeJsonToFile(device, 'printer.json')
+      //         .then((value) => showDialog(
+      //             context: context,
+      //             barrierDismissible: false,
+      //             builder: (context) {
+      //               return AlertDialog(
+      //                 title: Text('Success'),
+      //                 content: Text('Printer configuration saved!'),
+      //                 icon: Icon(Icons.check),
+      //                 actions: [
+      //                   TextButton(
+      //                     onPressed: () => Navigator.pop(context),
+      //                     child: const Text('OK'),
+      //                   ),
+      //                 ],
+      //               );
+      //             }));
+      //   }
+      //   if (Platform.isAndroid) {
+      //     await Helper()
+      //         .JsonToFileWrite(device, 'printer.json')
+      //         .then((value) => showDialog(
+      //             context: context,
+      //             barrierDismissible: false,
+      //             builder: (context) {
+      //               return AlertDialog(
+      //                 title: Text('Success'),
+      //                 content: Text('Printer configuration saved!'),
+      //                 icon: Icon(Icons.check),
+      //                 actions: [
+      //                   TextButton(
+      //                     onPressed: () => Navigator.pop(context),
+      //                     child: const Text('OK'),
+      //                   ),
+      //                 ],
+      //               );
+      //             }));
+      //   }
+      // });
     });
 
     // showToast(res.msg);
@@ -290,8 +216,8 @@ class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
-                              Text(_devices[index].name ?? ''),
-                              Text(_devices[index].address!),
+                              Text(_devices[index].name),
+                              Text(_devices[index].address),
                               Text(
                                 'Click to print a test receipt',
                                 style: TextStyle(color: Colors.grey[700]),
@@ -302,7 +228,7 @@ class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
                       ],
                     ),
                   ),
-                  Divider(),
+                  const Divider(),
                 ],
               ),
             );

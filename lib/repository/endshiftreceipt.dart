@@ -3,21 +3,23 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart' as ble;
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue/gen/flutterblue.pbserver.dart' as pbserver;
+import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart'
+    as bluetooth;
+
 import 'package:fiveLPOS/model/shiftreport.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:image/image.dart';
-import 'package:flutter_bluetooth_basic/src/bluetooth_device.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 
 class EndShiftReceipt {
   ShiftReceiptModel report;
-  NetworkPrinter printer;
 
-  EndShiftReceipt(this.report, this.printer);
+  EndShiftReceipt(this.report);
 
   String formatAsCurrency(dynamic value) {
     return toCurrencyString(
@@ -245,182 +247,45 @@ class EndShiftReceipt {
     logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
 
     if (Platform.isAndroid && printerconfig['isenable']) {
-      final ByteData data = await rootBundle.load('assets/logo.png');
-      final Uint8List bytes = data.buffer.asUint8List();
-      final Image? image = decodeImage(bytes);
-
-      printer.drawer();
-      printer.image(image!);
-      printer.text(branchname,
-          styles: const PosStyles(
-            align: PosAlign.center,
-            bold: true,
-            height: PosTextSize.size2,
-            width: PosTextSize.size2,
-          ));
-      printer.text(address,
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.text(tin,
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.hr(len: 1);
-      printer.feed(2);
-      printer.text('Z-READING',
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.feed(1);
-      printer.row([
-        PosColumn(
-            text: 'DATE: ${report.date}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'POSID: ${report.pos}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer.row([
-        PosColumn(
-            text: 'SHIFT: ${report.shift}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'CASHIER: ${report.cashier}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer.hr(len: 1);
-      printer.row([
-        PosColumn(
-            text:
-                'SLS BEG: ${formatAsCurrency(report.salesbeginning.toString())}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'RCPT BEG: ${report.receiptbeginning}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer.row([
-        PosColumn(
-            text: 'SLS END: ${formatAsCurrency(report.salesending.toString())}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'RCPT END: ${report.receiptending}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer.hr(len: 1);
-      printer.text('--SOLD ITEMS--',
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.row([
-        PosColumn(
-            text: 'DESC',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'QTY',
-            width: 2,
-            styles: const PosStyles(align: PosAlign.center, bold: true)),
-        PosColumn(
-            text: 'PRC',
-            width: 3,
-            styles: const PosStyles(align: PosAlign.center, bold: true)),
-        PosColumn(
-            text: 'TOTAL',
-            width: 3,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer.hr(len: 1);
-      for (int index = 0; index < report.items.length; index++) {
-        printer.row([
-          PosColumn(
-              text: '${report.items[index].item}',
-              width: 4,
-              styles: const PosStyles(align: PosAlign.left, bold: true)),
-          PosColumn(
-              text: '${report.items[index].quantity}',
-              width: 2,
-              styles: const PosStyles(align: PosAlign.center, bold: true)),
-          PosColumn(
-              text: '${report.items[index].price}',
-              width: 3,
-              styles: const PosStyles(align: PosAlign.center, bold: true)),
-          PosColumn(
-              text: formatAsCurrency(report.items[index].total.toString()),
-              width: 3,
-              styles: const PosStyles(align: PosAlign.right, bold: true)),
-        ]);
-      }
-      printer.hr(len: 1);
-      printer.text('--PAYMENTS SUMMARY--',
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.hr(len: 1);
-      for (int index = 0; index < report.summarypayments.length; index++) {
-        printer.row([
-          PosColumn(
-              text: '${report.summarypayments[index].paymenttype}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left, bold: true)),
-          PosColumn(
-              text: formatAsCurrency(
-                  report.summarypayments[index].total.toString()),
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right, bold: true)),
-        ]);
-      }
-      printer.hr(len: 1);
-      printer.text('--STAFF SALES--',
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.hr(len: 1);
-      for (int index = 0; index < report.salesstaff.length; index++) {
-        printer.row([
-          PosColumn(
-              text: '${report.salesstaff[index].salesstaff}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left, bold: true)),
-          PosColumn(
-              text: formatAsCurrency(report.salesstaff[index].total.toString()),
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right, bold: true)),
-        ]);
-      }
-      printer.hr(len: 1);
-      printer.text('--TOTAL SUMMARY--',
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer.hr(len: 1);
-
-      printer.row([
-        PosColumn(
-            text: 'TOTAL SALES',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: formatAsCurrency(report.totalsales),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      printer.feed(2);
-      printer.cut();
-    }
-
-    if (Platform.isAndroid && printerconfig['isbluetooth'] == true) {
-      ble.PrinterBluetoothManager printerManager = ble.PrinterBluetoothManager();
-      Map<String, dynamic> device = {
-        'name': printerconfig['name'],
-        'address': printerconfig['address'],
-        'type': printerconfig['type'],
-        'connected': true
-      };
-      BluetoothDevice bleDevice = BluetoothDevice.fromJson(device);
-      ble.PrinterBluetooth bleprinter = ble.PrinterBluetooth(bleDevice);
-
-      printerManager.selectPrinter(bleprinter);
+      PrinterNetworkManager printer = PrinterNetworkManager(printerconfig['printerip']);
+      PosPrintResult connect = await printer.connect();
       // TODO Don't forget to choose printer's paper
       const PaperSize paper = PaperSize.mm80;
       final profile = await CapabilityProfile.load();
 
-      final ble.PosPrintResult res = await printerManager.printTicket(
+      if (connect == PosPrintResult.success) {
+        PosPrintResult printing = await printer.printTicket(
+            (await endshiftReport(paper, profile, branchname, id, serial,
+                branchid, address, tin)));
+
+        print(printing.msg);
+      }
+    }
+
+    if (Platform.isAndroid && printerconfig['isbluetooth'] == true) {
+      bluetooth.PrinterBluetoothManager printerManager =
+          bluetooth.PrinterBluetoothManager();
+      // Map<String, dynamic> device = {
+      //   'name': printerconfig['name'],
+      //   'address': printerconfig['address'],
+      //   'type': printerconfig['type'],
+      //   'connected': true
+      // };
+      // BluetoothDevice bleDevice = BluetoothDevice.fromJson(device);
+
+      var blePrinter = pbserver.BluetoothDevice()
+        ..remoteId = printerconfig['address']
+        ..name = printerconfig['name']
+        ..type = printerconfig['type'];
+
+      var printerBle = BluetoothDevice.fromProto(blePrinter);
+
+      printerManager.selectPrinter(bluetooth.PrinterBluetooth(printerBle));
+      // TODO Don't forget to choose printer's paper
+      const PaperSize paper = PaperSize.mm80;
+      final profile = await CapabilityProfile.load();
+
+      final bluetooth.PosPrintResult res = await printerManager.printTicket(
           (await endshiftReport(
               paper, profile, branchname, id, serial, branchid, address, tin)));
 

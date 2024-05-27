@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:desktop_window/desktop_window.dart';
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fiveLPOS/components/dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 
 import '../model/userinfo.dart';
 import '../api/login.dart';
@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
       List<String> logo =
           utf8.decode(base64.decode(widget.logo)).split('<svg ');
       branchlogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
-      _printerinitiate();
+      // _printerinitiate();
     });
 
     // print(branchlogo);
@@ -117,12 +117,12 @@ class _LoginPageState extends State<LoginPage> {
           context,
           MaterialPageRoute(
               builder: (context) => MyDashboard(
-                  accesstype: userinfomodel.accesstype,
-                  employeeid: userinfomodel.employeeid,
-                  fullname: userinfomodel.fullname,
-                  positiontype: userinfomodel.position,
-                  logo: branchlogo,
-                  printer: _printer,)),
+                    accesstype: userinfomodel.accesstype,
+                    employeeid: userinfomodel.employeeid,
+                    fullname: userinfomodel.fullname,
+                    positiontype: userinfomodel.position,
+                    logo: branchlogo,
+                  )),
         );
       } else {
         Navigator.of(context).pop();
@@ -157,15 +157,14 @@ class _LoginPageState extends State<LoginPage> {
 
     // print(profile.name);
 
-    final printer = NetworkPrinter(paper, profile);
+    // final printer = Generator(paper, profile);
+    final printer = PrinterNetworkManager(printerconfig['key'] == 'value'
+        ? '192.168.10.120'
+        : printerconfig['printerip']);
 
-    final PosPrintResult res = await printer.connect(
-        printerconfig['key'] == 'value' || printerconfig['printerip'] == ''
-            ? '192.168.10.120'
-            : printerconfig['printerip'],
-        port: 9100,
-        timeout: const Duration(seconds: 1));
+    final PosPrintResult res = await printer.connect();
 
+    print(res.msg);
     // print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
     _printerStatus = res.msg;
     _printer = printer;
@@ -220,7 +219,11 @@ class _LoginPageState extends State<LoginPage> {
                             _login();
                           },
                           style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 80)),
+                              minimumSize: const Size(double.infinity, 80),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onPrimary),
                           onPressed: _login,
                           child: const Text('Login'),
                         ),

@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart' as bluetooth;
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart'
+    as bluetooth;
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:fiveLPOS/components/circularprogressbar.dart';
 import 'package:fiveLPOS/components/dashboard.dart';
 import 'package:fiveLPOS/model/branch.dart';
@@ -13,6 +13,7 @@ import 'package:fiveLPOS/repository/bluetoothprinter.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:fiveLPOS/repository/printing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:intl/intl.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -21,15 +22,14 @@ class SettingsPage extends StatefulWidget {
   final int accesstype;
   final int positiontype;
   final String logo;
-  final NetworkPrinter printer;
-  const SettingsPage(
-      {super.key,
-      required this.employeeid,
-      required this.fullname,
-      required this.accesstype,
-      required this.positiontype,
-      required this.logo,
-      required this.printer});
+  const SettingsPage({
+    super.key,
+    required this.employeeid,
+    required this.fullname,
+    required this.accesstype,
+    required this.positiontype,
+    required this.logo,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -228,12 +228,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _printerinitiate() async {
     Map<String, dynamic> printerConfig = {};
-    papersize = PaperSize.mm80;
-    final profile = await CapabilityProfile.load();
-
-    print(profile.name);
-
-    final printer = NetworkPrinter(papersize, profile);
 
     if (Platform.isWindows) {
       printerConfig = await Helper().readJsonToFile('printer.json');
@@ -242,11 +236,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (Platform.isAndroid) {
       printerConfig = await Helper().JsonToFileRead('printer.json');
     }
-
-    final PosPrintResult res = await printer.connect(printerConfig['printerip'],
-        port: 9100, timeout: const Duration(seconds: 5));
-
-    print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
+    final printer = PrinterNetworkManager(printerConfig['ipaddress']);
     _printer = printer;
   }
 
@@ -267,12 +257,27 @@ class _SettingsPageState extends State<SettingsPage> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Branch: $branchname'),
-                  Text('ID: $branchid'),
-                  Text('POS ID: $posid'),
-                  Text('Serial: $serial'),
-                  Text('MIN: $min'),
-                  Text('PTU: $ptu'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Branch: $branchname'),
+                      Text('ID: $branchid'),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('POS ID: $posid'),
+                      Text('Serial: $serial'),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('MIN: $min'),
+                      Text('PTU: $ptu'),
+                    ],
+                  )
                 ],
               )),
           ListTile(
@@ -333,7 +338,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                 accesstype: widget.accesstype,
                                 positiontype: widget.positiontype,
                                 logo: widget.logo,
-                                printer: _printer,
                               )),
                     );
                   },
@@ -416,7 +420,7 @@ class PrinterPage extends StatefulWidget {
   final PaperSize papersize;
   final bool isenable;
   final Function() getPrinterConfig;
-  final NetworkPrinter? printer;
+  final PrinterNetworkManager? printer;
   final bool printertype;
 
   const PrinterPage(
@@ -497,10 +501,10 @@ class _PrinterPageState extends State<PrinterPage> {
       return Stream<bool>.value(value);
     }
 
-    return Center(
-      child: SafeArea(
-        child: Scaffold(
-          body: Padding(
+    return SafeArea(
+      child: Scaffold(
+        body: Center(
+          child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: widget.printertype
                 ? Column(
@@ -612,8 +616,7 @@ class _PrinterPageState extends State<PrinterPage> {
                             child: ElevatedButton(
                                 onPressed: () {
                                   String ipaddress = _printeripaddress.text;
-                                  LocalPrint()
-                                      .printnetwork(widget.printer!, ipaddress);
+                                  LocalPrint().printnetwork(ipaddress);
                                 },
                                 child: const Text(
                                   'TEST PRINT',

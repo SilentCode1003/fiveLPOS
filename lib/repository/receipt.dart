@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue/gen/flutterblue.pbserver.dart' as pbserver;
+import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart'
+    as bluetooth;
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image/image.dart';
@@ -15,8 +18,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:fiveLPOS/api/promo.dart';
 import 'package:fiveLPOS/repository/customerhelper.dart';
 import 'package:fiveLPOS/repository/dbhelper.dart';
-import 'package:flutter_bluetooth_basic/src/bluetooth_device.dart';
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart' as ble;
 
 class Receipt {
   List<Map<String, dynamic>> items;
@@ -32,7 +33,6 @@ class Receipt {
   String referenceid;
   String epaymenttype;
   double ecash;
-  NetworkPrinter? printer;
   String staff;
 
   Receipt(
@@ -49,7 +49,6 @@ class Receipt {
       this.referenceid,
       this.epaymenttype,
       this.ecash,
-      this.printer,
       this.staff);
 
   Helper helper = Helper();
@@ -580,276 +579,47 @@ class Receipt {
     }
 
     if (Platform.isAndroid && printerconfig['isenable'] == true) {
-      final ByteData data = await rootBundle.load('assets/logo.png');
-      final Uint8List bytes = data.buffer.asUint8List();
-      final Image? image = decodeImage(bytes);
-
-      printer!.drawer();
-      printer!.image(image!);
-      printer!.text(branchname,
-          styles: const PosStyles(
-            align: PosAlign.center,
-            bold: true,
-            height: PosTextSize.size2,
-            width: PosTextSize.size2,
-          ));
-
-      printer!.text(address,
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      // printer!.text(tin,
-      //     styles: const PosStyles(align: PosAlign.center, bold: true));
-      //Divider
-      printer!.hr(len: 1);
-      //Transaction Info
-      printer!.row([
-        PosColumn(
-            text: 'OR: ${officialreceipt()}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'DATE: ${datetime()}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      if (paymenttype == 'EPAYMENT' || paymenttype == 'SPLIT') {
-        printer!.row([
-          PosColumn(
-              text: 'REF#: $referenceid',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left, bold: true)),
-          PosColumn(
-              text: 'TYPE: $epaymenttype',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right, bold: true)),
-        ]);
-      }
-
-      //Devider
-      printer!.hr(len: 1);
-      //POS
-      printer!.row([
-        PosColumn(
-            text: 'CASHIER: ${cashierstaff()}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'STAFF: ${salesstaff()}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      printer!.row([
-        PosColumn(
-            text: 'POS: $id',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'SHIFT: $shift',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      printer!.row([
-        PosColumn(
-            text: 'SN#: $serial',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'BRANCH: $branchid',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      // printer!.row([
-      //   PosColumn(
-      //       text: 'MIN: $min',
-      //       width: 6,
-      //       styles: const PosStyles(align: PosAlign.left, bold: true)),
-      //   PosColumn(
-      //       text: 'PTU: $ptu',
-      //       width: 6,
-      //       styles: const PosStyles(align: PosAlign.right, bold: true)),
-      // ]);
-
-      //Divider
-      printer!.hr(len: 1);
-      //Items 8-TABS
-      printer!.row([
-        PosColumn(
-            text: 'DESC',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: 'QTY',
-            width: 2,
-            styles: const PosStyles(align: PosAlign.center, bold: true)),
-        PosColumn(
-            text: 'Amount',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      int totalitems = 0;
-      for (int index = 0; index < items.length; index++) {
-        totalitems += int.parse(items[index]['quantity'].toString());
-        printer!.row([
-          PosColumn(
-              text: '${items[index]['name']}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left, bold: true)),
-          PosColumn(
-              text: '${items[index]['quantity']}',
-              width: 2,
-              styles: const PosStyles(align: PosAlign.center, bold: true)),
-          PosColumn(
-              text: formatAsCurrency(
-                  items[index]['quantity'] * items[index]['price']),
-              width: 4,
-              styles: const PosStyles(align: PosAlign.right, bold: true)),
-        ]);
-      }
-      //Divider
-      printer!.hr(len: 1);
-      printer!.text('--Total Items $totalitems--',
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-      printer!.hr(len: 1);
-      //Summary
-
-      printer!.row([
-        PosColumn(
-            text: 'TOTAL AMOUNT',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: formatAsCurrency(totalamtdue(items)),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      printer!.row([
-        PosColumn(
-            text: 'CASH',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: customercash(cash),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      if (paymenttype == 'SPLIT') {
-        printer!.row([
-          PosColumn(
-              text: epaymenttype,
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left, bold: true)),
-          PosColumn(
-              text: customercash(ecash),
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right, bold: true)),
-        ]);
-      }
-
-      printer!.row([
-        PosColumn(
-            text: 'CHANGE',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: change(totalamtdue(items), cash),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer!.row([
-        PosColumn(
-            text: 'Vatable',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: formatAsCurrency(vatable(totalamtdue(items))),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      printer!.row([
-        PosColumn(
-            text: 'VAT Amount',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: vatamt(totalamtdue(items), vatable(totalamtdue(items))),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      printer!.row([
-        PosColumn(
-            text: 'VAT Exempt',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: vatexemptsales(),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-      printer!.row([
-        PosColumn(
-            text: 'Zero Rated',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: zerorated(),
-            width: 6,
-            styles: const PosStyles(align: PosAlign.right, bold: true)),
-      ]);
-
-      //Divider
-      printer!.hr(len: 1);
-      //Customer Info
-      printer!.text('Name:\t__________________________',
-          styles: const PosStyles(align: PosAlign.left, bold: true));
-      printer!.text('Addr:\t__________________________',
-          styles: const PosStyles(align: PosAlign.left, bold: true));
-      printer!.text('TIN:\t__________________________',
-          styles: const PosStyles(align: PosAlign.left, bold: true));
-      printer!.text('Style:\t__________________________',
-          styles: const PosStyles(align: PosAlign.left, bold: true));
-      // //Divider
-      // printer!.hr(len: 1);
-      // //Message
-      // printer!.text('Thank you! Come again!',
-      //     styles: const PosStyles(align: PosAlign.center, bold: true),
-      //     linesAfter: 2);
-      // printer!.text('THIS IS A OFFICIAL RECEIPT',
-      //     styles: const PosStyles(align: PosAlign.center, bold: true),
-      //     linesAfter: 2);
-      //Divider
-      if (promodetails != '') printer!.hr(len: 1);
-      //Promo
-      printer!.text(promodetails,
-          styles: const PosStyles(align: PosAlign.center, bold: true));
-
-      printer!.feed(2);
-      printer!.cut();
-    }
-
-    if (Platform.isAndroid && printerconfig['isbluetooth'] == true) {
-      PrinterBluetoothManager printerManager = PrinterBluetoothManager();
-      Map<String, dynamic> device = {
-        'name': printerconfig['name'],
-        'address': printerconfig['address'],
-        'type': printerconfig['type'],
-        'connected': true
-      };
-      BluetoothDevice bleDevice = BluetoothDevice.fromJson(device);
-      PrinterBluetooth bleprinter = PrinterBluetooth(bleDevice);
-
-      printerManager.selectPrinter(bleprinter);
+      PrinterNetworkManager printer = PrinterNetworkManager(printerconfig['printerip']);
+      PosPrintResult connect = await printer.connect();
       // TODO Don't forget to choose printer's paper
       const PaperSize paper = PaperSize.mm80;
       final profile = await CapabilityProfile.load();
 
-      final ble.PosPrintResult res = await printerManager.printTicket(
+      if (connect == PosPrintResult.success) {
+        PosPrintResult printing = await printer.printTicket(
+            (await transactionReceipt(paper, profile, branchname, id, serial,
+                branchid, promodetails)));
+
+        print(printing.msg);
+        printer.disconnect();
+      }
+    }
+
+    if (Platform.isAndroid && printerconfig['isbluetooth'] == true) {
+      bluetooth.PrinterBluetoothManager printerManager =
+          bluetooth.PrinterBluetoothManager();
+      // Map<String, dynamic> device = {
+      //   'name': printerconfig['name'],
+      //   'address': printerconfig['address'],
+      //   'type': printerconfig['type'],
+      //   'connected': true
+      // };
+      // BluetoothDevice bleDevice = BluetoothDevice.fromJson(device);
+      // PrinterBluetooth bleprinter = PrinterBluetooth(bleDevice);
+      var blePrinter = pbserver.BluetoothDevice()
+        ..remoteId = printerconfig['address']
+        ..name = printerconfig['name']
+        ..type = printerconfig['type'];
+
+      var printerBle = BluetoothDevice.fromProto(blePrinter);
+
+      printerManager.selectPrinter(bluetooth.PrinterBluetooth(printerBle));
+
+      // TODO Don't forget to choose printer's paper
+      const PaperSize paper = PaperSize.mm80;
+      final profile = await CapabilityProfile.load();
+
+      final bluetooth.PosPrintResult res = await printerManager.printTicket(
         (await transactionReceipt(
             paper, profile, branchname, id, serial, branchid, promodetails)),
       );

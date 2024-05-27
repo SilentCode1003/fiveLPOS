@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:fiveLPOS/api/addon.dart';
 import 'package:fiveLPOS/api/employees.dart';
 import 'package:fiveLPOS/api/package.dart';
@@ -15,12 +14,12 @@ import 'package:fiveLPOS/model/servicepackage.dart';
 import 'package:fiveLPOS/model/services.dart';
 import 'package:fiveLPOS/model/shiftreport.dart';
 import 'package:fiveLPOS/repository/endshiftreceipt.dart';
+import 'package:fiveLPOS/repository/orderslip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-// import 'package:pdf/pdf.dart';
 import 'package:fiveLPOS/api/discount.dart';
 import 'package:fiveLPOS/api/payment.dart';
 import 'package:fiveLPOS/api/posshiftlog.dart';
@@ -37,7 +36,7 @@ import 'package:fiveLPOS/api/transaction.dart';
 import 'package:fiveLPOS/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -55,7 +54,6 @@ class MyDashboard extends StatefulWidget {
   final int accesstype;
   final int positiontype;
   final String logo;
-  final NetworkPrinter? printer;
 
   const MyDashboard(
       {super.key,
@@ -63,8 +61,7 @@ class MyDashboard extends StatefulWidget {
       required this.fullname,
       required this.accesstype,
       required this.positiontype,
-      required this.logo,
-      required this.printer});
+      required this.logo});
 
   @override
   _MyDashboardState createState() => _MyDashboardState();
@@ -362,21 +359,19 @@ class _MyDashboardState extends State<MyDashboard> {
       print(shiftstaffsales);
     }
 
-    await EndShiftReceipt(
-            ShiftReceiptModel(
-                businessdate,
-                posid,
-                shift,
-                widget.fullname,
-                salesbeginning,
-                salesending,
-                totalsales,
-                receiptbeginning,
-                receiptending,
-                shiftsolditems,
-                shiftsummarypayment,
-                shiftstaffsales),
-            widget.printer!)
+    await EndShiftReceipt(ShiftReceiptModel(
+            businessdate,
+            posid,
+            shift,
+            widget.fullname,
+            salesbeginning,
+            salesending,
+            totalsales,
+            receiptbeginning,
+            receiptending,
+            shiftsolditems,
+            shiftsummarypayment,
+            shiftstaffsales))
         .printZReading();
 
     _clearItems();
@@ -481,8 +476,7 @@ class _MyDashboardState extends State<MyDashboard> {
               epaymentname,
               referenceid,
               cash.toDouble(),
-              ecash.toDouble(),
-              widget.printer!)
+              ecash.toDouble())
           .printReceipt();
 
       if (Platform.isWindows) {
@@ -578,20 +572,19 @@ class _MyDashboardState extends State<MyDashboard> {
         }
 
         final pdfBytes = await ReprintingReceipt(
-                ornumber,
-                ordate,
-                ordescription,
-                orpaymenttype,
-                posid,
-                shift,
-                cashier,
-                double.parse(total),
-                epaymentname,
-                referenceid,
-                cash.toDouble(),
-                ecash.toDouble(),
-                widget.printer!)
-            .printReceipt();
+          ornumber,
+          ordate,
+          ordescription,
+          orpaymenttype,
+          posid,
+          shift,
+          cashier,
+          double.parse(total),
+          epaymentname,
+          referenceid,
+          cash.toDouble(),
+          ecash.toDouble(),
+        ).printReceipt();
 
         List<Map<String, dynamic>> items =
             List<Map<String, dynamic>>.from(jsonDecode(ordescription));
@@ -751,7 +744,7 @@ class _MyDashboardState extends State<MyDashboard> {
     setState(() {
       for (var data in json.decode(jsonData)) {
         double discount =
-            ((calculateGrandTotal() * 1.12) * (data['rate'] / 100)) * -1;
+            ((calculateGrandTotal() * 1.16) * (data['rate'] / 100)) * -1;
 
         if (calculateGrandTotal() == 0) {
           showDialog(
@@ -1010,9 +1003,12 @@ class _MyDashboardState extends State<MyDashboard> {
     final List<Widget> product = List<Widget>.generate(
         filteredList.length,
         (index) => SizedBox(
-              height: 80,
-              width: 220,
+              height: 70,
+              width: double.maxFinite,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
                 onPressed: (filteredList[index].quantity <= 0)
                     ? null
                     : () {
@@ -1041,13 +1037,13 @@ class _MyDashboardState extends State<MyDashboard> {
                             Text(
                               '${filteredList[index].description}',
                               style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
                             Text(
                               'Stocks: ${filteredList[index].quantity}',
                               style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -1186,9 +1182,12 @@ class _MyDashboardState extends State<MyDashboard> {
       final List<Widget> product = List<Widget>.generate(
           productList.length,
           (index) => SizedBox(
-                height: 80,
-                width: 220,
+                height: 120,
+                width: double.maxFinite,
                 child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary),
                   onPressed: (productList[index].quantity <= 0)
                       ? null
                       : () {
@@ -1217,13 +1216,13 @@ class _MyDashboardState extends State<MyDashboard> {
                               Text(
                                 '${productList[index].description}',
                                 style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.bold),
+                                    fontSize: 16, fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                               Text(
                                 'Stocks: ${productList[index].quantity}',
                                 style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.bold),
+                                    fontSize: 16, fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -1235,11 +1234,10 @@ class _MyDashboardState extends State<MyDashboard> {
 
       showModalBottomSheet(
         context: context,
+        useSafeArea: true,
         builder: (BuildContext context) {
           return SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -1332,9 +1330,12 @@ class _MyDashboardState extends State<MyDashboard> {
               child: Center(
                 child: Wrap(spacing: 8, runSpacing: 8, children: [
                   ElevatedButton(
-                      style: ButtonStyle(
-                          fixedSize:
-                              MaterialStateProperty.all(const Size(120, 80))),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: isStartShift
                           ? () {
                               _startShift(context, posid);
@@ -1343,13 +1344,16 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text(
                         'START\nSHIFT',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                   ElevatedButton(
-                      style: ButtonStyle(
-                          fixedSize:
-                              MaterialStateProperty.all(const Size(120, 80))),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: isEndShift
                           ? () {
                               _endShift(context, posid);
@@ -1358,13 +1362,16 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text(
                         'END\nSHIFT',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                   ElevatedButton(
-                      style: ButtonStyle(
-                          fixedSize:
-                              MaterialStateProperty.all(const Size(120, 80))),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: () {
                         showDialog(
                             context: context,
@@ -1373,7 +1380,7 @@ class _MyDashboardState extends State<MyDashboard> {
                               return AlertDialog(
                                 title: const Text('Re-printing'),
                                 content: SizedBox(
-                                  height: 80,
+                                  height: 70,
                                   width: 200,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1411,13 +1418,16 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text(
                         'RE-PRINT',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                   ElevatedButton(
-                      style: ButtonStyle(
-                          fixedSize:
-                              MaterialStateProperty.all(const Size(120, 80))),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: () {
                         showDialog(
                             context: context,
@@ -1427,7 +1437,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                 title: const Text('REFUND'),
                                 content: SizedBox(
                                   height: 400,
-                                  width: 320,
+                                  width: 90,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -1475,13 +1485,16 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text(
                         'REFUND',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                   ElevatedButton(
-                      style: ButtonStyle(
-                          fixedSize:
-                              MaterialStateProperty.all(const Size(120, 80))),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: () {
                         final TextEditingController emailController =
                             TextEditingController();
@@ -1604,13 +1617,16 @@ class _MyDashboardState extends State<MyDashboard> {
                       child: const Text(
                         'SEND\nE-RECEIPT',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                   ElevatedButton(
-                      style: ButtonStyle(
-                          fixedSize:
-                              MaterialStateProperty.all(const Size(120, 80))),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: () {
                         // Navigator.pushReplacementNamed(context, '/setting');
                         Navigator.push(
@@ -1622,14 +1638,13 @@ class _MyDashboardState extends State<MyDashboard> {
                                     accesstype: widget.accesstype,
                                     positiontype: widget.positiontype,
                                     logo: widget.logo,
-                                    printer: widget.printer!,
                                   )),
                         );
                       },
                       child: const Text(
                         'SETTINGS',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
                 ]),
@@ -1677,7 +1692,7 @@ class _MyDashboardState extends State<MyDashboard> {
         final List<Widget> serviceitems = List<Widget>.generate(
             serviceList.length,
             (index) => SizedBox(
-                  height: 80,
+                  height: 70,
                   width: 120,
                   child: ElevatedButton(
                     onPressed: () {
@@ -1748,7 +1763,7 @@ class _MyDashboardState extends State<MyDashboard> {
         final List<Widget> serviceitems = List<Widget>.generate(
             addonList.length,
             (index) => SizedBox(
-                  height: 80,
+                  height: 70,
                   width: 120,
                   child: ElevatedButton(
                     onPressed: () {
@@ -1821,7 +1836,7 @@ class _MyDashboardState extends State<MyDashboard> {
         final List<Widget> packageitems = List<Widget>.generate(
             packageList.length,
             (index) => SizedBox(
-                  height: 80,
+                  height: 70,
                   width: 120,
                   child: ElevatedButton(
                     onPressed: () {
@@ -1919,7 +1934,6 @@ class _MyDashboardState extends State<MyDashboard> {
               referenceid,
               paymentname,
               0,
-              widget.printer!,
               salesrepresentative == '' ? cashier : salesrepresentative)
           .printReceipt();
       Map<String, dynamic> printerconfig = {};
@@ -1932,7 +1946,9 @@ class _MyDashboardState extends State<MyDashboard> {
       }
 
       if (result['msg'] == 'success') {
-        if (Platform.isAndroid && !printerconfig['isenable'] && !printerconfig['isbluetooth']) {
+        if (Platform.isAndroid &&
+            !printerconfig['isenable'] &&
+            !printerconfig['isbluetooth']) {
           Printing.layoutPdf(
               onLayout: (PdfPageFormat format) async => pdfBytes,
               name: detailid.toString());
@@ -1955,7 +1971,11 @@ class _MyDashboardState extends State<MyDashboard> {
                 title: const Text('Success'),
                 content: const Text('Transaction successfull'),
                 actions: [
-                  TextButton(
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary),
                     onPressed: () async {
                       Navigator.of(context).pop();
                       _clearItems();
@@ -1975,7 +1995,26 @@ class _MyDashboardState extends State<MyDashboard> {
                     },
                     child: const Text('OK'),
                   ),
-                  TextButton(
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary),
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await OrderSlip(itemsList, Helper().GetCurrentDatetime(),
+                              detailid)
+                          .printOrderSlip()
+                          .then((result) => _clearItems());
+                    },
+                    child: const Text('Printer Order Slip'),
+                  ),
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary),
                       onPressed: () {
                         Navigator.of(context).pop();
                         showDialog(
@@ -2204,7 +2243,6 @@ class _MyDashboardState extends State<MyDashboard> {
             referenceid,
             epaymentname,
             epayamount,
-            widget.printer!,
             salesrepresentative == '' ? widget.fullname : salesrepresentative)
         .printReceipt();
 
@@ -2379,9 +2417,12 @@ class _MyDashboardState extends State<MyDashboard> {
     final List<Widget> discount = List<Widget>.generate(
         discountList.length,
         (index) => SizedBox(
-              height: 60,
-              width: 120,
+              height: 120,
+              width: 420,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
                 onPressed: () {
                   if (discountItemCounter == 1) {
                     showDialog(
@@ -2422,7 +2463,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                         controller: _discountIDController,
                                         decoration: const InputDecoration(
                                           labelText: 'ID',
-                                          hintText: '123456',
+                                          hintText: '163456',
                                           border: OutlineInputBorder(),
                                         ),
                                       ),
@@ -2477,11 +2518,13 @@ class _MyDashboardState extends State<MyDashboard> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Discounts'),
-            content: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.start,
-              spacing: 8,
-              runSpacing: 8,
-              children: discount,
+            content: Center(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.start,
+                spacing: 8,
+                runSpacing: 8,
+                children: discount,
+              ),
             ),
             actions: [
               TextButton(
@@ -2499,9 +2542,12 @@ class _MyDashboardState extends State<MyDashboard> {
     final List<Widget> epayments = List<Widget>.generate(
         paymentList.length,
         (index) => SizedBox(
-              height: 60,
+              height: 70,
               width: 120,
               child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary),
                   onPressed: () {
                     showDialog(
                         context: context,
@@ -2648,6 +2694,9 @@ class _MyDashboardState extends State<MyDashboard> {
             ),
             actions: [
               TextButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
                 onPressed: () {
                   Navigator.of(context).pop(); // Close the dialog
                 },
@@ -2756,9 +2805,12 @@ class _MyDashboardState extends State<MyDashboard> {
     final List<Widget> category = List<Widget>.generate(
         categoryList.length,
         (index) => SizedBox(
-              height: 80,
+              height: 70,
               width: 120,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
                 onPressed: () {
                   // Add your button press logic here
                   _showcategoryitems(context, categoryList[index].categorycode);
@@ -2786,13 +2838,20 @@ class _MyDashboardState extends State<MyDashboard> {
             child: SvgPicture.string(branchlogo),
           ),
         ),
-        title: Text(companyname),
+        title: Text(
+          companyname,
+          style: const TextStyle(color: Colors.white),
+        ),
         actions: <Widget>[
           Row(
             children: [
-              const Text('Logout'),
+              const Text(
+                'Logout',
+                style: TextStyle(color: Colors.white),
+              ),
               IconButton(
                 icon: const Icon(Icons.logout),
+                color: Colors.white,
                 onPressed: () {
                   // Add your logout logic here
 
@@ -2834,7 +2893,7 @@ class _MyDashboardState extends State<MyDashboard> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
-                height: 280,
+                height: 270,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   border: Border.all(
@@ -2896,7 +2955,7 @@ class _MyDashboardState extends State<MyDashboard> {
                             child: Row(
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.remove, size: 12),
+                                  icon: const Icon(Icons.remove, size: 16),
                                   color: const Color.fromARGB(255, 213, 86, 86),
                                   onPressed: () {
                                     if (product['quantity'] > 0) {
@@ -2916,7 +2975,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                 Expanded(
                                   child: SizedBox(
                                     child: TextField(
-                                      style: const TextStyle(fontSize: 12),
+                                      style: const TextStyle(fontSize: 16),
                                       keyboardType: TextInputType.number,
                                       onChanged: (newQuantity) {
                                         int parsedQuantity =
@@ -2930,7 +2989,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.add, size: 12),
+                                  icon: const Icon(Icons.add, size: 16),
                                   color: const Color.fromARGB(255, 92, 213, 86),
                                   onPressed: () {
                                     updateQuantity(
@@ -2993,39 +3052,43 @@ class _MyDashboardState extends State<MyDashboard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                        width: 300,
-                        child: TextField(
-                          controller: _serialNumberController,
-                          decoration: const InputDecoration(
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: Color.fromARGB(255, 156, 84, 84)),
-                            ),
-                            labelText: 'Serial Number',
-                            labelStyle: TextStyle(
-                                color: Color.fromARGB(255, 156, 84, 84)),
-                            border: OutlineInputBorder(),
-                            hintText: 'Enter Serial',
-                            prefixIcon: Icon(Icons.qr_code_2_outlined),
+                      width: 240,
+                      child: TextField(
+                        controller: _serialNumberController,
+                        decoration: const InputDecoration(
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Color.fromARGB(255, 2, 90, 71)),
                           ),
-                          textInputAction: TextInputAction.go,
-                          onEditingComplete: () {
-                            _search();
-                            // ScaffoldMessenger.of(context).showSnackBar(
-                            //   const SnackBar(
-                            //     content: Text('Enter pressed!'),
-                            //   ),
-                            // );
-                            _serialNumberController.clear();
-                          },
-                        )),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          labelText: 'Serial Number',
+                          labelStyle: TextStyle(
+                              color: Color.fromARGB(255, 2, 90, 71)),
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter Serial',
+                          prefixIcon: Icon(Icons.qr_code_2_outlined),
+                        ),
+                        textInputAction: TextInputAction.go,
+                        onEditingComplete: () {
+                          _search();
+                          // ScaffoldMessenger.of(context).showSnackBar(
+                          //   const SnackBar(
+                          //     content: Text('Enter pressed!'),
+                          //   ),
+                          // );
+                          _serialNumberController.clear();
+                        },
+                      ),
                     ),
-                    SizedBox(
-                      width: 50,
-                      height: 50,
+
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
                       child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onPrimary
+                                ,minimumSize: const Size(80, 60)),
                         onPressed: () {
                           _search();
                         },
@@ -3038,7 +3101,6 @@ class _MyDashboardState extends State<MyDashboard> {
             ),
             const SizedBox(height: 5), //DIVIDER START
             Container(
-              color: Colors.grey[200],
               padding: const EdgeInsets.all(8.0),
               child: Wrap(
                 spacing: 4,
@@ -3048,10 +3110,11 @@ class _MyDashboardState extends State<MyDashboard> {
                     onPressed: () {
                       _discount();
                     },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -3059,31 +3122,12 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.tag,
-                              size: 28), // Adjust size as needed
+                              size: 16), // Adjust size as needed
                         ),
                         const Text('DISCOUNT'),
                       ],
                     ),
                   ),
-                  // ElevatedButton(
-                  //   onPressed: () {},
-                  //   style: ButtonStyle(
-                  //     fixedSize: MaterialStateProperty.all(
-                  //         const Size(120, 80)), // Adjust the size here
-                  //   ),
-                  //   child: Column(
-                  //     mainAxisAlignment: MainAxisAlignment.center,
-                  //     children: [
-                  //       Container(
-                  //         padding: const EdgeInsets.all(
-                  //             10.0), // Adjust padding as needed
-                  //         child: const FaIcon(FontAwesomeIcons.barcode,
-                  //             size: 28), // Adjust size as needed
-                  //       ),
-                  //       const Text('SCAN'),
-                  //     ],
-                  //   ),
-                  // ),
                   ElevatedButton(
                     onPressed: () {
                       if (kDebugMode) {
@@ -3155,8 +3199,12 @@ class _MyDashboardState extends State<MyDashboard> {
                                           _epayment();
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(120, 60),
-                                        ),
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary),
                                         child: const Text('E-PAYMENT'),
                                       ),
                                       ElevatedButton(
@@ -3216,6 +3264,18 @@ class _MyDashboardState extends State<MyDashboard> {
                                                 ////ARECEIPT
                                                 actions: [
                                                   ElevatedButton(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                            backgroundColor:
+                                                                Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .primary,
+                                                            foregroundColor:
+                                                                Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .onPrimary),
                                                     onPressed: () {
                                                       String message = '';
                                                       String title = '';
@@ -3285,15 +3345,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                                             .pop();
                                                       }
                                                     },
-                                                    style: ButtonStyle(
-                                                      backgroundColor:
-                                                          MaterialStateProperty
-                                                              .all<Color>(
-                                                        Colors
-                                                            .brown, // Change the color here
-                                                      ),
-                                                      // Other button styles...
-                                                    ),
                                                     child:
                                                         const Text('Proceed'),
                                                   ),
@@ -3310,8 +3361,12 @@ class _MyDashboardState extends State<MyDashboard> {
                                           );
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(120, 60),
-                                        ),
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary),
                                         child: const Text('CASH'),
                                       ),
                                       ElevatedButton(
@@ -3376,7 +3431,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                           ),
                                                         ),
                                                         const SizedBox(
-                                                          height: 50,
+                                                          height: 90,
                                                         ),
                                                         DropdownMenu(
                                                           initialSelection:
@@ -3569,27 +3624,30 @@ class _MyDashboardState extends State<MyDashboard> {
                                                 });
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            minimumSize: const Size(120, 60),
-                                          ),
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              foregroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .onPrimary),
                                           child: const Text('SPLIT'))
                                     ],
                                   ),
                                 ],
                               ),
                               actions: [
-                                TextButton(
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.primary,
+                                      foregroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary),
                                   onPressed: () {
                                     Navigator.of(context)
                                         .pop(); // Close the dialog
                                   },
                                   child: const Text('Close'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context)
-                                        .pop(); // Close the dialog
-                                  },
-                                  child: const Text('Submit'),
                                 ),
                               ],
                             );
@@ -3597,10 +3655,11 @@ class _MyDashboardState extends State<MyDashboard> {
                         );
                       }
                     },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -3608,7 +3667,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.moneyBill,
-                              size: 28), // Adjust size as needed
+                              size: 16), // Adjust size as needed
                         ),
                         const Text('PAYMENT'),
                       ],
@@ -3618,10 +3677,11 @@ class _MyDashboardState extends State<MyDashboard> {
                     onPressed: () {
                       others();
                     },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -3629,7 +3689,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.gears,
-                              size: 24), // Adjust size as needed
+                              size: 16), // Adjust size as needed
                         ),
                         const Text('OTHERS'),
                       ],
@@ -3661,11 +3721,10 @@ class _MyDashboardState extends State<MyDashboard> {
             ),
             const SizedBox(height: 5),
             Container(
-              color: Colors.grey[200],
               padding: const EdgeInsets.all(8.0),
               child: Wrap(
-                spacing: 4,
-                runSpacing: 4,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   ElevatedButton(
                     onPressed: () {
@@ -3693,10 +3752,11 @@ class _MyDashboardState extends State<MyDashboard> {
                         services();
                       }
                     },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -3704,7 +3764,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.handHolding,
-                              size: 24), // Adjust size as needed
+                              size: 16), // Adjust size as needed
                         ),
                         const Text('SERVICES'),
                       ],
@@ -3736,10 +3796,11 @@ class _MyDashboardState extends State<MyDashboard> {
                         package();
                       }
                     },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -3747,7 +3808,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.boxesStacked,
-                              size: 24), // Adjust size as needed
+                              size: 16), // Adjust size as needed
                         ),
                         const Text('PACKAGE'),
                       ],
@@ -3779,10 +3840,11 @@ class _MyDashboardState extends State<MyDashboard> {
                         addons();
                       }
                     },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(
-                          const Size(120, 80)), // Adjust the size here
-                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -3790,7 +3852,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           padding: const EdgeInsets.all(
                               10.0), // Adjust padding as needed
                           child: const FaIcon(FontAwesomeIcons.boxTissue,
-                              size: 24), // Adjust size as needed
+                              size: 16), // Adjust size as needed
                         ),
                         const Text('ADD-ONS'),
                       ],
