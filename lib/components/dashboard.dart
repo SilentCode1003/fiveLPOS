@@ -994,154 +994,15 @@ class _MyDashboardState extends State<MyDashboard> {
     });
   }
 
-  void filterList(String query) {
-    filteredList = productList
-        .where((item) =>
-            item.description.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    final List<Widget> product = List<Widget>.generate(
-        filteredList.length,
-        (index) => SizedBox(
-              height: 70,
-              width: double.maxFinite,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
-                onPressed: (filteredList[index].quantity <= 0)
-                    ? null
-                    : () {
-                        // Add your button press logic here
-                        addItem(
-                            filteredList[index].description,
-                            double.parse(filteredList[index].price),
-                            1,
-                            filteredList[index].quantity);
-                      },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.memory(
-                        base64Decode(filteredList[index].productimage)),
-                    const SizedBox(
-                      width: 8,
-                    ),
-                    SizedBox(
-                        width: 100,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${filteredList[index].description}',
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                            Text(
-                              'Stocks: ${filteredList[index].quantity}',
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )),
-                  ],
-                ),
-              ),
-            ));
-
-    // Update the bottom sheet content
-    Navigator.of(context).pop();
-
+  void _showSearchModal() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
-        return SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(
-                  controller: _searchController,
-                  autofocus: true,
-                  onChanged: (value) {
-                    filterList(value);
-                  },
-                  decoration: InputDecoration(
-                      labelText: 'Search',
-                      hintText: 'Enter search keyword',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          icon: Icon(Icons.close))),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SingleChildScrollView(
-                  child: Center(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: product,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        return SearchModal(
+          allItems: productList,
+          addItem: addItem,
         );
-        // return AlertDialog(
-        //   title: const Center(child: Text('Products')),
-        //   content: SingleChildScrollView(
-        //     child: Column(
-        //       children: [
-        //         Padding(
-        //           padding: const EdgeInsets.all(8.0),
-        //           child: TextField(
-        //             controller: _searchController,
-        //             onChanged: (value) {
-        //               filterList(value);
-        //             },
-        //             autofocus: true,
-        //             decoration: InputDecoration(
-        //               labelText: 'Search',
-        //               hintText: 'Enter search keyword',
-        //               prefixIcon: Icon(Icons.search),
-        //               border: OutlineInputBorder(),
-        //             ),
-        //           ),
-        //         ),
-        //         Padding(
-        //           padding: const EdgeInsets.all(8.0),
-        //           child: product.isEmpty
-        //               ? const Text('No Product Found')
-        //               : Wrap(
-        //                   spacing: 8, // Adjust the spacing between buttons
-        //                   runSpacing:
-        //                       8, // Adjust the vertical spacing between rows
-        //                   children: product),
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        //   actions: [
-        //     TextButton(
-        //       onPressed: () {
-        //         Navigator.of(context).pop(); // Close the dialog
-        //       },
-        //       child: const Text('Close'),
-        //     ),
-        //   ],
-        // );
       },
     );
   }
@@ -1179,143 +1040,7 @@ class _MyDashboardState extends State<MyDashboard> {
       await _getcategoryitems(category)
           .then((value) => Navigator.of(context).pop());
 
-      final List<Widget> product = List<Widget>.generate(
-          productList.length,
-          (index) => SizedBox(
-                height: 120,
-                width: double.maxFinite,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary),
-                  onPressed: (productList[index].quantity <= 0)
-                      ? null
-                      : () {
-                          // Add your button press logic here
-                          addItem(
-                              productList[index].description,
-                              double.parse(productList[index].price),
-                              1,
-                              productList[index].quantity);
-                        },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.memory(
-                          base64Decode(productList[index].productimage)),
-                      const SizedBox(
-                        width: 8,
-                      ),
-                      SizedBox(
-                          width: 100,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                '${productList[index].description}',
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                'Stocks: ${productList[index].quantity}',
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          )),
-                    ],
-                  ),
-                ),
-              ));
-
-      showModalBottomSheet(
-        context: context,
-        useSafeArea: true,
-        builder: (BuildContext context) {
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      filterList(value);
-                    },
-                    decoration: InputDecoration(
-                        labelText: 'Enter Product Name',
-                        hintText: 'Alrik',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: Icon(Icons.close))),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Center(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: product,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-
-          // return AlertDialog(
-          //   title: const Center(child: Text('Products')),
-          //   content: SingleChildScrollView(
-          //     child: Center(
-          //       child: Column(
-          //         children: [
-          //           Padding(
-          //             padding: const EdgeInsets.all(8.0),
-          //             child: TextField(
-          //               controller: _searchController,
-          //               onChanged: (value) {
-          //                 filterList(value);
-          //               },
-          //               decoration: InputDecoration(
-          //                 labelText: 'Search',
-          //                 hintText: 'Enter search keyword',
-          //                 prefixIcon: Icon(Icons.search),
-          //                 border: OutlineInputBorder(),
-          //               ),
-          //             ),
-          //           ),
-          //           Padding(
-          //             padding: const EdgeInsets.all(8.0),
-          //             child: Wrap(
-          //                 spacing: 8, // Adjust the spacing between buttons
-          //                 runSpacing:
-          //                     8, // Adjust the vertical spacing between rows
-          //                 children: product),
-          //           ),
-          //         ],
-          //       ),
-          //     ),
-          //   ),
-          //   actions: [
-          //     TextButton(
-          //       onPressed: () {
-          //         Navigator.of(context).pop(); // Close the dialog
-          //       },
-          //       child: const Text('Close'),
-          //     ),
-          //   ],
-          // );
-        },
-      );
+      _showSearchModal();
     }
   }
 
@@ -2808,9 +2533,6 @@ class _MyDashboardState extends State<MyDashboard> {
               height: 70,
               width: 120,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
                 onPressed: () {
                   // Add your button press logic here
                   _showcategoryitems(context, categoryList[index].categorycode);
@@ -3061,8 +2783,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                 color: Color.fromARGB(255, 2, 90, 71)),
                           ),
                           labelText: 'Serial Number',
-                          labelStyle: TextStyle(
-                              color: Color.fromARGB(255, 2, 90, 71)),
+                          labelStyle:
+                              TextStyle(color: Color.fromARGB(255, 2, 90, 71)),
                           border: OutlineInputBorder(),
                           hintText: 'Enter Serial',
                           prefixIcon: Icon(Icons.qr_code_2_outlined),
@@ -3079,7 +2801,6 @@ class _MyDashboardState extends State<MyDashboard> {
                         },
                       ),
                     ),
-
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: ElevatedButton(
@@ -3087,8 +2808,8 @@ class _MyDashboardState extends State<MyDashboard> {
                             backgroundColor:
                                 Theme.of(context).colorScheme.primary,
                             foregroundColor:
-                                Theme.of(context).colorScheme.onPrimary
-                                ,minimumSize: const Size(80, 60)),
+                                Theme.of(context).colorScheme.onPrimary,
+                            minimumSize: const Size(80, 60)),
                         onPressed: () {
                           _search();
                         },
@@ -3864,6 +3585,117 @@ class _MyDashboardState extends State<MyDashboard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class SearchModal extends StatefulWidget {
+  final List<ProductPriceModel> allItems;
+  final Function addItem;
+
+  SearchModal({required this.allItems, required this.addItem});
+
+  @override
+  _SearchModalState createState() => _SearchModalState();
+}
+
+class _SearchModalState extends State<SearchModal> {
+  late List<ProductPriceModel> _filteredItems;
+
+  String _searchText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = widget.allItems;
+  }
+
+  void _filterItems(String searchText) {
+    setState(() {
+      _searchText = searchText;
+      if (_searchText.isEmpty) {
+        _filteredItems = widget.allItems;
+      } else {
+        _filteredItems = widget.allItems
+            .where((item) => item.description
+                .toLowerCase()
+                .contains(_searchText.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                onChanged: _filterItems,
+                decoration: InputDecoration(
+                  labelText: 'Search',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                itemCount: _filteredItems.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ListTile(
+                      onTap: (_filteredItems[index].quantity <= 0)
+                          ? null
+                          : () => widget.addItem(
+                              _filteredItems[index].description,
+                              double.parse(_filteredItems[index].price),
+                              1,
+                              _filteredItems[index].quantity),
+                      title: Text(
+                        '${_filteredItems[index].description}',
+                        style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                        textAlign: TextAlign.left,
+                      ),
+                      subtitle: Text(
+                        'Category: ${_filteredItems[index].category}',
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.normal,
+                            color: Colors.white),
+                        textAlign: TextAlign.left,
+                      ),
+                      leading: Image.memory(
+                          base64Decode(_filteredItems[index].productimage)),
+                      trailing: Text(
+                        'Stocks: ${_filteredItems[index].quantity}',
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      tileColor: (_filteredItems[index].quantity <= 0)
+                          ? Colors.grey
+                          : Colors.teal.shade800,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

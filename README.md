@@ -34,3 +34,4 @@
 
 -Added Order Slip Receipt
 -Upgrade to latest dart libraries
+-Revise item filter
