@@ -9,12 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:fiveLPOS/components/posconfig.dart';
 import 'package:fiveLPOS/repository/dbhelper.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   if (Platform.isAndroid) {
     DatabaseHelper dh = DatabaseHelper();
     dh.database;
-  }
+ }
 
   if (Platform.isWindows) {
     createJsonFile('pos.json');
@@ -60,6 +61,8 @@ void createJsonFile(filename) {
     print('Error creating JSON file: $e');
   }
 }
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);

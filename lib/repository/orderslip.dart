@@ -78,7 +78,7 @@ class OrderSlip {
 
     if (Platform.isAndroid && printerconfig['isenable'] == true) {
       PrinterNetworkManager printer =
-          PrinterNetworkManager(printerconfig['printerip']);
+          PrinterNetworkManager(printerconfig['productionprinterip']);
       PosPrintResult connect = await printer.connect();
       // TODO Don't forget to choose printer's paper
       const PaperSize paper = PaperSize.mm80;

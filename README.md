@@ -22,16 +22,18 @@
 
 ### Version 1.2.10
 
--Change keyboard type on refund
+- Change keyboard type on refund
 
 ### Version 1.2.11
 
--Revise printer config added bluetooth
--Sales transactions, reprint receipts, and z-reading with bluetooth
--Added Z-reading or sales summary printing
+- Revise printer config added bluetooth
+- Sales transactions, reprint receipts, and z-reading with bluetooth
+- Added Z-reading or sales summary printing
 
 ### Version 1.2.12
 
--Added Order Slip Receipt
--Upgrade to latest dart libraries
--Revise item filter
+- Added Order Slip Receipt
+- Upgrade to latest dart libraries
+- Revise item filter
+- Added Production/Kitchen Printer Setup
+- Fix bluetooth detection for android 31 and up

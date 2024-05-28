@@ -1695,7 +1695,7 @@ class _MyDashboardState extends State<MyDashboard> {
               return AlertDialog(
                 title: const Text('Success'),
                 content: const Text('Transaction successfull'),
-                actions: [
+                actions: <Widget>[
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -1720,20 +1720,22 @@ class _MyDashboardState extends State<MyDashboard> {
                     },
                     child: const Text('OK'),
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary),
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      await OrderSlip(itemsList, Helper().GetCurrentDatetime(),
-                              detailid)
-                          .printOrderSlip()
-                          .then((result) => _clearItems());
-                    },
-                    child: const Text('Printer Order Slip'),
-                  ),
+                  if (printerconfig['productionprinterip'] == '')
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await OrderSlip(itemsList,
+                                Helper().GetCurrentDatetime(), detailid)
+                            .printOrderSlip()
+                            .then((result) => _clearItems());
+                      },
+                      child: const Text('Printer Order Slip'),
+                    ),
                   ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor:
@@ -2381,13 +2383,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                     Navigator.of(context).pop();
                                   }
                                 },
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      MaterialStateProperty.all<Color>(
-                                    Colors.brown, // Change the color here
-                                  ),
-                                  // Other button styles...
-                                ),
                                 child: const Text('Proceed'),
                               ),
                             ],
@@ -2889,197 +2884,455 @@ class _MyDashboardState extends State<MyDashboard> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-
-                              content: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              content: Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
                                 children: [
-                                  DropdownMenu(
-                                    initialSelection: employees.first,
-                                    onSelected: (String? value) {
-                                      selectedSalesRepresentative = value!;
-                                      setState(() {
-                                        salesrepresentative =
-                                            selectedSalesRepresentative;
-                                      });
-                                    },
-                                    dropdownMenuEntries: employees
-                                        .map<DropdownMenuEntry<String>>(
-                                            (String value) {
-                                      return DropdownMenuEntry<String>(
-                                          value: value, label: value);
-                                    }).toList(),
-                                  ),
-                                  Wrap(
-                                    spacing: 4,
-                                    runSpacing: 4,
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          _epayment();
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Container(
+                                      child: DropdownMenu(
+                                        width: 460,
+                                        initialSelection: employees.first,
+                                        onSelected: (String? value) {
+                                          selectedSalesRepresentative = value!;
+                                          setState(() {
+                                            salesrepresentative =
+                                                selectedSalesRepresentative;
+                                          });
                                         },
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                                            foregroundColor: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary),
-                                        child: const Text('E-PAYMENT'),
+                                        dropdownMenuEntries: employees
+                                            .map<DropdownMenuEntry<String>>(
+                                                (String value) {
+                                          return DropdownMenuEntry<String>(
+                                              value: value, label: value);
+                                        }).toList(),
                                       ),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (BuildContext context) {
-                                              return AlertDialog(
-                                                title:
-                                                    const Text('Cash Payment'),
-                                                content: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                        'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                    const SizedBox(
-                                                      height: 16,
-                                                    ), // Add spacing between text and text field
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 60,
+                                    width: 120,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        _epayment();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary),
+                                      child: const Text('E-PAYMENT'),
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 60,
+                                    width: 120,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: const Text('Cash Payment'),
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                      'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                  const SizedBox(
+                                                    height: 16,
+                                                  ), // Add spacing between text and text field
 
-                                                    TextField(
-                                                      keyboardType:
-                                                          TextInputType.number,
-                                                      inputFormatters: [
-                                                        CurrencyInputFormatter(
-                                                          leadingSymbol:
-                                                              CurrencySymbols
-                                                                  .PESO,
-                                                        ),
-                                                      ],
-                                                      onChanged: (value) {
-                                                        // Remove currency symbols and commas to get the numeric value
-                                                        String numericValue =
-                                                            value.replaceAll(
-                                                          RegExp(
-                                                              '[${CurrencySymbols.PESO},]'),
-                                                          '',
-                                                        );
-                                                        setState(() {
-                                                          cashAmount =
-                                                              double.tryParse(
-                                                                      numericValue) ??
-                                                                  0;
-                                                        });
-                                                      },
-                                                      decoration:
-                                                          const InputDecoration(
-                                                        hintText:
-                                                            'Enter amount',
-                                                        border:
-                                                            OutlineInputBorder(),
+                                                  TextField(
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    inputFormatters: [
+                                                      CurrencyInputFormatter(
+                                                        leadingSymbol:
+                                                            CurrencySymbols
+                                                                .PESO,
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                ////ARECEIPT
-                                                actions: [
-                                                  ElevatedButton(
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                            backgroundColor:
-                                                                Theme.of(
-                                                                        context)
-                                                                    .colorScheme
-                                                                    .primary,
-                                                            foregroundColor:
-                                                                Theme.of(
-                                                                        context)
-                                                                    .colorScheme
-                                                                    .onPrimary),
-                                                    onPressed: () {
-                                                      String message = '';
-                                                      String title = '';
-
-                                                      if (cashAmount == 0) {
-                                                        message +=
-                                                            'Please enter cash tendered to proceed.';
-                                                        title +=
-                                                            '[Enter Amount]';
-                                                      }
-                                                      if (cashAmount <
-                                                          calculateGrandTotal()) {
-                                                        message +=
-                                                            'Please enter the right amount of cash.';
-                                                        title +=
-                                                            '[Insufficient Funds]';
-                                                      }
-
-                                                      if (message != '') {
-                                                        showDialog(
-                                                            context: context,
-                                                            barrierDismissible:
-                                                                false,
-                                                            builder:
-                                                                (BuildContext
-                                                                    context) {
-                                                              return AlertDialog(
-                                                                title:
-                                                                    Text(title),
-                                                                content: Text(
-                                                                    message),
-                                                                actions: [
-                                                                  TextButton(
-                                                                    onPressed:
-                                                                        () {
-                                                                      Navigator.of(
-                                                                              context)
-                                                                          .pop(); // Close the dialog
-                                                                    },
-                                                                    child:
-                                                                        const Text(
-                                                                            'OK'),
-                                                                  ),
-                                                                ],
-                                                              );
-                                                            });
-                                                      } else {
-                                                        detailid++;
-                                                        _transaction(
-                                                            detailid.toString(),
-                                                            posid,
-                                                            helper
-                                                                .GetCurrentDatetime(),
-                                                            shift,
-                                                            'CASH',
-                                                            jsonEncode(
-                                                                itemsList),
-                                                            calculateGrandTotal()
-                                                                .toString(),
-                                                            widget.fullname,
-                                                            'CASH',
-                                                            'CASH');
-
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                      }
+                                                    ],
+                                                    onChanged: (value) {
+                                                      // Remove currency symbols and commas to get the numeric value
+                                                      String numericValue =
+                                                          value.replaceAll(
+                                                        RegExp(
+                                                            '[${CurrencySymbols.PESO},]'),
+                                                        '',
+                                                      );
+                                                      setState(() {
+                                                        cashAmount =
+                                                            double.tryParse(
+                                                                    numericValue) ??
+                                                                0;
+                                                      });
                                                     },
-                                                    child:
-                                                        const Text('Proceed'),
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      hintText: 'Enter amount',
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
                                                   ),
-                                                  TextButton(
-                                                      onPressed: () {
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                      },
-                                                      child:
-                                                          const Text('Close'))
                                                 ],
-                                              );
-                                            },
-                                          );
+                                              ),
+                                              ////ARECEIPT
+                                              actions: [
+                                                ElevatedButton(
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .primary,
+                                                          foregroundColor:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .onPrimary),
+                                                  onPressed: () {
+                                                    String message = '';
+                                                    String title = '';
+
+                                                    if (cashAmount == 0) {
+                                                      message +=
+                                                          'Please enter cash tendered to proceed.';
+                                                      title += '[Enter Amount]';
+                                                    }
+                                                    if (cashAmount <
+                                                        calculateGrandTotal()) {
+                                                      message +=
+                                                          'Please enter the right amount of cash.';
+                                                      title +=
+                                                          '[Insufficient Funds]';
+                                                    }
+
+                                                    if (message != '') {
+                                                      showDialog(
+                                                          context: context,
+                                                          barrierDismissible:
+                                                              false,
+                                                          builder: (BuildContext
+                                                              context) {
+                                                            return AlertDialog(
+                                                              title:
+                                                                  Text(title),
+                                                              content:
+                                                                  Text(message),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop(); // Close the dialog
+                                                                  },
+                                                                  child:
+                                                                      const Text(
+                                                                          'OK'),
+                                                                ),
+                                                              ],
+                                                            );
+                                                          });
+                                                    } else {
+                                                      detailid++;
+                                                      _transaction(
+                                                          detailid.toString(),
+                                                          posid,
+                                                          helper
+                                                              .GetCurrentDatetime(),
+                                                          shift,
+                                                          'CASH',
+                                                          jsonEncode(itemsList),
+                                                          calculateGrandTotal()
+                                                              .toString(),
+                                                          widget.fullname,
+                                                          'CASH',
+                                                          'CASH');
+
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    }
+                                                  },
+                                                  child: const Text('Proceed'),
+                                                ),
+                                                TextButton(
+                                                    onPressed: () {
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    },
+                                                    child: const Text('Close'))
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary),
+                                      child: const Text('CASH'),
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 60,
+                                    width: 120,
+                                    child: ElevatedButton(
+                                        onPressed: () {
+                                          _remaining();
+
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text(
+                                                      'Split Payment'),
+                                                  content: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                          'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                      const SizedBox(
+                                                        height: 10,
+                                                      ),
+                                                      TextField(
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                        inputFormatters: [
+                                                          CurrencyInputFormatter(
+                                                            leadingSymbol:
+                                                                CurrencySymbols
+                                                                    .PESO,
+                                                          ),
+                                                        ],
+                                                        onChanged: (value) {
+                                                          String numericValue =
+                                                              value.replaceAll(
+                                                            RegExp(
+                                                                '[${CurrencySymbols.PESO},]'),
+                                                            '',
+                                                          );
+
+                                                          setState(() {
+                                                            splitcash =
+                                                                double.tryParse(
+                                                                        numericValue) ??
+                                                                    0;
+
+                                                            _remaining();
+                                                          });
+                                                        },
+                                                        controller:
+                                                            _splitCashController,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          hintText:
+                                                              'Enter amount',
+                                                          border:
+                                                              OutlineInputBorder(),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                        height: 90,
+                                                      ),
+                                                      DropdownMenu(
+                                                        initialSelection:
+                                                            paymentList.first,
+                                                        onSelected:
+                                                            (String? value) {
+                                                          setState(() {
+                                                            splitEPaymentType =
+                                                                value!;
+                                                          });
+                                                        },
+                                                        dropdownMenuEntries:
+                                                            paymentList.map<
+                                                                DropdownMenuEntry<
+                                                                    String>>((String
+                                                                value) {
+                                                          return DropdownMenuEntry<
+                                                                  String>(
+                                                              value: value,
+                                                              label: value);
+                                                        }).toList(),
+                                                      ),
+                                                      TextField(
+                                                        controller:
+                                                            _splitReferenceidController,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                                labelText:
+                                                                    'Reference ID'),
+                                                      ),
+                                                      const SizedBox(
+                                                        height: 10,
+                                                      ),
+                                                      TextField(
+                                                        controller:
+                                                            _splitAmountController,
+                                                        inputFormatters: [
+                                                          CurrencyInputFormatter(
+                                                            leadingSymbol:
+                                                                CurrencySymbols
+                                                                    .PESO,
+                                                          ),
+                                                        ],
+                                                        onChanged: (value) {
+                                                          String numericValue =
+                                                              value.replaceAll(
+                                                            RegExp(
+                                                                '[${CurrencySymbols.PESO},]'),
+                                                            '',
+                                                          );
+
+                                                          setState(() {
+                                                            splitepayamount =
+                                                                double.tryParse(
+                                                                        numericValue) ??
+                                                                    0;
+
+                                                            _remaining();
+                                                          });
+                                                        },
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          hintText:
+                                                              'Enter amount',
+                                                          border:
+                                                              OutlineInputBorder(),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  actions: [
+                                                    ElevatedButton(
+                                                        onPressed: () {
+                                                          String
+                                                              splitReferenceid =
+                                                              _splitReferenceidController
+                                                                  .text;
+
+                                                          double totaltendered =
+                                                              splitcash +
+                                                                  splitepayamount;
+
+                                                          String message = '';
+                                                          String title = '';
+
+                                                          if (totaltendered ==
+                                                              0) {
+                                                            message +=
+                                                                'Please enter amount to proceed.\n';
+                                                            title +=
+                                                                '[Enter Amount]';
+                                                          }
+                                                          if (totaltendered <
+                                                              calculateGrandTotal()) {
+                                                            message +=
+                                                                'Please enter the right amount received from e-payment or cash.\n';
+                                                            title +=
+                                                                '[Insufficient Funds]';
+                                                          }
+                                                          if (splitReferenceid ==
+                                                              '') {
+                                                            message +=
+                                                                'Please enter reference id.\n';
+                                                            title +=
+                                                                '[Reference ID]';
+                                                          }
+
+                                                          if (remaining > 0) {
+                                                            message +=
+                                                                'Remaining: $remaining\n';
+                                                            title +=
+                                                                '[Remaining Balance]';
+                                                          }
+
+                                                          if (splitEPaymentType ==
+                                                              'Select Payment Type') {
+                                                            message +=
+                                                                'Please select payment type\n';
+                                                            title +=
+                                                                '[Payment Type]';
+                                                          }
+
+                                                          if (message != '') {
+                                                            showDialog(
+                                                                context:
+                                                                    context,
+                                                                barrierDismissible:
+                                                                    false,
+                                                                builder:
+                                                                    (BuildContext
+                                                                        context) {
+                                                                  return AlertDialog(
+                                                                    title: Text(
+                                                                        title),
+                                                                    content: Text(
+                                                                        message),
+                                                                    actions: [
+                                                                      TextButton(
+                                                                          onPressed:
+                                                                              () {
+                                                                            Navigator.pop(context);
+                                                                          },
+                                                                          child:
+                                                                              const Text('Close'))
+                                                                    ],
+                                                                  );
+                                                                });
+                                                          } else {
+                                                            detailid++;
+
+                                                            _splitpayment(
+                                                              splitcash,
+                                                              splitepayamount,
+                                                              'SPLIT',
+                                                              splitReferenceid,
+                                                              splitEPaymentType,
+                                                              detailid
+                                                                  .toString(),
+                                                              salesrepresentative ==
+                                                                      ''
+                                                                  ? widget
+                                                                      .fullname
+                                                                  : salesrepresentative,
+                                                              jsonEncode(
+                                                                  itemsList),
+                                                            );
+
+                                                            Navigator.pop(
+                                                                context);
+
+                                                            Navigator.pop(
+                                                                context);
+                                                          }
+                                                        },
+                                                        child: const Text(
+                                                            'Submit')),
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop(); // Close the dialog
+                                                        },
+                                                        child:
+                                                            const Text('Close'))
+                                                  ],
+                                                );
+                                              });
                                         },
                                         style: ElevatedButton.styleFrom(
                                             backgroundColor: Theme.of(context)
@@ -3088,272 +3341,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                             foregroundColor: Theme.of(context)
                                                 .colorScheme
                                                 .onPrimary),
-                                        child: const Text('CASH'),
-                                      ),
-                                      ElevatedButton(
-                                          onPressed: () {
-                                            _remaining();
-
-                                            showDialog(
-                                                context: context,
-                                                barrierDismissible: false,
-                                                builder:
-                                                    (BuildContext context) {
-                                                  return AlertDialog(
-                                                    title: const Text(
-                                                        'Split Payment'),
-                                                    content: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                            'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        TextField(
-                                                          keyboardType:
-                                                              TextInputType
-                                                                  .number,
-                                                          inputFormatters: [
-                                                            CurrencyInputFormatter(
-                                                              leadingSymbol:
-                                                                  CurrencySymbols
-                                                                      .PESO,
-                                                            ),
-                                                          ],
-                                                          onChanged: (value) {
-                                                            String
-                                                                numericValue =
-                                                                value
-                                                                    .replaceAll(
-                                                              RegExp(
-                                                                  '[${CurrencySymbols.PESO},]'),
-                                                              '',
-                                                            );
-
-                                                            setState(() {
-                                                              splitcash = double
-                                                                      .tryParse(
-                                                                          numericValue) ??
-                                                                  0;
-
-                                                              _remaining();
-                                                            });
-                                                          },
-                                                          controller:
-                                                              _splitCashController,
-                                                          decoration:
-                                                              const InputDecoration(
-                                                            hintText:
-                                                                'Enter amount',
-                                                            border:
-                                                                OutlineInputBorder(),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 90,
-                                                        ),
-                                                        DropdownMenu(
-                                                          initialSelection:
-                                                              paymentList.first,
-                                                          onSelected:
-                                                              (String? value) {
-                                                            setState(() {
-                                                              splitEPaymentType =
-                                                                  value!;
-                                                            });
-                                                          },
-                                                          dropdownMenuEntries:
-                                                              paymentList.map<
-                                                                  DropdownMenuEntry<
-                                                                      String>>((String
-                                                                  value) {
-                                                            return DropdownMenuEntry<
-                                                                    String>(
-                                                                value: value,
-                                                                label: value);
-                                                          }).toList(),
-                                                        ),
-                                                        TextField(
-                                                          controller:
-                                                              _splitReferenceidController,
-                                                          decoration:
-                                                              const InputDecoration(
-                                                                  labelText:
-                                                                      'Reference ID'),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        TextField(
-                                                          controller:
-                                                              _splitAmountController,
-                                                          inputFormatters: [
-                                                            CurrencyInputFormatter(
-                                                              leadingSymbol:
-                                                                  CurrencySymbols
-                                                                      .PESO,
-                                                            ),
-                                                          ],
-                                                          onChanged: (value) {
-                                                            String
-                                                                numericValue =
-                                                                value
-                                                                    .replaceAll(
-                                                              RegExp(
-                                                                  '[${CurrencySymbols.PESO},]'),
-                                                              '',
-                                                            );
-
-                                                            setState(() {
-                                                              splitepayamount =
-                                                                  double.tryParse(
-                                                                          numericValue) ??
-                                                                      0;
-
-                                                              _remaining();
-                                                            });
-                                                          },
-                                                          decoration:
-                                                              const InputDecoration(
-                                                            hintText:
-                                                                'Enter amount',
-                                                            border:
-                                                                OutlineInputBorder(),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    actions: [
-                                                      ElevatedButton(
-                                                          onPressed: () {
-                                                            String
-                                                                splitReferenceid =
-                                                                _splitReferenceidController
-                                                                    .text;
-
-                                                            double
-                                                                totaltendered =
-                                                                splitcash +
-                                                                    splitepayamount;
-
-                                                            String message = '';
-                                                            String title = '';
-
-                                                            if (totaltendered ==
-                                                                0) {
-                                                              message +=
-                                                                  'Please enter amount to proceed.\n';
-                                                              title +=
-                                                                  '[Enter Amount]';
-                                                            }
-                                                            if (totaltendered <
-                                                                calculateGrandTotal()) {
-                                                              message +=
-                                                                  'Please enter the right amount received from e-payment or cash.\n';
-                                                              title +=
-                                                                  '[Insufficient Funds]';
-                                                            }
-                                                            if (splitReferenceid ==
-                                                                '') {
-                                                              message +=
-                                                                  'Please enter reference id.\n';
-                                                              title +=
-                                                                  '[Reference ID]';
-                                                            }
-
-                                                            if (remaining > 0) {
-                                                              message +=
-                                                                  'Remaining: $remaining\n';
-                                                              title +=
-                                                                  '[Remaining Balance]';
-                                                            }
-
-                                                            if (splitEPaymentType ==
-                                                                'Select Payment Type') {
-                                                              message +=
-                                                                  'Please select payment type\n';
-                                                              title +=
-                                                                  '[Payment Type]';
-                                                            }
-
-                                                            if (message != '') {
-                                                              showDialog(
-                                                                  context:
-                                                                      context,
-                                                                  barrierDismissible:
-                                                                      false,
-                                                                  builder:
-                                                                      (BuildContext
-                                                                          context) {
-                                                                    return AlertDialog(
-                                                                      title: Text(
-                                                                          title),
-                                                                      content: Text(
-                                                                          message),
-                                                                      actions: [
-                                                                        TextButton(
-                                                                            onPressed:
-                                                                                () {
-                                                                              Navigator.pop(context);
-                                                                            },
-                                                                            child:
-                                                                                const Text('Close'))
-                                                                      ],
-                                                                    );
-                                                                  });
-                                                            } else {
-                                                              detailid++;
-
-                                                              _splitpayment(
-                                                                splitcash,
-                                                                splitepayamount,
-                                                                'SPLIT',
-                                                                splitReferenceid,
-                                                                splitEPaymentType,
-                                                                detailid
-                                                                    .toString(),
-                                                                salesrepresentative ==
-                                                                        ''
-                                                                    ? widget
-                                                                        .fullname
-                                                                    : salesrepresentative,
-                                                                jsonEncode(
-                                                                    itemsList),
-                                                              );
-
-                                                              Navigator.pop(
-                                                                  context);
-
-                                                              Navigator.pop(
-                                                                  context);
-                                                            }
-                                                          },
-                                                          child: const Text(
-                                                              'Submit')),
-                                                      TextButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(); // Close the dialog
-                                                          },
-                                                          child: const Text(
-                                                              'Close'))
-                                                    ],
-                                                  );
-                                                });
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                              backgroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                              foregroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .onPrimary),
-                                          child: const Text('SPLIT'))
-                                    ],
-                                  ),
+                                        child: const Text('SPLIT')),
+                                  )
                                 ],
                               ),
                               actions: [
@@ -3668,7 +3657,7 @@ class _SearchModalState extends State<SearchModal> {
                         textAlign: TextAlign.left,
                       ),
                       subtitle: Text(
-                        'Category: ${_filteredItems[index].category}',
+                        'SKU: ${_filteredItems[index].barcode}',
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.normal,

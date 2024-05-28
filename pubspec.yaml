@@ -62,6 +62,7 @@ dependencies:
   flutter_esc_pos_utils: ^1.0.1
   flutter_esc_pos_bluetooth: ^0.0.2
   flutter_blue: ^0.8.0
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
