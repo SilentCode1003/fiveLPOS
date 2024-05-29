@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:desktop_window/desktop_window.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import '/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fiveLPOS/components/dashboard.dart';
+import '/components/dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';

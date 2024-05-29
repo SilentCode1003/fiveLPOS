@@ -2,41 +2,40 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fiveLPOS/api/addon.dart';
-import 'package:fiveLPOS/api/employees.dart';
-import 'package:fiveLPOS/api/package.dart';
-import 'package:fiveLPOS/api/services.dart';
-import 'package:fiveLPOS/api/shiftreport.dart';
-import 'package:fiveLPOS/components/settings.dart';
-import 'package:fiveLPOS/model/addon.dart';
-import 'package:fiveLPOS/model/category.dart';
-import 'package:fiveLPOS/model/servicepackage.dart';
-import 'package:fiveLPOS/model/services.dart';
-import 'package:fiveLPOS/model/shiftreport.dart';
-import 'package:fiveLPOS/repository/endshiftreceipt.dart';
-import 'package:fiveLPOS/repository/orderslip.dart';
+import '/api/addon.dart';
+import '/api/employees.dart';
+import '/api/package.dart';
+import '/api/services.dart';
+import '/api/shiftreport.dart';
+import '/components/settings.dart';
+import '/model/addon.dart';
+import '/model/category.dart';
+import '/model/servicepackage.dart';
+import '/model/services.dart';
+import '/model/shiftreport.dart';
+import '/repository/endshiftreceipt.dart';
+import '/repository/orderslip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:fiveLPOS/api/discount.dart';
-import 'package:fiveLPOS/api/payment.dart';
-import 'package:fiveLPOS/api/posshiftlog.dart';
-import 'package:fiveLPOS/components/loadingspinner.dart';
-import 'package:fiveLPOS/model/productprice.dart';
-import 'package:fiveLPOS/api/category.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
-import 'package:fiveLPOS/api/salesdetails.dart';
-import 'package:fiveLPOS/api/productprice.dart';
-import 'package:fiveLPOS/repository/dbhelper.dart';
-import 'package:fiveLPOS/repository/email.dart';
-import 'package:fiveLPOS/repository/receipt.dart';
-import 'package:fiveLPOS/api/transaction.dart';
-import 'package:fiveLPOS/repository/reprint.dart';
+import '/api/discount.dart';
+import '/api/payment.dart';
+import '/api/posshiftlog.dart';
+import '/components/loadingspinner.dart';
+import '/model/productprice.dart';
+import '/api/category.dart';
+import '/repository/customerhelper.dart';
+import '/api/salesdetails.dart';
+import '/api/productprice.dart';
+import '/repository/dbhelper.dart';
+import '/repository/email.dart';
+import '/repository/receipt.dart';
+import '/api/transaction.dart';
+import '/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
-import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 
 class ButtonStyleInfo {
   final Color backgroundColor;
@@ -645,6 +644,7 @@ class _MyDashboardState extends State<MyDashboard> {
     String serial = _serialNumberController.text;
     final results = await ProductPrice().getitemserial(serial, branchid);
     final jsonData = json.decode(results['data']);
+    int id = 0;
     String description = '';
     double price = 0;
     double stocks = 0;
@@ -655,10 +655,11 @@ class _MyDashboardState extends State<MyDashboard> {
       setState(() {
         for (var data in jsonData) {
           print(data);
+          id = data['id'];
           description = data['description'];
           price = double.parse(data['price'].toString());
           stocks = double.parse(data['quantity'].toString());
-          addItem(description, price, 1, stocks);
+          addItem(id, description, price, 1, stocks);
         }
       });
     } else {
@@ -667,10 +668,10 @@ class _MyDashboardState extends State<MyDashboard> {
           barrierDismissible: false,
           builder: (context) {
             return AlertDialog(
-              title: Text('Alert'),
+              title: const Text('Alert'),
               content: Text(
                   'Item not found with SN:${_serialNumberController.text}'),
-              icon: Icon(Icons.warning),
+              icon: const Icon(Icons.warning),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -784,7 +785,7 @@ class _MyDashboardState extends State<MyDashboard> {
             }
           ];
 
-          addItem('Discount ($type)', discount, 1, 1);
+          addItem(data['discountid'], 'Discount ($type)', discount, 1, 1);
 
           discountItemCounter += 1;
         }
@@ -828,7 +829,7 @@ class _MyDashboardState extends State<MyDashboard> {
 // #endregion
 // #region Payment methods
   String formatAsCurrency(double value) {
-    return '${toCurrencyString(value.toString())}';
+    return toCurrencyString(value.toString());
   }
 
   Future<void> confirmAndRemove(int index) async {
@@ -933,7 +934,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
   double cashAmount = 0;
 
-  void addItem(name, price, quantity, stocks) {
+  void addItem(id, name, price, quantity, stocks) {
     setState(() {
       int existingIndex = itemsList.indexWhere((item) => item['name'] == name);
 
@@ -944,9 +945,9 @@ class _MyDashboardState extends State<MyDashboard> {
             barrierDismissible: false,
             builder: (context) {
               return AlertDialog(
-                title: Text('Alert'),
+                title: const Text('Alert'),
                 content: Text('Stocks available $stocks'),
-                icon: Icon(Icons.warning),
+                icon: const Icon(Icons.warning),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -965,9 +966,9 @@ class _MyDashboardState extends State<MyDashboard> {
                   barrierDismissible: false,
                   builder: (context) {
                     return AlertDialog(
-                      title: Text('Alert'),
+                      title: const Text('Alert'),
                       content: Text('Stocks available $stocks'),
-                      icon: Icon(Icons.warning),
+                      icon: const Icon(Icons.warning),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -983,6 +984,7 @@ class _MyDashboardState extends State<MyDashboard> {
         } else {
           setState(() {
             itemsList.add({
+              'id': id,
               'name': name,
               'price': price,
               'quantity': quantity,
@@ -1426,6 +1428,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       //     context, serviceList[index].categorycode);
 
                       addItem(
+                          serviceList[index].id,
                           serviceList[index].name,
                           double.parse(serviceList[index].price.toString()),
                           1,
@@ -1497,6 +1500,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       //     context, addonList[index].categorycode);
 
                       addItem(
+                          addonList[index].id,
                           (addonList[index].type == 'SERVICE')
                               ? '${addonList[index].name} (Service)'
                               : '${addonList[index].name} (Product)',
@@ -1570,7 +1574,8 @@ class _MyDashboardState extends State<MyDashboard> {
                       //     context, packageList[index].categorycode);
 
                       addItem(
-                          '${packageList[index].name}',
+                          packageList[index].id,
+                          packageList[index].name,
                           double.parse(packageList[index].price.toString()),
                           1,
                           999);
@@ -1671,9 +1676,7 @@ class _MyDashboardState extends State<MyDashboard> {
       }
 
       if (result['msg'] == 'success') {
-        if (Platform.isAndroid &&
-            !printerconfig['isenable'] &&
-            !printerconfig['isbluetooth']) {
+        if (Platform.isAndroid && printerconfig['printerip'] == '') {
           Printing.layoutPdf(
               onLayout: (PdfPageFormat format) async => pdfBytes,
               name: detailid.toString());
@@ -1720,7 +1723,7 @@ class _MyDashboardState extends State<MyDashboard> {
                     },
                     child: const Text('OK'),
                   ),
-                  if (printerconfig['productionprinterip'] == '')
+                  if (printerconfig['productionprinterip'] != '')
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor:
@@ -2444,7 +2447,7 @@ class _MyDashboardState extends State<MyDashboard> {
             return AlertDialog(
               title: const Text('Not Found'),
               content: Text('OR Number $ornumber not found'),
-              icon: Icon(Icons.warning),
+              icon: const Icon(Icons.warning),
               actions: [
                 TextButton(
                   onPressed: () async {
@@ -2464,7 +2467,7 @@ class _MyDashboardState extends State<MyDashboard> {
               return AlertDialog(
                 title: const Text('Already Exist'),
                 content: Text('OR Number $ornumber already refunded!'),
-                icon: Icon(Icons.warning),
+                icon: const Icon(Icons.warning),
                 actions: [
                   TextButton(
                     onPressed: () async {
@@ -2485,7 +2488,7 @@ class _MyDashboardState extends State<MyDashboard> {
               return AlertDialog(
                 title: const Text('Not Exist'),
                 content: Text('OR Number $ornumber does not exist!'),
-                icon: Icon(Icons.warning),
+                icon: const Icon(Icons.warning),
                 actions: [
                   TextButton(
                     onPressed: () async {
@@ -2505,7 +2508,7 @@ class _MyDashboardState extends State<MyDashboard> {
             return AlertDialog(
               title: const Text('Success'),
               content: Text('OR Number $ornumber successfully refunded!'),
-              icon: Icon(Icons.check),
+              icon: const Icon(Icons.check),
               actions: [
                 TextButton(
                   onPressed: () async {
@@ -2754,7 +2757,7 @@ class _MyDashboardState extends State<MyDashboard> {
                       ),
                       Text(
                         'Total :  ${formatAsCurrency(calculateGrandTotal())}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -2911,7 +2914,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                       ),
                                     ),
                                   ),
-                                  Container(
+                                  SizedBox(
                                     height: 60,
                                     width: 120,
                                     child: ElevatedButton(
@@ -2928,7 +2931,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                       child: const Text('E-PAYMENT'),
                                     ),
                                   ),
-                                  Container(
+                                  SizedBox(
                                     height: 60,
                                     width: 120,
                                     child: ElevatedButton(
@@ -3084,7 +3087,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                       child: const Text('CASH'),
                                     ),
                                   ),
-                                  Container(
+                                  SizedBox(
                                     height: 60,
                                     width: 120,
                                     child: ElevatedButton(
@@ -3582,7 +3585,7 @@ class SearchModal extends StatefulWidget {
   final List<ProductPriceModel> allItems;
   final Function addItem;
 
-  SearchModal({required this.allItems, required this.addItem});
+  const SearchModal({super.key, required this.allItems, required this.addItem});
 
   @override
   _SearchModalState createState() => _SearchModalState();
@@ -3644,12 +3647,13 @@ class _SearchModalState extends State<SearchModal> {
                       onTap: (_filteredItems[index].quantity <= 0)
                           ? null
                           : () => widget.addItem(
+                              _filteredItems[index].productid,
                               _filteredItems[index].description,
                               double.parse(_filteredItems[index].price),
                               1,
                               _filteredItems[index].quantity),
                       title: Text(
-                        '${_filteredItems[index].description}',
+                        _filteredItems[index].description,
                         style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,

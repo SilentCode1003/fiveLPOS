@@ -23,9 +23,8 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
-
 android {
-    namespace = "com.fivelsolutions.fiveLPOS"
+    namespace = "com.fivelsolutions.fivelPOS"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,16 +35,16 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.fivelsolutions.fiveLPOS"
+        applicationId = "com.fivelsolutions.fivelPOS"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdk = 21
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 33
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }
 
-     signingConfigs {
+    signingConfigs {
         release {
             keyAlias 'key'
             keyPassword '5lsolutions2024'

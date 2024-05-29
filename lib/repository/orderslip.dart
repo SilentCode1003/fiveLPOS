@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import '/repository/customerhelper.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 
@@ -76,12 +76,14 @@ class OrderSlip {
       printerconfig = await Helper().JsonToFileRead('printer.json');
     }
 
-    if (Platform.isAndroid && printerconfig['isenable'] == true) {
+    if (Platform.isAndroid && printerconfig['isenable']) {
       PrinterNetworkManager printer =
           PrinterNetworkManager(printerconfig['productionprinterip']);
       PosPrintResult connect = await printer.connect();
       // TODO Don't forget to choose printer's paper
-      const PaperSize paper = PaperSize.mm80;
+      PaperSize paper = printerconfig['papersize'] == 'mm80'
+          ? PaperSize.mm80
+          : PaperSize.mm58;
       final profile = await CapabilityProfile.load();
 
       if (connect == PosPrintResult.success) {

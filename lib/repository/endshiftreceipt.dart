@@ -1,15 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_blue/gen/flutterblue.pbserver.dart' as pbserver;
-import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart'
-    as bluetooth;
 
-import 'package:fiveLPOS/model/shiftreport.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import '/model/shiftreport.dart';
+import '/repository/customerhelper.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
@@ -247,10 +243,13 @@ class EndShiftReceipt {
     logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
 
     if (Platform.isAndroid && printerconfig['isenable']) {
-      PrinterNetworkManager printer = PrinterNetworkManager(printerconfig['printerip']);
+      PrinterNetworkManager printer =
+          PrinterNetworkManager(printerconfig['printerip']);
       PosPrintResult connect = await printer.connect();
       // TODO Don't forget to choose printer's paper
-      const PaperSize paper = PaperSize.mm80;
+      PaperSize paper = printerconfig['papersize'] == 'mm80'
+          ? PaperSize.mm80
+          : PaperSize.mm58;
       final profile = await CapabilityProfile.load();
 
       if (connect == PosPrintResult.success) {
@@ -262,34 +261,35 @@ class EndShiftReceipt {
       }
     }
 
-    if (Platform.isAndroid && printerconfig['isbluetooth'] == true) {
-      bluetooth.PrinterBluetoothManager printerManager =
-          bluetooth.PrinterBluetoothManager();
-      // Map<String, dynamic> device = {
-      //   'name': printerconfig['name'],
-      //   'address': printerconfig['address'],
-      //   'type': printerconfig['type'],
-      //   'connected': true
-      // };
-      // BluetoothDevice bleDevice = BluetoothDevice.fromJson(device);
+    // if (Platform.isAndroid && printerconfig['isbluetooth'] == true) {
+    //   PrinterBluetoothManager printerManager = PrinterBluetoothManager();
+    //   // Map<String, dynamic> device = {
+    //   //   'name': printerconfig['name'],
+    //   //   'address': printerconfig['address'],
+    //   //   'type': printerconfig['type'],
+    //   //   'connected': true
+    //   // };
+    //   // BluetoothDevice bleDevice = BluetoothDevice.fromJson(device);
 
-      var blePrinter = pbserver.BluetoothDevice()
-        ..remoteId = printerconfig['address']
-        ..name = printerconfig['name']
-        ..type = printerconfig['type'];
+    //   var blePrinter = pbserver.BluetoothDevice()
+    //     ..remoteId = printerconfig['address']
+    //     ..name = printerconfig['name']
+    //     ..type = printerconfig['type'];
 
-      var printerBle = BluetoothDevice.fromProto(blePrinter);
+    //   var printerBle = BluetoothDevice.fromProto(blePrinter);
 
-      printerManager.selectPrinter(bluetooth.PrinterBluetooth(printerBle));
-      // TODO Don't forget to choose printer's paper
-      const PaperSize paper = PaperSize.mm80;
-      final profile = await CapabilityProfile.load();
+    //   printerManager.selectPrinter(PrinterBluetooth(printerBle));
+    //   // TODO Don't forget to choose printer's paper
+    //   PaperSize paper = printerconfig['papersize'] == 'mm80'
+    //       ? PaperSize.mm80
+    //       : PaperSize.mm58;
+    //   final profile = await CapabilityProfile.load();
 
-      final bluetooth.PosPrintResult res = await printerManager.printTicket(
-          (await endshiftReport(
-              paper, profile, branchname, id, serial, branchid, address, tin)));
+    //   final PosPrintResult res = await printerManager.printTicket(
+    //       (await endshiftReport(
+    //           paper, profile, branchname, id, serial, branchid, address, tin)));
 
-      print(res.msg);
-    }
+    //   print(res.msg);
+    // }
   }
 }

@@ -3,15 +3,14 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import '/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
-import 'package:fiveLPOS/api/branch.dart';
-import 'package:fiveLPOS/components/circularprogressbar.dart';
-import 'package:fiveLPOS/components/loginpage.dart';
-import 'package:fiveLPOS/repository/dbhelper.dart';
-import 'package:fiveLPOS/api/posconfig.dart';
+import '/api/branch.dart';
+import '/components/circularprogressbar.dart';
+import '/components/loginpage.dart';
+import '/repository/dbhelper.dart';
+import '/api/posconfig.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:desktop_window/desktop_window.dart';
 
 class PosConfig extends StatefulWidget {
   const PosConfig({super.key});
@@ -33,7 +32,7 @@ class _PosConfigState extends State<PosConfig> {
 
   String branchlogo = '';
 
-  String _windowSize = 'Unknown';
+  final String _windowSize = 'Unknown';
 
   @override
   void initState() {
@@ -568,131 +567,131 @@ class _PosConfigState extends State<PosConfig> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Padding(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 child: TextFormField(
                   controller: _branchidController,
                   obscureText: false,
                   decoration: InputDecoration(
                     labelText: 'Branch ID',
-                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                     hintText: 'Branch ID',
-                    hintStyle: TextStyle(fontWeight: FontWeight.normal),
+                    hintStyle: const TextStyle(fontWeight: FontWeight.normal),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  style: TextStyle(fontWeight: FontWeight.normal),
+                  style: const TextStyle(fontWeight: FontWeight.normal),
                   textAlign: TextAlign.center,
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 child: TextFormField(
                   controller: _posidController,
                   obscureText: false,
                   decoration: InputDecoration(
                     labelText: 'POS ID',
-                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                     hintText: 'POS ID',
-                    hintStyle: TextStyle(fontWeight: FontWeight.normal),
+                    hintStyle: const TextStyle(fontWeight: FontWeight.normal),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  style: TextStyle(fontWeight: FontWeight.normal),
+                  style: const TextStyle(fontWeight: FontWeight.normal),
                   textAlign: TextAlign.center,
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 child: TextFormField(
                   controller: _serverController,
                   obscureText: false,
                   decoration: InputDecoration(
                     labelText: 'Server',
-                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                     hintText: 'https://example.com/',
-                    hintStyle: TextStyle(fontWeight: FontWeight.normal),
+                    hintStyle: const TextStyle(fontWeight: FontWeight.normal),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: Colors.black,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  style: TextStyle(fontWeight: FontWeight.normal),
+                  style: const TextStyle(fontWeight: FontWeight.normal),
                   textAlign: TextAlign.center,
                 ),
               ),

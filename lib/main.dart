@@ -1,21 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
-import 'package:fiveLPOS/components/dashboard.dart';
-import 'package:fiveLPOS/components/settings.dart';
-import 'package:fiveLPOS/repository/bluetoothprinter.dart';
+import 'components/dashboard.dart';
+import 'components/posconfig.dart';
+import 'components/settings.dart';
+import 'repository/dbhelper.dart';
 import 'package:flutter/material.dart';
-import 'package:fiveLPOS/components/posconfig.dart';
-import 'package:fiveLPOS/repository/dbhelper.dart';
-import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   if (Platform.isAndroid) {
     DatabaseHelper dh = DatabaseHelper();
     dh.database;
- }
+
+    
+  }
 
   if (Platform.isWindows) {
     createJsonFile('pos.json');
@@ -62,8 +60,6 @@ void createJsonFile(filename) {
   }
 }
 
-
-
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
   @override
@@ -79,12 +75,13 @@ class MyApp extends StatelessWidget {
           appBarTheme: const AppBarTheme(color: Colors.teal),
           elevatedButtonTheme: ElevatedButtonThemeData(
               style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.teal.shade800),
-            foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-            padding: MaterialStateProperty.all<EdgeInsets>(
-              EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            backgroundColor:
+                WidgetStateProperty.all<Color>(Colors.teal.shade800),
+            foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
+            padding: WidgetStateProperty.all<EdgeInsets>(
+              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             ),
-            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            shape: WidgetStateProperty.all<RoundedRectangleBorder>(
               RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0),
               ),
@@ -94,21 +91,20 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Set the initial route
       home: const PosConfig(),
       routes: {
-        '/setting': (context) => SettingsPage(
+        '/setting': (context) => const SettingsPage(
               employeeid: '',
               fullname: '',
               accesstype: 0,
               positiontype: 0,
               logo: '',
             ),
-        '/dashboard': (context) => MyDashboard(
+        '/dashboard': (context) => const MyDashboard(
               employeeid: 'employeeid',
               fullname: 'fullname',
               accesstype: 0,
               positiontype: 0,
               logo: 'logo',
             ),
-        '/bluetooth': (context) => BluetoothPrinterPage()
       },
     );
   }

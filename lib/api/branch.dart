@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import '/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;

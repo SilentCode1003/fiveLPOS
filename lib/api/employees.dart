@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import '/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class EmployeesAPI {
   Future<Map<String, dynamic>> getEmployees() async {
-     Map<String, dynamic> api = {};
+    Map<String, dynamic> api = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
     }

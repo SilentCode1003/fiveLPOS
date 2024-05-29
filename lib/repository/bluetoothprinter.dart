@@ -1,256 +1,130 @@
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:fiveLPOS/repository/customerhelper.dart';
-import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart';
-import 'package:image/image.dart';
-import 'package:flutter/material.dart' hide Image;
-import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart';
-import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
+// Copyright 2017-2023, Charles Weinberger & Paul DeMarco.
+// All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 
-// void main() => runApp(MyApp());
+import 'dart:async';
 
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return OKToast(
-//       child: MaterialApp(
-//         title: 'Bluetooth demo',
-//         theme: ThemeData(
-//           primarySwatch: Colors.blue,
-//         ),
-//         home: BluetoothPrinterPage(title: 'Bluetooth demo'),
-//       ),
-//     );
-//   }
+import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+import '../screens/bluetooth_off_screen.dart';
+import '../screens/scan_screen.dart';
+
+// void main() {
+//   FlutterBluePlus.setLogLevel(LogLevel.verbose, color: true);
+//   runApp(const Bluetoothprinter());
 // }
 
-class BluetoothPrinterPage extends StatefulWidget {
-  const BluetoothPrinterPage({
-    Key? key,
-  }) : super(key: key);
+//
+// This widget shows BluetoothOffScreen or
+// ScanScreen depending on the adapter state
+//
+class Bluetoothprinter extends StatefulWidget {
+  const Bluetoothprinter({Key? key}) : super(key: key);
 
   @override
-  _BluetoothPrinterPageState createState() => _BluetoothPrinterPageState();
+  State<Bluetoothprinter> createState() => _BluetoothprinterState();
 }
 
-class _BluetoothPrinterPageState extends State<BluetoothPrinterPage> {
-  PrinterBluetoothManager printerManager = PrinterBluetoothManager();
-  List<PrinterBluetooth> _devices = [];
+class _BluetoothprinterState extends State<Bluetoothprinter> {
+  bool _hasBluetoothPermission = false;
+  BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
+
+  late StreamSubscription<BluetoothAdapterState> _adapterStateStateSubscription;
 
   @override
   void initState() {
     super.initState();
+    _checkBluetoothPermission();
+    _adapterStateStateSubscription =
+        FlutterBluePlus.adapterState.listen((state) {
+      _adapterState = state;
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
 
-    printerManager.scanResults.listen((devices) async {
-      //print('UI: Devices found ${devices.length}');
+  @override
+  void dispose() {
+    _adapterStateStateSubscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkBluetoothPermission() async {
+    PermissionStatus status = await Permission.bluetooth.status;
+    if (status.isGranted) {
       setState(() {
-        _devices = devices;
+        _hasBluetoothPermission = true;
       });
-    });
+    } else {
+      _requestBluetoothPermission();
+    }
   }
 
-  void _startScanDevices() {
-    setState(() {
-      _devices = [];
-    });
-    printerManager.startScan(const Duration(seconds: 4));
-  }
+  Future<void> _requestBluetoothPermission() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location
+    ].request();
 
-  void _stopScanDevices() {
-    printerManager.stopScan();
-  }
-
-  Future<List<int>> demoReceipt(
-      PaperSize paper, CapabilityProfile profile) async {
-    final Generator ticket = Generator(paper, profile);
-    List<int> bytes = [];
-
-//Print image
-    final ByteData data = await rootBundle.load('assets/logo.png');
-    final Uint8List imageBytes = data.buffer.asUint8List();
-    final Image? image = decodeImage(imageBytes);
-
-    bytes += ticket.image(image!);
-    bytes += ticket.text('TEST PRINT',
-        styles: const PosStyles(
-          bold: true,
-          align: PosAlign.center,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ),
-        linesAfter: 1);
-
-    bytes += ticket.text('Company: 5L Solutions Supplys & Allied Services Inc.',
-        styles: PosStyles(align: PosAlign.center, bold: true), linesAfter: 1);
-    bytes += ticket.text('Developer: Joseph A. Orencio',
-        styles: PosStyles(align: PosAlign.left, bold: true));
-    bytes += ticket.text('Contact: 09364423663',
-        styles: PosStyles(align: PosAlign.left, bold: true));
-    bytes += ticket.text('Web: https://www.5lsolutions.com/',
-        styles: PosStyles(align: PosAlign.left, bold: true), linesAfter: 1);
-
-    bytes += ticket.feed(2);
-    bytes += ticket.cut();
-    return bytes;
-  }
-
-  void _testPrint(PrinterBluetooth printer) async {
-    print(
-        'namae:${printer.name} address:${printer.address} type:${printer.type}');
-    Map<String, dynamic> device = {
-      'name': printer.name,
-      'address': printer..deviceName,
-      'type': printer.address,
-      'isbluetooth': true,
-      'printername': '',
-      'printerip': '',
-      'papersize': '',
-      'isenable': false,
-    };
-
-    // BluetoothDevice mydevice = BluetoothDevice.fromJson(device);
-    printerManager.selectPrinter(printer);
-    // TODO Don't forget to choose printer's paper
-    const PaperSize paper = PaperSize.mm80;
-    final profile = await CapabilityProfile.load();
-
-    // TEST PRINT
-    // final PosPrintResult res =
-    // await printerManager.printTicket(await testTicket(paper));
-
-    // DEMO RECEIPT
-    await printerManager
-        .printTicket((await demoReceipt(paper, profile)))
-        .then((res) {
-      print(res.msg);
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              icon: Icon(
-                Icons.check,
-                color: Colors.green,
-              ),
-              title: const Text('Test Print'),
-              content: Text(res.msg),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('OK'))
-              ],
-            );
-          });
-
-      // setState(() {
-      //   if (Platform.isWindows) {
-      //     await Helper()
-      //         .writeJsonToFile(device, 'printer.json')
-      //         .then((value) => showDialog(
-      //             context: context,
-      //             barrierDismissible: false,
-      //             builder: (context) {
-      //               return AlertDialog(
-      //                 title: Text('Success'),
-      //                 content: Text('Printer configuration saved!'),
-      //                 icon: Icon(Icons.check),
-      //                 actions: [
-      //                   TextButton(
-      //                     onPressed: () => Navigator.pop(context),
-      //                     child: const Text('OK'),
-      //                   ),
-      //                 ],
-      //               );
-      //             }));
-      //   }
-      //   if (Platform.isAndroid) {
-      //     await Helper()
-      //         .JsonToFileWrite(device, 'printer.json')
-      //         .then((value) => showDialog(
-      //             context: context,
-      //             barrierDismissible: false,
-      //             builder: (context) {
-      //               return AlertDialog(
-      //                 title: Text('Success'),
-      //                 content: Text('Printer configuration saved!'),
-      //                 icon: Icon(Icons.check),
-      //                 actions: [
-      //                   TextButton(
-      //                     onPressed: () => Navigator.pop(context),
-      //                     child: const Text('OK'),
-      //                   ),
-      //                 ],
-      //               );
-      //             }));
-      //   }
-      // });
-    });
-
-    // showToast(res.msg);
+    if (statuses[Permission.bluetooth]!.isGranted &&
+        statuses[Permission.bluetoothScan]!.isGranted &&
+        statuses[Permission.bluetoothConnect]!.isGranted &&
+        statuses[Permission.location]!.isGranted) {
+      setState(() {
+        _hasBluetoothPermission = true;
+      });
+    } else {
+      setState(() {
+        _hasBluetoothPermission = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListView.builder(
-          itemCount: _devices.length,
-          itemBuilder: (BuildContext context, int index) {
-            return InkWell(
-              onTap: () => _testPrint(_devices[index]),
-              child: Column(
-                children: <Widget>[
-                  Container(
-                    height: 60,
-                    padding: EdgeInsets.only(left: 10),
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      children: <Widget>[
-                        Icon(Icons.print),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Text(_devices[index].name),
-                              Text(_devices[index].address),
-                              Text(
-                                'Click to print a test receipt',
-                                style: TextStyle(color: Colors.grey[700]),
-                              ),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                ],
-              ),
-            );
-          }),
-      floatingActionButton: StreamBuilder<bool>(
-        stream: printerManager.isScanningStream,
-        initialData: false,
-        builder: (c, snapshot) {
-          if (snapshot.data!) {
-            return FloatingActionButton(
-              child: Icon(Icons.stop),
-              onPressed: _stopScanDevices,
-              backgroundColor: Colors.red,
-            );
-          } else {
-            return FloatingActionButton(
-              child: Icon(Icons.search),
-              onPressed: _startScanDevices,
-            );
-          }
-        },
-      ),
+    Widget screen = _adapterState == BluetoothAdapterState.on
+        ? const ScanScreen()
+        : BluetoothOffScreen(adapterState: _adapterState);
+
+    return MaterialApp(
+      color: Colors.lightBlue,
+      home: screen,
+      navigatorObservers: [BluetoothAdapterStateObserver()],
     );
+  }
+}
+
+//
+// This observer listens for Bluetooth Off and dismisses the DeviceScreen
+//
+class BluetoothAdapterStateObserver extends NavigatorObserver {
+  StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (route.settings.name == '/DeviceScreen') {
+      // Start listening to Bluetooth state changes when a new route is pushed
+      _adapterStateSubscription ??=
+          FlutterBluePlus.adapterState.listen((state) {
+        if (state != BluetoothAdapterState.on) {
+          // Pop the current route if Bluetooth is off
+          navigator?.pop();
+        }
+      });
+    }
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    super.didPop(route, previousRoute);
+    // Cancel the subscription when the route is popped
+    _adapterStateSubscription?.cancel();
+    _adapterStateSubscription = null;
   }
 }

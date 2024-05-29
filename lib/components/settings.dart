@@ -1,20 +1,15 @@
 import 'dart:io';
 
-import 'package:flutter_esc_pos_bluetooth/flutter_esc_pos_bluetooth.dart'
-    as bluetooth;
+import 'package:fivelPOS/repository/bluetoothprinter.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
-import 'package:fiveLPOS/components/circularprogressbar.dart';
-import 'package:fiveLPOS/components/dashboard.dart';
-import 'package:fiveLPOS/model/branch.dart';
-import 'package:fiveLPOS/model/email.dart';
-import 'package:fiveLPOS/model/pos.dart';
-import 'package:fiveLPOS/model/printer.dart';
-import 'package:fiveLPOS/repository/bluetoothprinter.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
-import 'package:fiveLPOS/repository/printing.dart';
+import '/model/branch.dart';
+import '/model/email.dart';
+import '/model/pos.dart';
+import '/model/printer.dart';
+import '/repository/customerhelper.dart';
+import '/repository/printing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
-import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -37,7 +32,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  int currentPage = 1;
+  int currentPage = 0;
   String emailaddress = '';
   String emailpassword = '';
   String smtp = '';
@@ -62,17 +57,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   bool _ischange = false;
 
-  bluetooth.PrinterBluetoothManager printerManager =
-      bluetooth.PrinterBluetoothManager();
-  List<bluetooth.PrinterBluetooth> _devices = [];
-
-  List<String> _selectPrinterType = [
+  final List<String> _selectPrinterType = [
     'Select Type',
     'Network',
     'Bluetooth',
   ];
 
-  var _printer;
+  PrinterNetworkManager _printer = PrinterNetworkManager('');
   NavigationRailLabelType labelType = NavigationRailLabelType.all;
   bool showLeading = false;
   bool showTrailing = false;
@@ -221,6 +212,8 @@ class _SettingsPageState extends State<SettingsPage> {
               model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
         });
         isenable = model.isenable;
+        papersize =
+            printer['papersize'] == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
       }
     }
 
@@ -274,68 +267,70 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildAppBar(),
-      body: SafeArea(
-        child: Row(
-          children: <Widget>[
-            NavigationRail(
-              selectedIndex: currentPage,
-              groupAlignment: groupAlignment,
-              onDestinationSelected: (int index) {
-                setState(() {
-                  currentPage = index;
-                });
-              },
-              labelType: labelType,
-              leading: showLeading
-                  ? FloatingActionButton(
-                      elevation: 0,
-                      onPressed: () {
-                        // Add your onPressed code here!
-                      },
-                      child: const Icon(Icons.add),
-                    )
-                  : const SizedBox(),
-              trailing: showTrailing
-                  ? IconButton(
-                      onPressed: () {
-                        // Add your onPressed code here!
-                      },
-                      icon: const Icon(Icons.more_horiz_rounded),
-                    )
-                  : const SizedBox(),
-              destinations: const <NavigationRailDestination>[
-                NavigationRailDestination(
-                  icon: Icon(Icons.print),
-                  selectedIcon: Icon(Icons.print),
-                  label: Text('Printers'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.email),
-                  selectedIcon: Icon(Icons.email),
-                  label: Text('Email'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.inventory),
-                  selectedIcon: Icon(Icons.inventory),
-                  label: Text('Products'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.discount),
-                  selectedIcon: Icon(Icons.discount),
-                  label: Text('Promo & Discounts'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.exit_to_app),
-                  selectedIcon: Icon(Icons.exit_to_app),
-                  label: Text('Exit'),
-                ),
-              ],
-            ),
-            const VerticalDivider(thickness: 1, width: 4),
-            Expanded(child: buildBody()),
-          ],
+    return SafeArea(
+      child: Scaffold(
+        appBar: buildAppBar(),
+        body: SafeArea(
+          child: Row(
+            children: <Widget>[
+              NavigationRail(
+                selectedIndex: currentPage,
+                groupAlignment: groupAlignment,
+                onDestinationSelected: (int index) {
+                  setState(() {
+                    currentPage = index;
+                  });
+                },
+                labelType: labelType,
+                leading: showLeading
+                    ? FloatingActionButton(
+                        elevation: 0,
+                        onPressed: () {
+                          // Add your onPressed code here!
+                        },
+                        child: const Icon(Icons.add),
+                      )
+                    : const SizedBox(),
+                trailing: showTrailing
+                    ? IconButton(
+                        onPressed: () {
+                          // Add your onPressed code here!
+                        },
+                        icon: const Icon(Icons.more_horiz_rounded),
+                      )
+                    : const SizedBox(),
+                destinations: const <NavigationRailDestination>[
+                  NavigationRailDestination(
+                    icon: Icon(Icons.print),
+                    selectedIcon: Icon(Icons.print),
+                    label: Text('Printers'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.email),
+                    selectedIcon: Icon(Icons.email),
+                    label: Text('Email'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.inventory),
+                    selectedIcon: Icon(Icons.inventory),
+                    label: Text('Products'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.discount),
+                    selectedIcon: Icon(Icons.discount),
+                    label: Text('Promo & Discounts'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.exit_to_app),
+                    selectedIcon: Icon(Icons.exit_to_app),
+                    label: Text('Exit'),
+                  ),
+                ],
+              ),
+              const VerticalDivider(thickness: 1, width: 1),
+              Expanded(child: buildBody()),
+            ],
+          ),
         ),
       ),
     );
@@ -386,29 +381,29 @@ class _SettingsPageState extends State<SettingsPage> {
     switch (currentPage) {
       case 0:
         return AppBar(
-          centerTitle: true,
-          actions: <Widget>[
-            DropdownMenu(
-              width: 420,
-              initialSelection: _selectPrinterType.first,
-              textStyle: const TextStyle(color: Colors.white),
-              onSelected: (String? value) {
-                setState(() {
-                  if (value == 'Network') {
-                    _ischange = true;
-                  }
-                  if (value == 'Bluetooth') {
-                    _ischange = false;
-                  }
-                });
-              },
-              dropdownMenuEntries: _selectPrinterType
-                  .map<DropdownMenuEntry<String>>((String value) {
-                return DropdownMenuEntry<String>(value: value, label: value);
-              }).toList(),
-            )
-          ],
-        );
+            centerTitle: true,
+            flexibleSpace: Align(
+              alignment: Alignment.center,
+              child: DropdownMenu(
+                width: 200,
+                initialSelection: _selectPrinterType.first,
+                textStyle: const TextStyle(color: Colors.white),
+                onSelected: (String? value) {
+                  setState(() {
+                    if (value == 'Network') {
+                      _ischange = true;
+                    }
+                    if (value == 'Bluetooth') {
+                      _ischange = false;
+                    }
+                  });
+                },
+                dropdownMenuEntries: _selectPrinterType
+                    .map<DropdownMenuEntry<String>>((String value) {
+                  return DropdownMenuEntry<String>(value: value, label: value);
+                }).toList(),
+              ),
+            ));
       case 1:
         return AppBar();
       case 2:
@@ -447,20 +442,18 @@ class PrinterPage extends StatefulWidget {
 }
 
 class _PrinterPageState extends State<PrinterPage> {
+  @override
   Widget build(BuildContext context) {
-    TextEditingController _printername =
+    TextEditingController printername =
         TextEditingController(text: widget.printername);
-    TextEditingController _printeripaddress =
+    TextEditingController printeripaddress =
         TextEditingController(text: widget.ipaddress);
-    TextEditingController _printerproductionipaddress =
+    TextEditingController printerproductionipaddress =
         TextEditingController(text: widget.productionipaddress);
-    TextEditingController _printerpaperwidth = TextEditingController(
-        text: widget.papersize.value == 1 ? 'mm58' : 'mm80');
+    TextEditingController printerpaperwidth =
+        TextEditingController(text: widget.papersize.value == 1 ? 'mm58' : 'mm80');
 
-    bluetooth.PrinterBluetoothManager printerManager =
-        bluetooth.PrinterBluetoothManager();
-    List<bluetooth.PrinterBluetooth> _devices = [];
-    bool _isenable = widget.isenable;
+    bool isenable = widget.isenable;
 
     Future<void> savePrinterConfig(jsnonData) async {
       setState(() async {
@@ -472,9 +465,9 @@ class _PrinterPageState extends State<PrinterPage> {
                   barrierDismissible: false,
                   builder: (context) {
                     return AlertDialog(
-                      title: Text('Success'),
-                      content: Text('Printer configuration saved!'),
-                      icon: Icon(Icons.check),
+                      title: const Text('Success'),
+                      content: const Text('Printer configuration saved!'),
+                      icon: const Icon(Icons.check),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -492,9 +485,9 @@ class _PrinterPageState extends State<PrinterPage> {
                   barrierDismissible: false,
                   builder: (context) {
                     return AlertDialog(
-                      title: Text('Success'),
-                      content: Text('Printer configuration saved!'),
-                      icon: Icon(Icons.check),
+                      title: const Text('Success'),
+                      content: const Text('Printer configuration saved!'),
+                      icon: const Icon(Icons.check),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -528,7 +521,7 @@ class _PrinterPageState extends State<PrinterPage> {
                             maxWidth: 380.0,
                           ),
                           child: TextField(
-                            controller: _printername,
+                            controller: printername,
                             keyboardType: TextInputType.text,
                             decoration: const InputDecoration(
                               focusedBorder: OutlineInputBorder(
@@ -552,7 +545,7 @@ class _PrinterPageState extends State<PrinterPage> {
                             maxWidth: 380.0,
                           ),
                           child: TextField(
-                            controller: _printeripaddress,
+                            controller: printeripaddress,
                             keyboardType: TextInputType.text,
                             decoration: const InputDecoration(
                               focusedBorder: OutlineInputBorder(
@@ -576,7 +569,7 @@ class _PrinterPageState extends State<PrinterPage> {
                             maxWidth: 380.0,
                           ),
                           child: TextField(
-                            controller: _printerproductionipaddress,
+                            controller: printerproductionipaddress,
                             keyboardType: TextInputType.text,
                             decoration: const InputDecoration(
                               focusedBorder: OutlineInputBorder(
@@ -601,7 +594,7 @@ class _PrinterPageState extends State<PrinterPage> {
                             maxWidth: 380.0,
                           ),
                           child: TextField(
-                            controller: _printerpaperwidth,
+                            controller: printerpaperwidth,
                             keyboardType: TextInputType.text,
                             decoration: const InputDecoration(
                               focusedBorder: OutlineInputBorder(
@@ -628,11 +621,11 @@ class _PrinterPageState extends State<PrinterPage> {
                             child: ElevatedButton(
                                 onPressed: () {
                                   savePrinterConfig({
-                                    'printername': _printername.text,
-                                    'printerip': _printeripaddress.text,
+                                    'printername': printername.text,
+                                    'printerip': printeripaddress.text,
                                     'productionprinterip':
-                                        _printerproductionipaddress.text,
-                                    'papersize': _printerpaperwidth.text,
+                                        printerproductionipaddress.text,
+                                    'papersize': printerpaperwidth.text,
                                     'isenable': false,
                                   });
                                 },
@@ -653,7 +646,7 @@ class _PrinterPageState extends State<PrinterPage> {
                             ),
                             child: ElevatedButton(
                                 onPressed: () {
-                                  String ipaddress = _printeripaddress.text;
+                                  String ipaddress = printeripaddress.text;
                                   LocalPrint().printnetwork(ipaddress);
                                 },
                                 child: const Text(
@@ -671,66 +664,51 @@ class _PrinterPageState extends State<PrinterPage> {
                             minWidth: 200.0,
                             maxWidth: 380.0,
                           ),
-                          child: StreamBuilder(
-                            stream: isEnable(_isenable),
-                            initialData: false,
-                            builder:
-                                (BuildContext context, AsyncSnapshot snapshot) {
-                              return Container(
-                                child: (!snapshot.data)
-                                    ? ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            savePrinterConfig({
-                                              'printername': _printername.text,
-                                              'printerip':
-                                                  _printeripaddress.text,
-                                              'productionprinterip':
-                                                  _printerproductionipaddress
-                                                      .text,
-                                              'papersize':
-                                                  _printerpaperwidth.text,
-                                              'isenable': true,
-                                            });
-                                            _isenable = true;
-                                          });
-                                        },
-                                        child: const Text(
-                                          'ENABLE',
-                                          style: TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.w600),
-                                        ))
-                                    : ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            savePrinterConfig({
-                                              'printername': _printername.text,
-                                              'printerip':
-                                                  _printeripaddress.text,
-                                              'productionprinterip':
-                                                  _printerproductionipaddress
-                                                      .text,
-                                              'papersize':
-                                                  _printerpaperwidth.text,
-                                              'isenable': false,
-                                            });
+                          child: (!isenable)
+                              ? ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      savePrinterConfig({
+                                        'printername': printername.text,
+                                        'printerip': printeripaddress.text,
+                                        'productionprinterip':
+                                            printerproductionipaddress.text,
+                                        'papersize': printerpaperwidth.text,
+                                        'isenable': true,
+                                      });
+                                      isenable = true;
+                                    });
+                                  },
+                                  child: const Text(
+                                    'ENABLE',
+                                    style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w600),
+                                  ))
+                              : ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      savePrinterConfig({
+                                        'printername': printername.text,
+                                        'printerip': printeripaddress.text,
+                                        'productionprinterip':
+                                            printerproductionipaddress.text,
+                                        'papersize': printerpaperwidth.text,
+                                        'isenable': false,
+                                      });
 
-                                            _isenable = false;
-                                          });
-                                        },
-                                        child: const Text(
-                                          'DISABLE',
-                                          style: TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.w600),
-                                        )),
-                              );
-                            },
-                          ),
+                                      isenable = false;
+                                    });
+                                  },
+                                  child: const Text(
+                                    'DISABLE',
+                                    style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w600),
+                                  )),
                         )
                       ])
-                : const BluetoothPrinterPage(),
+                : const Bluetoothprinter(),
           ),
         ),
       ),
@@ -767,9 +745,9 @@ class EmailPage extends StatelessWidget {
                 barrierDismissible: false,
                 builder: (context) {
                   return AlertDialog(
-                    title: Text('Success'),
-                    content: Text('Email configuration saved!'),
-                    icon: Icon(Icons.check),
+                    title: const Text('Success'),
+                    content: const Text('Email configuration saved!'),
+                    icon: const Icon(Icons.check),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
@@ -787,9 +765,9 @@ class EmailPage extends StatelessWidget {
                 barrierDismissible: false,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: Text('Success'),
-                    content: Text('Email configuration saved!'),
-                    icon: Icon(Icons.check),
+                    title: const Text('Success'),
+                    content: const Text('Email configuration saved!'),
+                    icon: const Icon(Icons.check),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
@@ -984,7 +962,7 @@ class ItemPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [],

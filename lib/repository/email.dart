@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
-import 'package:fiveLPOS/repository/dbhelper.dart';
+import '/repository/customerhelper.dart';
+import '/repository/dbhelper.dart';
 
 class Email {
   DatabaseHelper dbHelper = DatabaseHelper();
