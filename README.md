@@ -37,3 +37,8 @@
 - Revise item filter
 - Added Production/Kitchen Printer Setup
 - Fix bluetooth detection for android 31 and up
+
+### Version 1.2.13
+
+- Fix discount calculation
+- Fix button style of Start Shift and End Shift button

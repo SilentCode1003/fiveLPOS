@@ -213,6 +213,9 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
     }
+
+    print('Start Shift: $isStartShift');
+    print('End Shift: $isEndShift');
   }
 
   Future<void> _startShift(BuildContext context, posid) async {
@@ -401,98 +404,104 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _getdetails(BuildContext context, detailid) async {
-    final results = await SalesDetails().getdetails(detailid);
-    final jsonData = json.encode(results['data']);
+    try {
+      final results = await SalesDetails().getdetails(detailid);
+      final jsonData = json.encode(results['data']);
 
-    print(jsonData);
+      print(jsonData);
 
-    if (jsonData.length == 2) {
-      showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Not Found'),
-              content: Text('OR Number $detailid not found'),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          });
-    } else {
-      dynamic cash = 0;
-      dynamic ecash = 0;
-      String ornumber = '';
-      String ordate = '';
-      String ordescription = '';
-      String orpaymenttype = '';
-      String posid = '';
-      String shift = '';
-      String cashier = '';
-      String total = '';
-      String epaymentname = '';
-      String referenceid = '';
-      for (var data in json.decode(jsonData)) {
-        setState(() {
-          ornumber = data['ornumber'];
-          ordate = data['ordate'];
-          ordescription = data['ordescription'];
-          orpaymenttype = data['orpaymenttype'];
-          posid = data['posid'];
-          shift = data['shift'];
-          cashier = data['cashier'];
-          total = data['total'];
-          epaymentname = data['paymentmethod'];
-          referenceid = data['referenceid'];
+      if (jsonData.length == 2) {
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Not Found'),
+                content: Text('OR Number $detailid not found'),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+      } else {
+        dynamic cash = 0;
+        dynamic ecash = 0;
+        String ornumber = '';
+        String ordate = '';
+        String ordescription = '';
+        String orpaymenttype = '';
+        String posid = '';
+        String shift = '';
+        String cashier = '';
+        String total = '';
+        String epaymentname = '';
+        String referenceid = '';
+        for (var data in json.decode(jsonData)) {
+          print(data['orpaymenttype']);
+          setState(() {
+            ornumber = data['ornumber'];
+            ordate = data['ordate'];
+            ordescription = data['ordescription'];
+            orpaymenttype = data['orpaymenttype'];
+            posid = data['posid'];
+            shift = data['shift'];
+            cashier = data['cashier'];
+            total = data['total'];
+            epaymentname = data['paymentmethod'];
+            referenceid = data['referenceid'];
 
-          if (orpaymenttype == 'SPLIT') {
-            print(orpaymenttype);
-            if (data['paymentmethod'] != 'Cash') {
-              ecash = data['amount'];
+            if (orpaymenttype == 'SPLIT') {
+              print(orpaymenttype);
+              if (data['paymentmethod'] != 'Cash') {
+                ecash = data['amount'];
+              } else {
+                cash = data['amount'];
+              }
             } else {
               cash = data['amount'];
             }
-          } else {
-            cash = data['amount'];
-          }
-        });
-      }
+          });
+        }
 
-      final pdfBytes = await ReprintingReceipt(
-              ornumber,
-              ordate,
-              ordescription,
-              orpaymenttype,
-              posid,
-              shift,
-              cashier,
-              double.parse(total),
-              epaymentname,
-              referenceid,
-              cash.toDouble(),
-              ecash.toDouble())
-          .printReceipt();
+        final pdfBytes = await ReprintingReceipt(
+                ornumber,
+                ordate,
+                ordescription,
+                orpaymenttype,
+                posid,
+                shift,
+                cashier,
+                double.parse(total),
+                epaymentname,
+                referenceid,
+                cash.toDouble(),
+                ecash.toDouble())
+            .printReceipt();
 
-      if (Platform.isWindows) {
-        List<Printer> printerList = await Printing.listPrinters();
-        for (var printer in printerList) {
-          if (printer.isDefault) {
-            Printing.directPrintPdf(
-                printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
+        if (Platform.isWindows) {
+          List<Printer> printerList = await Printing.listPrinters();
+          for (var printer in printerList) {
+            if (printer.isDefault) {
+              Printing.directPrintPdf(
+                  printer: printer,
+                  onLayout: (PdfPageFormat format) => pdfBytes);
+            }
           }
         }
-      }
 
-      if (Platform.isAndroid) {
-        // Printing.layoutPdf(
-        //   onLayout: (PdfPageFormat format) async => pdfBytes,
-        // );
+        if (Platform.isAndroid) {
+          // Printing.layoutPdf(
+          //   onLayout: (PdfPageFormat format) async => pdfBytes,
+          // );
+        }
       }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -545,6 +554,7 @@ class _MyDashboardState extends State<MyDashboard> {
         String epaymentname = '';
         String referenceid = '';
         for (var data in json.decode(jsonData)) {
+          print(data);
           setState(() {
             ornumber = data['ornumber'];
             ordate = data['ordate'];
@@ -558,8 +568,7 @@ class _MyDashboardState extends State<MyDashboard> {
             referenceid = data['referenceid'];
 
             if (orpaymenttype == 'SPLIT') {
-              print(orpaymenttype);
-              if (data['paymentmethod'] != 'Cash') {
+              if (data['paymentmethod'] != 'CASH') {
                 ecash = data['amount'];
               } else {
                 cash = data['amount'];
@@ -1056,19 +1065,12 @@ class _MyDashboardState extends State<MyDashboard> {
               child: Center(
                 child: Wrap(spacing: 8, runSpacing: 8, children: [
                   ElevatedButton(
-                      style: isStartShift
-                          ? ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.primary,
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.onPrimary,
-                              minimumSize: const Size(120, 90))
-                          : ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.onSecondary,
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.onSecondary,
-                              minimumSize: const Size(120, 90)),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: isStartShift
                           ? () {
                               _startShift(context, posid);
@@ -1737,11 +1739,9 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary),
                       onPressed: () async {
-                        Navigator.of(context).pop();
                         await OrderSlip(itemsList,
                                 Helper().GetCurrentDatetime(), detailid)
-                            .printOrderSlip()
-                            .then((result) => _clearItems());
+                            .printOrderSlip();
                       },
                       child: const Text('Printer Order Slip'),
                     ),
@@ -1752,7 +1752,6 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary),
                       onPressed: () {
-                        Navigator.of(context).pop();
                         showDialog(
                             context: context,
                             barrierDismissible: false,
@@ -2528,6 +2527,9 @@ class _MyDashboardState extends State<MyDashboard> {
               height: 70,
               width: 120,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
                 onPressed: () {
                   // Add your button press logic here
                   _showcategoryitems(context, categoryList[index].categorycode);

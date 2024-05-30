@@ -76,7 +76,7 @@ class MyApp extends StatelessWidget {
           elevatedButtonTheme: ElevatedButtonThemeData(
               style: ButtonStyle(
             backgroundColor:
-                WidgetStateProperty.all<Color>(Colors.teal.shade800),
+                WidgetStateProperty.all<Color>(Colors.grey),
             foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
             padding: WidgetStateProperty.all<EdgeInsets>(
               const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
