@@ -42,3 +42,7 @@
 
 - Fix discount calculation
 - Fix button style of Start Shift and End Shift button
+
+### Version 1.2.14
+
+- Fix button style of Start Shift and End Shift button
