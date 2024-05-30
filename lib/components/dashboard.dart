@@ -744,8 +744,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     setState(() {
       for (var data in json.decode(jsonData)) {
-        double discount =
-            ((calculateGrandTotal() * 1.16) * (data['rate'] / 100)) * -1;
+        double discount = (calculateGrandTotal() * (data['rate'] / 100)) * -1;
 
         if (calculateGrandTotal() == 0) {
           showDialog(
@@ -1057,12 +1056,19 @@ class _MyDashboardState extends State<MyDashboard> {
               child: Center(
                 child: Wrap(spacing: 8, runSpacing: 8, children: [
                   ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                          minimumSize: const Size(120, 90)),
+                      style: isStartShift
+                          ? ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onPrimary,
+                              minimumSize: const Size(120, 90))
+                          : ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.onSecondary,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onSecondary,
+                              minimumSize: const Size(120, 90)),
                       onPressed: isStartShift
                           ? () {
                               _startShift(context, posid);
@@ -2146,99 +2152,93 @@ class _MyDashboardState extends State<MyDashboard> {
   Future<void> _discount() async {
     final List<Widget> discount = List<Widget>.generate(
         discountList.length,
-        (index) => SizedBox(
-              height: 120,
-              width: 420,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
-                onPressed: () {
-                  if (discountItemCounter == 1) {
-                    showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text('Warning'),
-                            content: const Text(
-                                'This POS is only accepts one discount'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context)
-                                      .pop(); // Close the dialog
-                                },
-                                child: const Text('Ok'),
-                              ),
-                            ],
-                          );
-                        });
-                  } else {
-                    (discountList[index] == 'PWD' ||
-                            discountList[index] == 'Senior')
-                        ? showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text(discountList[index]),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: TextField(
-                                        controller: _discountIDController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'ID',
-                                          hintText: '163456',
-                                          border: OutlineInputBorder(),
-                                        ),
+        (index) => ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary),
+              onPressed: () {
+                if (discountItemCounter == 1) {
+                  showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Warning'),
+                          content: const Text(
+                              'This POS is only accepts one discount'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop(); // Close the dialog
+                              },
+                              child: const Text('Ok'),
+                            ),
+                          ],
+                        );
+                      });
+                } else {
+                  (discountList[index] == 'PWD' ||
+                          discountList[index] == 'Senior')
+                      ? showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(discountList[index]),
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: TextField(
+                                      controller: _discountIDController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'ID',
+                                        hintText: '163456',
+                                        border: OutlineInputBorder(),
                                       ),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: TextField(
-                                        controller: _discountFullnameController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Fullname',
-                                          hintText: 'Juan Dela Cruz',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context)
-                                          .pop(); // Close the dialog
-                                    },
-                                    child: const Text('Close'),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      _getdiscountrate(discountList[index]);
-                                      Navigator.of(context)
-                                          .pop(); // Close the dialog
-                                    },
-                                    child: const Text('Apply'),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: TextField(
+                                      controller: _discountFullnameController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Fullname',
+                                        hintText: 'Juan Dela Cruz',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
                                   ),
                                 ],
-                              );
-                            })
-                        : _getdiscountrate(discountList[index]);
-                  }
-                },
-                child: Text(
-                  discountList[index],
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context)
+                                        .pop(); // Close the dialog
+                                  },
+                                  child: const Text('Close'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    _getdiscountrate(discountList[index]);
+                                    Navigator.of(context)
+                                        .pop(); // Close the dialog
+                                  },
+                                  child: const Text('Apply'),
+                                ),
+                              ],
+                            );
+                          })
+                      : _getdiscountrate(discountList[index]);
+                }
+              },
+              child: Text(
+                discountList[index],
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
             ));
 
@@ -2248,13 +2248,10 @@ class _MyDashboardState extends State<MyDashboard> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Discounts'),
-            content: Center(
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.start,
-                spacing: 8,
-                runSpacing: 8,
-                children: discount,
-              ),
+            content: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: discount,
             ),
             actions: [
               TextButton(
