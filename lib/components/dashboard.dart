@@ -106,7 +106,7 @@ class _MyDashboardState extends State<MyDashboard> {
   final TextEditingController _discountIDController = TextEditingController();
   // final TextEditingController _salesrepresentativeController =
   //     TextEditingController();
-
+  final TextEditingController _cashReceivedController = TextEditingController();
   Helper helper = Helper();
   DatabaseHelper dbHelper = DatabaseHelper();
   int detailid = 100000000;
@@ -505,7 +505,7 @@ class _MyDashboardState extends State<MyDashboard> {
     }
   }
 
-  Future<String> _semdreceipt(email, ornumber) async {
+  Future<String> _sendreceipt(email, ornumber) async {
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -1284,7 +1284,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                                   message: 'Sending...',
                                                 );
                                               });
-                                          message = await _semdreceipt(
+                                          message = await _sendreceipt(
                                               email, ornumber);
 
                                           Navigator.of(context).pop();
@@ -1675,12 +1675,15 @@ class _MyDashboardState extends State<MyDashboard> {
               salesrepresentative == '' ? cashier : salesrepresentative)
           .printReceipt();
       Map<String, dynamic> printerconfig = {};
+      Map<String, dynamic> emailconfig = {};
       if (Platform.isWindows) {
         printerconfig = await Helper().readJsonToFile('printer.json');
+        emailconfig = await Helper().readJsonToFile('email.json');
       }
 
       if (Platform.isAndroid) {
         printerconfig = await Helper().JsonToFileRead('printer.json');
+        emailconfig = await Helper().JsonToFileRead('email.json');
       }
 
       if (result['msg'] == 'success') {
@@ -1745,65 +1748,94 @@ class _MyDashboardState extends State<MyDashboard> {
                       },
                       child: const Text('Printer Order Slip'),
                     ),
-                  ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary),
-                      onPressed: () {
-                        showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Customer Email'),
-                                content: SizedBox(
-                                  height: 200,
-                                  width: 200,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextField(
-                                        controller: emailController,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Customer Email',
-                                            hintText: 'you@example.com'),
-                                      )
-                                    ],
+                  if (emailconfig['emailaddress'] != '')
+                    ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onPrimary),
+                        onPressed: () {
+                          showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Customer Email'),
+                                  content: SizedBox(
+                                    height: 200,
+                                    width: 200,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        TextField(
+                                          controller: emailController,
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          decoration: const InputDecoration(
+                                              labelText: 'Customer Email',
+                                              hintText: 'you@example.com'),
+                                        )
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () async {
-                                        String email = emailController.text;
-                                        if (isValidEmail(email)) {
-                                          String message = '';
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () async {
+                                          String email = emailController.text;
+                                          if (isValidEmail(email)) {
+                                            String message = '';
 
-                                          showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return LoadingSpinner(
-                                                  message: 'Sending...',
-                                                );
-                                              });
-                                          message = await Email().sendMail(
-                                              detailid.toString(),
-                                              email,
-                                              pdfBytes,
-                                              cashier,
-                                              itemsList,
-                                              paymentname,
-                                              referenceid);
+                                            showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return LoadingSpinner(
+                                                    message: 'Sending...',
+                                                  );
+                                                });
+                                            message = await Email().sendMail(
+                                                detailid.toString(),
+                                                email,
+                                                pdfBytes,
+                                                cashier,
+                                                itemsList,
+                                                paymentname,
+                                                referenceid);
 
-                                          Navigator.of(context).pop();
-
-                                          if (message != 'success') {
-                                          } else {
                                             Navigator.of(context).pop();
+
+                                            if (message != 'success') {
+                                            } else {
+                                              Navigator.of(context).pop();
+                                              showDialog(
+                                                  context: context,
+                                                  barrierDismissible: false,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title:
+                                                          const Text('Success'),
+                                                      content: const Text(
+                                                          'E-Receipt sent successfully!'),
+                                                      actions: [
+                                                        TextButton(
+                                                            onPressed: () {
+                                                              Navigator.of(
+                                                                      context)
+                                                                  .pop();
+                                                            },
+                                                            child: const Text(
+                                                                'Ok'))
+                                                      ],
+                                                    );
+                                                  });
+
+                                              _clearItems();
+                                            }
+                                          } else {
                                             showDialog(
                                                 context: context,
                                                 barrierDismissible: false,
@@ -1811,9 +1843,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     (BuildContext context) {
                                                   return AlertDialog(
                                                     title:
-                                                        const Text('Success'),
+                                                        const Text('Invalid'),
                                                     content: const Text(
-                                                        'E-Receipt sent successfully!'),
+                                                        'Invalid Email Address!'),
                                                     actions: [
                                                       TextButton(
                                                           onPressed: () {
@@ -1821,47 +1853,24 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                     context)
                                                                 .pop();
                                                           },
-                                                          child:
-                                                              const Text('Ok'))
+                                                          child: const Text(
+                                                              'Close'))
                                                     ],
                                                   );
                                                 });
-
-                                            _clearItems();
                                           }
-                                        } else {
-                                          showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  title: const Text('Invalid'),
-                                                  content: const Text(
-                                                      'Invalid Email Address!'),
-                                                  actions: [
-                                                    TextButton(
-                                                        onPressed: () {
-                                                          Navigator.of(context)
-                                                              .pop();
-                                                        },
-                                                        child:
-                                                            const Text('Close'))
-                                                  ],
-                                                );
-                                              });
-                                        }
-                                      },
-                                      child: const Text('Send')),
-                                  TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Close')),
-                                ],
-                              );
-                            });
-                      },
-                      child: const Text('Send E-Receipt')),
+                                        },
+                                        child: const Text('Send')),
+                                    TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Close')),
+                                  ],
+                                );
+                              });
+                        },
+                        child: const Text('Send E-Receipt')),
                 ],
               );
             });
@@ -1981,6 +1990,18 @@ class _MyDashboardState extends State<MyDashboard> {
             salesrepresentative == '' ? widget.fullname : salesrepresentative)
         .printReceipt();
 
+    Map<String, dynamic> printerconfig = {};
+    Map<String, dynamic> emailconfig = {};
+    if (Platform.isWindows) {
+      printerconfig = await Helper().readJsonToFile('printer.json');
+      emailconfig = await Helper().readJsonToFile('email.json');
+    }
+
+    if (Platform.isAndroid) {
+      printerconfig = await Helper().JsonToFileRead('printer.json');
+      emailconfig = await Helper().JsonToFileRead('email.json');
+    }
+
     if (result['msg'] == 'success') {
       Navigator.of(context);
       if (Platform.isAndroid) {
@@ -2017,111 +2038,134 @@ class _MyDashboardState extends State<MyDashboard> {
                   },
                   child: const Text('OK'),
                 ),
-                TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Customer Email'),
-                              content: SizedBox(
-                                height: 200,
-                                width: 200,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    TextField(
-                                      controller: emailController,
-                                      keyboardType: TextInputType.emailAddress,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Customer Email',
-                                          hintText: 'you@example.com'),
-                                    )
-                                  ],
+                if (printerconfig['productionprinterip'] != '')
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary),
+                    onPressed: () async {
+                      await OrderSlip(itemsList, Helper().GetCurrentDatetime(),
+                              detailid)
+                          .printOrderSlip();
+                    },
+                    child: const Text('Printer Order Slip'),
+                  ),
+                if (emailconfig['emailaddress'] != '')
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary),
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Customer Email'),
+                                content: SizedBox(
+                                  height: 200,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: emailController,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Customer Email',
+                                            hintText: 'you@example.com'),
+                                      )
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              actions: [
-                                TextButton(
-                                    onPressed: () async {
-                                      String email = emailController.text;
-                                      if (isValidEmail(email)) {
-                                        String message = '';
+                                actions: [
+                                  TextButton(
+                                      onPressed: () async {
+                                        String email = emailController.text;
+                                        if (isValidEmail(email)) {
+                                          String message = '';
 
-                                        showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (BuildContext context) {
-                                              return LoadingSpinner(
-                                                message: 'Sending...',
-                                              );
-                                            });
-                                        message = await Email().sendMail(
-                                            detailid.toString(),
-                                            email,
-                                            pdfBytes,
-                                            cashier,
-                                            itemsList,
-                                            epaymentname,
-                                            referenceid);
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return LoadingSpinner(
+                                                  message: 'Sending...',
+                                                );
+                                              });
+                                          message = await Email().sendMail(
+                                              detailid.toString(),
+                                              email,
+                                              pdfBytes,
+                                              cashier,
+                                              itemsList,
+                                              epaymentname,
+                                              referenceid);
 
-                                        Navigator.of(context).pop();
-
-                                        if (message != 'success') {
-                                        } else {
                                           Navigator.of(context).pop();
+
+                                          if (message != 'success') {
+                                          } else {
+                                            Navigator.of(context).pop();
+                                            showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title:
+                                                        const Text('Success'),
+                                                    content: const Text(
+                                                        'E-Receipt sent successfully!'),
+                                                    actions: [
+                                                      TextButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                          child:
+                                                              const Text('Ok'))
+                                                    ],
+                                                  );
+                                                });
+
+                                            _clearItems();
+                                          }
+                                        } else {
                                           showDialog(
                                               context: context,
                                               builder: (BuildContext context) {
                                                 return AlertDialog(
-                                                  title: const Text('Success'),
+                                                  title: const Text('Invalid'),
                                                   content: const Text(
-                                                      'E-Receipt sent successfully!'),
+                                                      'Invalid Email Address!'),
                                                   actions: [
                                                     TextButton(
                                                         onPressed: () {
                                                           Navigator.of(context)
                                                               .pop();
                                                         },
-                                                        child: const Text('Ok'))
+                                                        child:
+                                                            const Text('Close'))
                                                   ],
                                                 );
                                               });
-
-                                          _clearItems();
                                         }
-                                      } else {
-                                        showDialog(
-                                            context: context,
-                                            builder: (BuildContext context) {
-                                              return AlertDialog(
-                                                title: const Text('Invalid'),
-                                                content: const Text(
-                                                    'Invalid Email Address!'),
-                                                actions: [
-                                                  TextButton(
-                                                      onPressed: () {
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                      },
-                                                      child:
-                                                          const Text('Close'))
-                                                ],
-                                              );
-                                            });
-                                      }
-                                    },
-                                    child: const Text('Send')),
-                                TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: const Text('Close')),
-                              ],
-                            );
-                          });
-                    },
-                    child: const Text('Send E-Receipt')),
+                                      },
+                                      child: const Text('Send')),
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Close')),
+                                ],
+                              );
+                            });
+                      },
+                      child: const Text('Send E-Receipt')),
               ],
             );
           });
@@ -2325,21 +2369,39 @@ class _MyDashboardState extends State<MyDashboard> {
                             ),
                             actions: [
                               ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('close')),
+                              ElevatedButton(
                                 onPressed: () {
                                   String paymenttype = 'EPAYMENT';
                                   String paymentname = paymentList[index];
                                   String message = '';
                                   String title = '';
+                                  String referenceid =
+                                      _referenceidController.text;
 
                                   if (cashAmount == 0) {
                                     message +=
-                                        'Please enter amount to proceed.';
+                                        'Please enter amount to proceed.\n';
                                     title += '[Enter Amount]';
                                   }
                                   if (cashAmount < calculateGrandTotal()) {
                                     message +=
-                                        'Please enter the right amount received from e-payment.';
+                                        'Please enter the right amount received from $paymentname your total due is ${calculateGrandTotal()}.\n';
                                     title += '[Insufficient Funds]';
+                                  }
+                                  if (cashAmount > calculateGrandTotal()) {
+                                    message +=
+                                        'Please enter the exact amount do not over your total due is ${calculateGrandTotal()}.\n';
+                                    title += '[Overfunded]';
+                                  }
+
+                                  if (referenceid == '') {
+                                    message +=
+                                        'Please enter the reference ID.\n';
+                                    title += '[No Referenceid]';
                                   }
 
                                   if (message != '') {
@@ -2362,8 +2424,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                           );
                                         });
                                   } else {
-                                    String referenceid =
-                                        _referenceidController.text;
                                     detailid++;
                                     _transaction(
                                         detailid.toString(),
@@ -2564,9 +2624,16 @@ class _MyDashboardState extends State<MyDashboard> {
         actions: <Widget>[
           Row(
             children: [
-              const Text(
-                'Logout',
-                style: TextStyle(color: Colors.white),
+              TextButton.icon(
+                icon: Icon(Icons.clear_all),
+                onPressed: () => _clearItems(),
+                label: Text('Clear Items'),
+                style: ButtonStyle(
+                    foregroundColor:
+                        WidgetStateProperty.all<Color>(Colors.white)),
+              ),
+              SizedBox(
+                width: 60,
               ),
               IconButton(
                 icon: const Icon(Icons.logout),
@@ -2649,80 +2716,72 @@ class _MyDashboardState extends State<MyDashboard> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       )),
-                      // DataColumn(label: Text('')),
+                      DataColumn(label: Text('')),
                     ],
                     rows: itemsList.asMap().entries.map((entry) {
                       int index = entry.key;
                       Map<String, dynamic> product = entry.value;
                       double totalCost = product['price'] * product['quantity'];
                       return DataRow(cells: [
-                        DataCell(SizedBox(
-                            width: 120,
-                            child: Text(
-                              product['name'],
-                              textAlign: TextAlign.left,
-                            ))),
-                        DataCell(
-                          SizedBox(
-                            width: 70,
-                            child: Text(formatAsCurrency(product['price'])),
-                          ),
-                        ),
-                        DataCell(
-                          SizedBox(
-                            width: 120,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove, size: 16),
-                                  color: const Color.fromARGB(255, 213, 86, 86),
-                                  onPressed: () {
-                                    if (product['quantity'] > 0) {
-                                      updateQuantity(
-                                          index, product['quantity'] - 1);
-                                    }
-
-                                    print(product['name']);
-
-                                    if (product['name']
-                                        .toString()
-                                        .contains('Discount')) {
-                                      discountItemCounter -= 1;
-                                    }
-                                  },
-                                ),
-                                Expanded(
-                                  child: SizedBox(
-                                    child: TextField(
-                                      style: const TextStyle(fontSize: 16),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (newQuantity) {
-                                        int parsedQuantity =
-                                            int.tryParse(newQuantity) ?? 0;
-                                        updateQuantity(index, parsedQuantity);
-                                      },
-                                      controller: TextEditingController(
-                                          text: product['quantity'].toString()),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.add, size: 16),
-                                  color: const Color.fromARGB(255, 92, 213, 86),
-                                  onPressed: () {
-                                    updateQuantity(
-                                        index, product['quantity'] + 1);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        DataCell(SizedBox(
-                          width: 70,
-                          child: Text(formatAsCurrency(totalCost)),
+                        DataCell(Text(
+                          product['name'],
+                          textAlign: TextAlign.left,
                         )),
+                        DataCell(
+                          Text(formatAsCurrency(product['price'])),
+                        ),
+                        DataCell(
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove, size: 16),
+                                color: const Color.fromARGB(255, 213, 86, 86),
+                                onPressed: () {
+                                  if (product['quantity'] > 0) {
+                                    updateQuantity(
+                                        index, product['quantity'] - 1);
+                                  }
+
+                                  print(product['name']);
+
+                                  if (product['name']
+                                      .toString()
+                                      .contains('Discount')) {
+                                    discountItemCounter -= 1;
+                                  }
+                                },
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  style: const TextStyle(fontSize: 16),
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (newQuantity) {
+                                    int parsedQuantity =
+                                        int.tryParse(newQuantity) ?? 0;
+                                    updateQuantity(index, parsedQuantity);
+                                  },
+                                  controller: TextEditingController(
+                                      text: product['quantity'].toString()),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add, size: 16),
+                                color: const Color.fromARGB(255, 92, 213, 86),
+                                onPressed: () {
+                                  updateQuantity(
+                                      index, product['quantity'] + 1);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        DataCell(Text(formatAsCurrency(totalCost))),
+                        DataCell(IconButton(
+                            onPressed: () {
+                              confirmAndRemove(index);
+                            },
+                            icon: const Icon(Icons.delete))),
                       ]);
                     }).toList(),
                   ),
@@ -2951,6 +3010,8 @@ class _MyDashboardState extends State<MyDashboard> {
                                                   ), // Add spacing between text and text field
 
                                                   TextField(
+                                                    controller:
+                                                        _cashReceivedController,
                                                     keyboardType:
                                                         TextInputType.number,
                                                     inputFormatters: [
@@ -3000,6 +3061,13 @@ class _MyDashboardState extends State<MyDashboard> {
                                                   onPressed: () {
                                                     String message = '';
                                                     String title = '';
+
+                                                    if (_cashReceivedController
+                                                            .text ==
+                                                        '') {
+                                                      cashAmount =
+                                                          calculateGrandTotal();
+                                                    }
 
                                                     if (cashAmount == 0) {
                                                       message +=
@@ -3254,6 +3322,14 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                 'Please enter reference id.\n';
                                                             title +=
                                                                 '[Reference ID]';
+                                                          }
+
+                                                          if (totaltendered >
+                                                              calculateGrandTotal()) {
+                                                            message +=
+                                                                'Please enter the right amount received from e-payment or cash.\n';
+                                                            title +=
+                                                                '[Overfunds]';
                                                           }
 
                                                           if (remaining > 0) {
