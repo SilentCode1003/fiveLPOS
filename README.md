@@ -46,3 +46,7 @@
 ### Version 1.2.14
 
 - Fix button style of Start Shift and End Shift button
+
+### Version 1.2.15
+
+- Added validations on E-payments and SPLIT payment

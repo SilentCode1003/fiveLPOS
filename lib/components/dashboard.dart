@@ -1007,7 +1007,8 @@ class _MyDashboardState extends State<MyDashboard> {
   void _showSearchModal() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
+      useSafeArea: true,
+      constraints: BoxConstraints.expand(width: double.infinity),
       builder: (BuildContext context) {
         return SearchModal(
           allItems: productList,
@@ -3694,76 +3695,132 @@ class _SearchModalState extends State<SearchModal> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      expand: false,
-      builder: (BuildContext context, ScrollController scrollController) {
-        return Column(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                onChanged: _filterItems,
-                decoration: InputDecoration(
-                  labelText: 'Search',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
+    final List<Widget> categoryitems = List<Widget>.generate(
+        _filteredItems.length,
+        (index) => ElevatedButton.icon(
+              icon: Image.memory(
+                  height: 120,
+                  width: 120,
+                  base64Decode(_filteredItems[index].productimage)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                fixedSize: Size(320, 120),
+              ),
+              onPressed: (_filteredItems[index].quantity <= 0)
+                  ? null
+                  : () {
+                      widget.addItem(
+                          _filteredItems[index].productid,
+                          _filteredItems[index].description,
+                          double.parse(_filteredItems[index].price),
+                          1,
+                          _filteredItems[index].quantity);
+                    },
+              label: Text(
+                '${_filteredItems[index].description}\nStocks:${_filteredItems[index].quantity}\n\nSKU:${_filteredItems[index].barcode}',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ));
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              onChanged: _filterItems,
+              decoration: InputDecoration(
+                labelText: 'Search',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollController,
-                itemCount: _filteredItems.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ListTile(
-                      onTap: (_filteredItems[index].quantity <= 0)
-                          ? null
-                          : () => widget.addItem(
-                              _filteredItems[index].productid,
-                              _filteredItems[index].description,
-                              double.parse(_filteredItems[index].price),
-                              1,
-                              _filteredItems[index].quantity),
-                      title: Text(
-                        _filteredItems[index].description,
-                        style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                        textAlign: TextAlign.left,
-                      ),
-                      subtitle: Text(
-                        'SKU: ${_filteredItems[index].barcode}',
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.normal,
-                            color: Colors.white),
-                        textAlign: TextAlign.left,
-                      ),
-                      leading: Image.memory(
-                          base64Decode(_filteredItems[index].productimage)),
-                      trailing: Text(
-                        'Stocks: ${_filteredItems[index].quantity}',
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                        textAlign: TextAlign.center,
-                      ),
-                      tileColor: (_filteredItems[index].quantity <= 0)
-                          ? Colors.grey
-                          : Colors.teal.shade800,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 4,
+            runSpacing: 4,
+            children: categoryitems,
+          ),
+        ],
+      ),
     );
+
+    // return DraggableScrollableSheet(
+    //   expand: false,
+    //   builder: (BuildContext context, ScrollController scrollController) {
+    //     return Column(
+    //       mainAxisSize: MainAxisSize.max,
+    //       children: <Widget>[
+    //         Padding(
+    //           padding: const EdgeInsets.all(8.0),
+    //           child: TextField(
+    //             onChanged: _filterItems,
+    //             decoration: InputDecoration(
+    //               labelText: 'Search',
+    //               border: OutlineInputBorder(
+    //                 borderRadius: BorderRadius.circular(8.0),
+    //               ),
+    //             ),
+    //           ),
+    //         ),
+    //         Expanded(
+    //           child: ListView.builder(
+    //             controller: scrollController,
+    //             itemCount: _filteredItems.length,
+    //             itemBuilder: (context, index) {
+    //               return Padding(
+    //                 padding: const EdgeInsets.all(8.0),
+    //                 child: ListTile(
+    //                   onTap: (_filteredItems[index].quantity <= 0)
+    //                       ? null
+    //                       : () => widget.addItem(
+    //                           _filteredItems[index].productid,
+    //                           _filteredItems[index].description,
+    //                           double.parse(_filteredItems[index].price),
+    //                           1,
+    //                           _filteredItems[index].quantity),
+    //                   title: Text(
+    //                     _filteredItems[index].description,
+    //                     style: const TextStyle(
+    //                         fontSize: 24,
+    //                         fontWeight: FontWeight.bold,
+    //                         color: Colors.white),
+    //                     textAlign: TextAlign.left,
+    //                   ),
+    //                   subtitle: Text(
+    //                     'SKU: ${_filteredItems[index].barcode}',
+    //                     style: const TextStyle(
+    //                         fontSize: 16,
+    //                         fontWeight: FontWeight.normal,
+    //                         color: Colors.white),
+    //                     textAlign: TextAlign.left,
+    //                   ),
+    //                   leading: Image.memory(
+    //                       base64Decode(_filteredItems[index].productimage)),
+    //                   trailing: Text(
+    //                     'Stocks: ${_filteredItems[index].quantity}',
+    //                     style: const TextStyle(
+    //                         fontSize: 16,
+    //                         fontWeight: FontWeight.bold,
+    //                         color: Colors.white),
+    //                     textAlign: TextAlign.center,
+    //                   ),
+    //                   tileColor: (_filteredItems[index].quantity <= 0)
+    //                       ? Colors.grey
+    //                       : Colors.teal.shade800,
+    //                 ),
+    //               );
+    //             },
+    //           ),
+    //         ),
+    //       ],
+    //     );
+    //   },
+    // );
   }
 }
