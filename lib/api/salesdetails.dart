@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../model/response.dart';
 import '/repository/customerhelper.dart';
 
 import '../config.dart';
@@ -77,6 +78,32 @@ class SalesDetails {
 
     Map<String, dynamic> data = {};
     data = {'msg': msg, 'status': status, 'data': results};
+
+    return data;
+  }
+
+  Future<ResponseModel> getreceipts(String datefrom, String dateto) async {
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getreceiptsAPI}');
+    final response = await http.post(url, body: {
+      'datefrom': datefrom,
+      'dateto': dateto,
+    });
+
+    final responseData = json.decode(response.body);
+    final status = response.statusCode;
+    final msg = responseData['msg'];
+    final results = responseData['data'];
+
+    ResponseModel data =
+        ResponseModel.fromJson({'msg': msg, 'status': status, 'data': results});
 
     return data;
   }

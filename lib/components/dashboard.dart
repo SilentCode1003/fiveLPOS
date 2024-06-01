@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fivelPOS/components/receipts.dart';
+
 import '/api/addon.dart';
 import '/api/employees.dart';
 import '/api/package.dart';
@@ -498,6 +500,79 @@ class _MyDashboardState extends State<MyDashboard> {
           // Printing.layoutPdf(
           //   onLayout: (PdfPageFormat format) async => pdfBytes,
           // );
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> _reprint(detailid) async {
+    try {
+      final results = await SalesDetails().getdetails(detailid);
+      final jsonData = json.encode(results['data']);
+
+      dynamic cash = 0;
+      dynamic ecash = 0;
+      String ornumber = '';
+      String ordate = '';
+      String ordescription = '';
+      String orpaymenttype = '';
+      String posid = '';
+      String shift = '';
+      String cashier = '';
+      String total = '';
+      String epaymentname = '';
+      String referenceid = '';
+      for (var data in json.decode(jsonData)) {
+        print(data['orpaymenttype']);
+        setState(() {
+          ornumber = data['ornumber'];
+          ordate = data['ordate'];
+          ordescription = data['ordescription'];
+          orpaymenttype = data['orpaymenttype'];
+          posid = data['posid'];
+          shift = data['shift'];
+          cashier = data['cashier'];
+          total = data['total'];
+          epaymentname = data['paymentmethod'];
+          referenceid = data['referenceid'];
+
+          if (orpaymenttype == 'SPLIT') {
+            print(orpaymenttype);
+            if (data['paymentmethod'] != 'Cash') {
+              ecash = data['amount'];
+            } else {
+              cash = data['amount'];
+            }
+          } else {
+            cash = data['amount'];
+          }
+        });
+      }
+
+      final pdfBytes = await ReprintingReceipt(
+              ornumber,
+              ordate,
+              ordescription,
+              orpaymenttype,
+              posid,
+              shift,
+              cashier,
+              double.parse(total),
+              epaymentname,
+              referenceid,
+              cash.toDouble(),
+              ecash.toDouble())
+          .printReceipt();
+
+      if (Platform.isWindows) {
+        List<Printer> printerList = await Printing.listPrinters();
+        for (var printer in printerList) {
+          if (printer.isDefault) {
+            Printing.directPrintPdf(
+                printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
+          }
         }
       }
     } catch (e) {
@@ -1109,6 +1184,31 @@ class _MyDashboardState extends State<MyDashboard> {
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
                       onPressed: () {
+                        // Navigator.pushReplacementNamed(context, '/setting');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ReceiptPage(
+                                    reprint: _reprint,
+                                    refund: _refund,
+                                    email: _sendreceipt,
+                                  )),
+                        );
+                      },
+                      child: const Text(
+                        'RECEIPTS',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
+                      onPressed: () {
                         showDialog(
                             context: context,
                             barrierDismissible: false,
@@ -1203,8 +1303,11 @@ class _MyDashboardState extends State<MyDashboard> {
                                       //     _receiptORController.text.trim();
                                       // Navigator.of(context).pop();
                                       // _getdetails(context, receiptOR);
-
-                                      _refund();
+                                      String reason =
+                                          _refundReasonController.text;
+                                      String ornumber =
+                                          _refundORController.text;
+                                      _refund(ornumber, reason);
                                     },
                                     child: const Text('Proceed'),
                                   ),
@@ -2487,9 +2590,7 @@ class _MyDashboardState extends State<MyDashboard> {
         });
   }
 
-  Future<void> _refund() async {
-    String reason = _refundReasonController.text;
-    String ornumber = _refundORController.text;
+  Future<void> _refund(ornumber, reason) async {
     final results =
         await SalesDetails().refund(ornumber, reason, widget.fullname);
     final jsonData = json.encode(results['data']);
@@ -2626,7 +2727,7 @@ class _MyDashboardState extends State<MyDashboard> {
           Row(
             children: [
               TextButton.icon(
-                icon: Icon(Icons.clear_all),
+                icon: Icon(Icons.clear),
                 onPressed: () => _clearItems(),
                 label: Text('Clear Items'),
                 style: ButtonStyle(

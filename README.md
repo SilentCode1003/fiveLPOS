@@ -50,3 +50,7 @@
 ### Version 1.2.15
 
 - Added validations on E-payments and SPLIT payment
+### Version 1.2.16
+
+- Added view receipts
+- View Receipts features - re-printing receipts, send to email, refund

@@ -14,6 +14,13 @@ class Helper {
     return formattedDateTime;
   }
 
+  String GetCurrentDate() {
+    DateTime currentDateTime = DateTime.now();
+    String formattedDateTime =
+        DateFormat('yyyy-MM-dd').format(currentDateTime);
+    return formattedDateTime;
+  }
+
   Future<Map<String, dynamic>> readJsonToFile(String filePath) async {
     final directory = Directory.current.path;
     final file = File('$directory/$filePath');
