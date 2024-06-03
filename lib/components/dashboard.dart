@@ -1209,6 +1209,31 @@ class _MyDashboardState extends State<MyDashboard> {
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
                       onPressed: () {
+                        // Navigator.pushReplacementNamed(context, '/setting');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ReceiptPage(
+                                    reprint: _reprint,
+                                    refund: _refund,
+                                    email: _sendreceipt,
+                                  )),
+                        );
+                      },
+                      child: const Text(
+                        'REPORTS',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
+                      onPressed: () {
                         showDialog(
                             context: context,
                             barrierDismissible: false,

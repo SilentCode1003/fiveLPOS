@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fivelPOS/components/receipts.dart';
+
 import 'components/dashboard.dart';
 import 'components/posconfig.dart';
 import 'components/settings.dart';
@@ -11,8 +13,6 @@ void main() {
   if (Platform.isAndroid) {
     DatabaseHelper dh = DatabaseHelper();
     dh.database;
-
-    
   }
 
   if (Platform.isWindows) {
@@ -75,8 +75,7 @@ class MyApp extends StatelessWidget {
           appBarTheme: const AppBarTheme(color: Colors.teal),
           elevatedButtonTheme: ElevatedButtonThemeData(
               style: ButtonStyle(
-            backgroundColor:
-                WidgetStateProperty.all<Color>(Colors.grey),
+            backgroundColor: WidgetStateProperty.all<Color>(Colors.grey),
             foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
             padding: WidgetStateProperty.all<EdgeInsets>(
               const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -104,6 +103,11 @@ class MyApp extends StatelessWidget {
               accesstype: 0,
               positiontype: 0,
               logo: 'logo',
+            ),
+        '/receipt': (context) => ReceiptPage(
+              reprint: () {},
+              refund: () {},
+              email: () {},
             ),
       },
     );

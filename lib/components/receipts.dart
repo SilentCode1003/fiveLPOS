@@ -6,6 +6,7 @@ import 'package:fivelPOS/model/receiptdescription.dart';
 import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
+import 'package:intl/intl.dart';
 
 import '../model/receipt.dart';
 
@@ -36,7 +37,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
   void initState() {
     // TODO: implement initState
     getReceipts(currentdate, currentdate);
-
     super.initState();
   }
 
@@ -396,6 +396,45 @@ class _ReceiptPageState extends State<ReceiptPage> {
                                             _refundReasonController.text;
                                         widget.refund(
                                             receipts[index].detailid!, reason);
+
+                                        receipts = [];
+                                        await SalesDetails()
+                                            .getreceipts(
+                                                currentdate, currentdate)
+                                            .then((result) {
+                                          var jsonData =
+                                              json.encode(result.data);
+                                          if (result.status == 200) {
+                                            setState(() {
+                                              for (var data
+                                                  in json.decode(jsonData)) {
+                                                print(data);
+
+                                                ReceiptModel model =
+                                                    ReceiptModel(
+                                                  data['detail_id'],
+                                                  data['date'],
+                                                  data['pos_id'],
+                                                  data['shift'],
+                                                  data['payment_type'],
+                                                  data['description'],
+                                                  data['total'],
+                                                  data['cashier'],
+                                                  data['branch'],
+                                                  data['status'],
+                                                  data['tenderpaymenttype'],
+                                                  data['tenderamount'],
+                                                  data['epaymenttype'],
+                                                  data['referenceid'],
+                                                );
+
+                                                receipts.add(model);
+                                              }
+                                            });
+
+                                            Navigator.of(context).pop();
+                                          }
+                                        });
                                       },
                                       child: const Text('Proceed'),
                                     ),
@@ -419,8 +458,72 @@ class _ReceiptPageState extends State<ReceiptPage> {
               ),
             ));
 
+    DateTime selectedDate = DateTime.now();
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        flexibleSpace: Align(
+          alignment: Alignment.center,
+          child: OutlinedButton(
+              style: ButtonStyle(
+                  fixedSize: WidgetStatePropertyAll(Size(220, 70)),
+                  foregroundColor: const WidgetStatePropertyAll(Colors.white)),
+              onPressed: () async {
+                final DateTime? dateTime = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(3000));
+                if (dateTime != null) {
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return LoadingSpinner(message: 'Loading...');
+                      });
+
+                  setState(() async {
+                    selectedDate = dateTime;
+                    currentdate = DateFormat('yyyy-MM-dd').format(selectedDate);
+                    receipts = [];
+                    await SalesDetails()
+                        .getreceipts(currentdate, currentdate)
+                        .then((result) {
+                      var jsonData = json.encode(result.data);
+                      if (result.status == 200) {
+                        setState(() {
+                          for (var data in json.decode(jsonData)) {
+                            print(data);
+
+                            ReceiptModel model = ReceiptModel(
+                              data['detail_id'],
+                              data['date'],
+                              data['pos_id'],
+                              data['shift'],
+                              data['payment_type'],
+                              data['description'],
+                              data['total'],
+                              data['cashier'],
+                              data['branch'],
+                              data['status'],
+                              data['tenderpaymenttype'],
+                              data['tenderamount'],
+                              data['epaymenttype'],
+                              data['referenceid'],
+                            );
+
+                            receipts.add(model);
+                          }
+                        });
+
+                        Navigator.of(context).pop();
+                      }
+                    });
+                  });
+                }
+              },
+              child: Text(
+                  '${selectedDate.year}-${selectedDate.month}-${selectedDate.day}')),
+        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: receipts.isEmpty
@@ -428,7 +531,8 @@ class _ReceiptPageState extends State<ReceiptPage> {
                   Center(
                     child: Text(
                       'No Data',
-                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800),
+                      style:
+                          TextStyle(fontSize: 36, fontWeight: FontWeight.w800),
                     ),
                   )
                 ]
