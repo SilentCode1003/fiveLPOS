@@ -108,6 +108,7 @@ class MyApp extends StatelessWidget {
               reprint: () {},
               refund: () {},
               email: () {},
+              posid: '',
             ),
       },
     );

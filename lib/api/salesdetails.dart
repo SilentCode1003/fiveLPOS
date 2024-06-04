@@ -82,7 +82,8 @@ class SalesDetails {
     return data;
   }
 
-  Future<ResponseModel> getreceipts(String datefrom, String dateto) async {
+  Future<ResponseModel> getreceipts(
+      String datefrom, String dateto, String posid) async {
     Map<String, dynamic> api = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
@@ -92,10 +93,8 @@ class SalesDetails {
       api = await Helper().JsonToFileRead('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getreceiptsAPI}');
-    final response = await http.post(url, body: {
-      'datefrom': datefrom,
-      'dateto': dateto,
-    });
+    final response = await http.post(url,
+        body: {'datefrom': datefrom, 'dateto': dateto, 'posid': posid});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

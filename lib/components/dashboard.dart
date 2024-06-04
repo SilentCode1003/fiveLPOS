@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fivelPOS/components/receipts.dart';
+import 'package:fivelPOS/components/reports.dart';
 
 import '/api/addon.dart';
 import '/api/employees.dart';
@@ -1192,6 +1193,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                     reprint: _reprint,
                                     refund: _refund,
                                     email: _sendreceipt,
+                                    posid: posid,
                                   )),
                         );
                       },
@@ -1213,10 +1215,8 @@ class _MyDashboardState extends State<MyDashboard> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => ReceiptPage(
-                                    reprint: _reprint,
-                                    refund: _refund,
-                                    email: _sendreceipt,
+                              builder: (context) => ReportPage(
+                                    posid: posid,
                                   )),
                         );
                       },

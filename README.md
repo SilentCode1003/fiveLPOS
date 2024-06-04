@@ -59,3 +59,7 @@
 ### Version 1.2.17
 
 - Live update of status of receipts
+
+### Version 1.2.18
+
+- Added Report - print Z-Reading

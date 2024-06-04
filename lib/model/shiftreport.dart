@@ -38,11 +38,19 @@ class ShiftReportModel {
         json['cashier'],
         json['floating'],
         json['cashfloat'],
-        json['salesbeginning'],
-        json['salesending'],
-        json['totalsales'],
-        json['receiptbeginning'],
-        json['receiptending'],
+        json['salesbeginning'] == ''
+            ? json['sales_beginning']
+            : json['salesbeginning'],
+        json['salesending'] == ''
+            ? json['sales_ending']
+            : json['salesending'],
+        json['totalsales'] == '' ? json['total_sales'] : json['totalsales'],
+        json['receiptbeginning'] == ''
+            ? json['receipt_beginning']
+            : json['receiptbeginning'],
+        json['receiptending'] == ''
+            ? json['receipt_ending']
+            : json['receiptending'],
         json['status'],
         json['approvedby'],
         json['approveddate']);

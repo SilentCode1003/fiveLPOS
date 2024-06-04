@@ -14,12 +14,14 @@ class ReceiptPage extends StatefulWidget {
   final Function reprint;
   final Function refund;
   final Function email;
+  final String posid;
 
   const ReceiptPage({
     super.key,
     required this.reprint,
     required this.refund,
     required this.email,
+    required this.posid,
   });
 
   @override
@@ -36,12 +38,12 @@ class _ReceiptPageState extends State<ReceiptPage> {
   @override
   void initState() {
     // TODO: implement initState
-    getReceipts(currentdate, currentdate);
+    getReceipts(currentdate, currentdate, widget.posid);
     super.initState();
   }
 
-  Future<List<ReceiptModel>> getReceipts(datefrom, dateto) async {
-    await SalesDetails().getreceipts(datefrom, dateto).then((result) {
+  Future<List<ReceiptModel>> getReceipts(datefrom, dateto, posid) async {
+    await SalesDetails().getreceipts(datefrom, dateto, posid).then((result) {
       var jsonData = json.encode(result.data);
       if (result.status == 200) {
         setState(() {
@@ -399,8 +401,8 @@ class _ReceiptPageState extends State<ReceiptPage> {
 
                                         receipts = [];
                                         await SalesDetails()
-                                            .getreceipts(
-                                                currentdate, currentdate)
+                                            .getreceipts(currentdate,
+                                                currentdate, widget.posid)
                                             .then((result) {
                                           var jsonData =
                                               json.encode(result.data);
@@ -464,9 +466,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
         flexibleSpace: Align(
           alignment: Alignment.center,
           child: OutlinedButton(
-              style: ButtonStyle(
+              style: const ButtonStyle(
                   fixedSize: WidgetStatePropertyAll(Size(220, 70)),
-                  foregroundColor: const WidgetStatePropertyAll(Colors.white)),
+                  foregroundColor: WidgetStatePropertyAll(Colors.white)),
               onPressed: () async {
                 final DateTime? dateTime = await showDatePicker(
                     context: context,
@@ -485,7 +487,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
                     currentdate = DateFormat('yyyy-MM-dd').format(selectedDate);
                     receipts = [];
                     await SalesDetails()
-                        .getreceipts(currentdate, currentdate)
+                        .getreceipts(currentdate, currentdate, widget.posid)
                         .then((result) {
                       var jsonData = json.encode(result.data);
                       if (result.status == 200) {
@@ -528,7 +530,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         child: Column(
           children: receipts.isEmpty
               ? [
-                  Center(
+                  const Center(
                     child: Text(
                       'No Data',
                       style:

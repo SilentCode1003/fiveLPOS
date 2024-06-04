@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fivelPOS/model/response.dart';
+
 import '/repository/customerhelper.dart';
 
 import '../config.dart';
@@ -144,6 +146,29 @@ class ShiftReportAPI {
 
     Map<String, dynamic> data = {};
     data = {'msg': msg, 'status': status, 'data': results};
+
+    return data;
+  }
+
+  Future<ResponseModel> getShiftReports(String date, String posid) async {
+    Map<String, dynamic> api = {};
+    if (Platform.isWindows) {
+      api = await Helper().readJsonToFile('server.json');
+    }
+
+    if (Platform.isAndroid) {
+      api = await Helper().JsonToFileRead('server.json');
+    }
+    final url = Uri.parse('${api['uri']}${Config.getreportAPI}');
+    final response = await http.post(url, body: {'date': date, 'posid': posid});
+
+    final responseData = json.decode(response.body);
+    final status = response.statusCode;
+    final msg = responseData['msg'];
+    final results = responseData['data'];
+
+    ResponseModel data =
+        ResponseModel.fromJson({'msg': msg, 'status': status, 'data': results});
 
     return data;
   }

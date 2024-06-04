@@ -23,7 +23,9 @@ class Config {
   static const String refundAPI = 'salesdetails/refund';
   static const String shiftReportAPI = 'shiftreports/getshiftreport';
   static const String shiftItenSoldAPI = 'salesitems/getshiftitemsold';
-  static const String shiftSummaryPaymentAPI = 'salesitems/getshiftsummarypayment';
+  static const String shiftSummaryPaymentAPI =
+      'salesitems/getshiftsummarypayment';
   static const String shiftStaffSalesAPI = 'salesitems/getshiftstaffsales';
   static const String getreceiptsAPI = 'salesdetails/getreceipts';
+  static const String getreportAPI = 'shiftreports/getreport';
 }
