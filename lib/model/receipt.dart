@@ -10,7 +10,7 @@ class ReceiptModel {
   final String? branch;
   final String? status;
   final String? tenderpaymenttype;
-  final int? tenderamount;
+  final tenderamount;
   final String? epaymenttype;
   final String? referenceid;
 

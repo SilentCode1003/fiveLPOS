@@ -70,3 +70,7 @@
 - Fix Reports shift display
 - Category, Product Price, Discount offline data
 - Fix to round off decimal to 2 mantisa
+
+### Version 1.2.19.1
+
+- Fix receipt view change int to var type;
