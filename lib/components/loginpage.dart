@@ -151,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
       printerconfig = await Helper().readJsonToFile('printer.json');
     }
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
     // print(profile.name);

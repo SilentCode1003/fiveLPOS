@@ -17,7 +17,7 @@ class ShiftReportAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.shiftReportAPI}');
     final response = await http.post(url, body: {
@@ -53,7 +53,7 @@ class ShiftReportAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.shiftItenSoldAPI}');
     final response = await http.post(url, body: {
@@ -88,7 +88,7 @@ class ShiftReportAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.shiftSummaryPaymentAPI}');
     final response = await http.post(url, body: {
@@ -123,7 +123,7 @@ class ShiftReportAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.shiftStaffSalesAPI}');
     final response = await http.post(url, body: {
@@ -157,7 +157,7 @@ class ShiftReportAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getreportAPI}');
     final response = await http.post(url, body: {'date': date, 'posid': posid});

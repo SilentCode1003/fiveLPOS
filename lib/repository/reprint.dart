@@ -44,7 +44,7 @@ class ReprintingReceipt {
   );
 
   Helper helper = Helper();
-  DatabaseHelper dbHelper = DatabaseHelper();
+  // DatabaseHelper dbHelper = DatabaseHelper();
 
   double totalamtdue(List<Map<String, dynamic>> ordescription) {
     double total = 0;
@@ -65,8 +65,10 @@ class ReprintingReceipt {
 
     if (orpaymenttype != 'SPLIT') {
       change = (cash - total);
+      print('$total $cash $orpaymenttype');
     } else {
       change = (cash + ecash) - total;
+      print('$total $cash $ecash $orpaymenttype');
     }
 
     return helper.formatAsCurrency(change);
@@ -385,7 +387,7 @@ class ReprintingReceipt {
     }
 
     if (Platform.isAndroid) {
-      pos = await Helper().JsonToFileRead('pos.json');
+      pos = await Helper().jsonToFileReadAndroid('pos.json');
     }
     id = pos['posid'].toString();
     posname = pos['posname'];
@@ -398,7 +400,7 @@ class ReprintingReceipt {
     }
 
     if (Platform.isAndroid) {
-      branch = await Helper().JsonToFileRead('branch.json');
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
     }
     branchid = branch['branchid'].toString();
     branchname = branch['branchname'];
@@ -414,7 +416,7 @@ class ReprintingReceipt {
     }
 
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
     if (Platform.isAndroid && printerconfig['isenable']) {

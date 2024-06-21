@@ -15,7 +15,7 @@ class ProductPrice {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getcategoryAPI}');
     final response = await http.post(url, body: {
@@ -42,7 +42,7 @@ class ProductPrice {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getpriceAPI}');
     final response =

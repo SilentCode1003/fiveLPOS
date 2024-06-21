@@ -28,7 +28,7 @@ class POSTransaction {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.salesDetailAPI}');
     final response = await http.post(url, body: {

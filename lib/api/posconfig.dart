@@ -16,7 +16,7 @@ class PosConfigAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
 
     final url = Uri.parse('${api['uri']}${Config.getPosConfig}');

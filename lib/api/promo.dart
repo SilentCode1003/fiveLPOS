@@ -14,7 +14,7 @@ class PromoAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getPromoAPI}');
     final response = await http.get(url);

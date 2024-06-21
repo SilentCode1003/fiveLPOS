@@ -14,7 +14,7 @@ class DiscountAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.discountRateAPI}');
     final response = await http.post(url, body: {'name': type});
@@ -37,7 +37,7 @@ class DiscountAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getDiscountAPI}');
     final response = await http.get(url);
@@ -61,7 +61,7 @@ class DiscountAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.salesDiscountAPI}');
     final response = await http.post(url, body: {

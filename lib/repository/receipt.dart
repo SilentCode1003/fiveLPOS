@@ -49,7 +49,7 @@ class Receipt {
       this.staff);
 
   Helper helper = Helper();
-  DatabaseHelper dbHelper = DatabaseHelper();
+  // DatabaseHelper dbHelper = DatabaseHelper();
 
   String formatAsCurrency(double value) {
     return toCurrencyString(
@@ -530,7 +530,7 @@ class Receipt {
     }
 
     if (Platform.isAndroid) {
-      pos = await Helper().JsonToFileRead('pos.json');
+      pos = await Helper().jsonToFileReadAndroid('pos.json');
     }
 
     // Database db = await dbHelper.database;
@@ -547,7 +547,7 @@ class Receipt {
     }
 
     if (Platform.isAndroid) {
-      branch = await Helper().JsonToFileRead('branch.json');
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
     }
 
     // List<Map<String, dynamic>> branchconfig = await db.query('branch');
@@ -572,7 +572,7 @@ class Receipt {
     }
 
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
     if (Platform.isAndroid && printerconfig['isenable'] == true) {

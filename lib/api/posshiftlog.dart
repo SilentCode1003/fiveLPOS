@@ -14,7 +14,7 @@ class POSShiftLogAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getPOSShiftAPI}');
     final response = await http.post(url, body: {
@@ -40,7 +40,7 @@ class POSShiftLogAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.startShiftAPI}');
     final response = await http.post(url, body: {
@@ -68,7 +68,7 @@ class POSShiftLogAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.endShiftAPI}');
     final response = await http

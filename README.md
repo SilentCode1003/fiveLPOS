@@ -63,3 +63,10 @@
 ### Version 1.2.18
 
 - Added Report - print Z-Reading
+
+### Version 1.2.19
+
+- Fix SPLIT payment re-print
+- Fix Reports shift display
+- Category, Product Price, Discount offline data
+- Fix to round off decimal to 2 mantisa

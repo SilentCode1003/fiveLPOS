@@ -211,7 +211,7 @@ class EndShiftReceipt {
     }
 
     if (Platform.isAndroid) {
-      pos = await Helper().JsonToFileRead('pos.json');
+      pos = await Helper().jsonToFileReadAndroid('pos.json');
     }
 
     if (Platform.isWindows) {
@@ -219,7 +219,7 @@ class EndShiftReceipt {
     }
 
     if (Platform.isAndroid) {
-      branch = await Helper().JsonToFileRead('branch.json');
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
     }
 
     if (Platform.isWindows) {
@@ -227,7 +227,7 @@ class EndShiftReceipt {
     }
 
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
     id = pos['posid'].toString();

@@ -32,7 +32,6 @@ import '/api/category.dart';
 import '/repository/customerhelper.dart';
 import '/api/salesdetails.dart';
 import '/api/productprice.dart';
-import '/repository/dbhelper.dart';
 import '/repository/email.dart';
 import '/repository/receipt.dart';
 import '/api/transaction.dart';
@@ -111,7 +110,6 @@ class _MyDashboardState extends State<MyDashboard> {
   //     TextEditingController();
   final TextEditingController _cashReceivedController = TextEditingController();
   Helper helper = Helper();
-  DatabaseHelper dbHelper = DatabaseHelper();
   int detailid = 100000000;
 
   String branchlogo = '';
@@ -172,7 +170,7 @@ class _MyDashboardState extends State<MyDashboard> {
     }
 
     if (Platform.isAndroid) {
-      branch = await Helper().JsonToFileRead('branch.json');
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
 
       setState(() {
         List<String> logo =
@@ -513,6 +511,8 @@ class _MyDashboardState extends State<MyDashboard> {
       final results = await SalesDetails().getdetails(detailid);
       final jsonData = json.encode(results['data']);
 
+      print(jsonData);
+
       dynamic cash = 0;
       dynamic ecash = 0;
       String ornumber = '';
@@ -541,7 +541,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
           if (orpaymenttype == 'SPLIT') {
             print(orpaymenttype);
-            if (data['paymentmethod'] != 'Cash') {
+            if (data['paymentmethod'] != 'CASH') {
               ecash = data['amount'];
             } else {
               cash = data['amount'];
@@ -705,7 +705,8 @@ class _MyDashboardState extends State<MyDashboard> {
     }
 
     if (Platform.isAndroid) {
-      Map<String, dynamic> pos = await Helper().JsonToFileRead('pos.json');
+      Map<String, dynamic> pos =
+          await Helper().jsonToFileReadAndroid('pos.json');
       // for (var pos in posconfig) {
       setState(() {
         posid = pos['posid'].toString();
@@ -715,7 +716,7 @@ class _MyDashboardState extends State<MyDashboard> {
       });
       // }
       Map<String, dynamic> branch =
-          await Helper().JsonToFileRead('branch.json');
+          await Helper().jsonToFileReadAndroid('branch.json');
       // List<Map<String, dynamic>> branchconfig = await db.query('branch');
       // for (var branch in branchconfig) {
       setState(() {
@@ -769,21 +770,53 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _getcategory() async {
-    final results = await CategoryAPI().getCategory();
-    final jsonData = json.encode(results['data']);
-    setState(() {
-      for (var data in json.decode(jsonData)) {
-        if (data['categoryname'] == 'Material') {
-        } else {
-          categoryList.add(CategoryModel(
-              data['categorycode'],
-              data['categoryname'],
-              data['status'],
-              data['createdby'],
-              data['createddate']));
+    Map<String, dynamic> networkstatus = {};
+
+    if (Platform.isAndroid) {
+      networkstatus =
+          await Helper().jsonToFileReadAndroid('networkstatus.json');
+    }
+
+    if (Platform.isWindows) {
+      networkstatus = await Helper().readJsonToFile('networkstatus.json');
+    }
+
+    print('Network Status: $networkstatus');
+
+    if (networkstatus['status'] == 'online') {
+      final jsonData = await Helper().readJsonListToFile('category.json');
+
+      print(jsonData);
+      setState(() {
+        for (var data in jsonData) {
+          if (data['categoryname'] == 'Material') {
+          } else {
+            categoryList.add(CategoryModel(
+                data['categorycode'],
+                data['categoryname'],
+                data['status'],
+                data['createdby'],
+                data['createddate']));
+          }
         }
-      }
-    });
+      });
+    } else {
+      final results = await CategoryAPI().getCategory();
+      final jsonData = json.encode(results['data']);
+      setState(() {
+        for (var data in json.decode(jsonData)) {
+          if (data['categoryname'] == 'Material') {
+          } else {
+            categoryList.add(CategoryModel(
+                data['categorycode'],
+                data['categoryname'],
+                data['status'],
+                data['createdby'],
+                data['createddate']));
+          }
+        }
+      });
+    }
   }
 
   Future<void> _getcategoryitems(int category) async {
@@ -1013,7 +1046,8 @@ class _MyDashboardState extends State<MyDashboard> {
     for (var product in itemsList) {
       grandTotal += product['price'] * product['quantity'];
     }
-    return grandTotal;
+    return double.parse(grandTotal.toStringAsFixed(2));
+    // return grandTotal;
   }
 
   double cashAmount = 0;
@@ -1772,6 +1806,63 @@ class _MyDashboardState extends State<MyDashboard> {
   ) async {
     try {
       final TextEditingController emailController = TextEditingController();
+
+      // if (Platform.isAndroid) {
+      //   Helper().jsonToFileWriteAndroid({
+      //     'date': date,
+      //     'posid': posid,
+      //     'shift': shift,
+      //     'paymenttype': paymenttype,
+      //     'referenceid': referenceid,
+      //     'paymentname': paymentname,
+      //     'items': items,
+      //     'total': total,
+      //     'cashier':
+      //         salesrepresentative == '' ? widget.fullname : salesrepresentative,
+      //     'cash': cashAmount.toString(),
+      //     'ecash': '0',
+      //     'branch': branchid,
+      //     'discountdetail': jsonEncode(discountDetail)
+      //   }, 'sales.json');
+      // }
+
+      if (Platform.isWindows) {
+        Helper().appendDataToJsonFile('sales.json', {
+          'date': date,
+          'posid': posid,
+          'shift': shift,
+          'paymenttype': paymenttype,
+          'referenceid': referenceid,
+          'paymentname': paymentname,
+          'items': items,
+          'total': total,
+          'cashier':
+              salesrepresentative == '' ? widget.fullname : salesrepresentative,
+          'cash': cashAmount.toString(),
+          'ecash': '0',
+          'branch': branchid,
+          'discountdetail': jsonEncode(discountDetail),
+          'issync': 0
+        });
+
+        // Helper().writeJsonToFile({
+        //   'date': date,
+        //   'posid': posid,
+        //   'shift': shift,
+        //   'paymenttype': paymenttype,
+        //   'referenceid': referenceid,
+        //   'paymentname': paymentname,
+        //   'items': items,
+        //   'total': total,
+        //   'cashier':
+        //       salesrepresentative == '' ? widget.fullname : salesrepresentative,
+        //   'cash': cashAmount.toString(),
+        //   'ecash': '0',
+        //   'branch': branchid,
+        //   'discountdetail': jsonEncode(discountDetail)
+        // }, 'sales.json');
+      }
+
       final result = await POSTransaction().sending(
           detailid,
           date,
@@ -1811,8 +1902,8 @@ class _MyDashboardState extends State<MyDashboard> {
       }
 
       if (Platform.isAndroid) {
-        printerconfig = await Helper().JsonToFileRead('printer.json');
-        emailconfig = await Helper().JsonToFileRead('email.json');
+        printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
+        emailconfig = await Helper().jsonToFileReadAndroid('email.json');
       }
 
       if (result['msg'] == 'success') {
@@ -2127,8 +2218,8 @@ class _MyDashboardState extends State<MyDashboard> {
     }
 
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
-      emailconfig = await Helper().JsonToFileRead('email.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
+      emailconfig = await Helper().jsonToFileReadAndroid('email.json');
     }
 
     if (result['msg'] == 'success') {

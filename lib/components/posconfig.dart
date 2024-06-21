@@ -3,6 +3,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fivelPOS/repository/sync.dart';
+import 'package:sqflite/sqflite.dart';
+
 import '/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import '/api/branch.dart';
@@ -26,13 +29,15 @@ class _PosConfigState extends State<PosConfig> {
   final TextEditingController _emailPasswordController =
       TextEditingController();
   final TextEditingController _emailServerController = TextEditingController();
-  DatabaseHelper dbHelper = DatabaseHelper();
 
   final TextEditingController _serverController = TextEditingController();
 
   String branchlogo = '';
 
   final String _windowSize = 'Unknown';
+
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final SyncToDatabase _syncToDatabase = SyncToDatabase.instance;
 
   @override
   void initState() {
@@ -41,24 +46,34 @@ class _PosConfigState extends State<PosConfig> {
   }
 
   Future<void> _check() async {
-    // Database db = await dbHelper.database;
     // List<Map<String, dynamic>> posconfig = await db.query('pos');
     // List<Map<String, dynamic>> branchconfig = await db.query('branch');
     // List<Map<String, dynamic>> emailconfig = await db.query('email');
 
     if (Platform.isAndroid) {
+      Database db = await _databaseHelper.database;
+
+      //config files
       await createJsonFile('pos.json');
       await createJsonFile('branch.json');
       await createJsonFile('email.json');
       await createJsonFile('printer.json');
       await createJsonFile('server.json');
+      await createJsonFile('networkstatus.json');
+      //database data
+      await createJsonFile('category.json');
+      await createJsonFile('productprice.json');
+      await createJsonFile('discounts.json');
+      await createJsonFile('promo.json');
 
-      Map<String, dynamic> pos = await Helper().JsonToFileRead('pos.json');
+      Map<String, dynamic> pos =
+          await Helper().jsonToFileReadAndroid('pos.json');
       Map<String, dynamic> branch =
-          await Helper().JsonToFileRead('branch.json');
-      Map<String, dynamic> email = await Helper().JsonToFileRead('email.json');
+          await Helper().jsonToFileReadAndroid('branch.json');
+      Map<String, dynamic> email =
+          await Helper().jsonToFileReadAndroid('email.json');
       Map<String, dynamic> printer =
-          await Helper().JsonToFileRead('printer.json');
+          await Helper().jsonToFileReadAndroid('printer.json');
 
       if (pos.isNotEmpty && branch.isNotEmpty) {
         // List<Map<String, dynamic>> branchconfig = await db.query('branch');
@@ -205,6 +220,11 @@ class _PosConfigState extends State<PosConfig> {
         );
       }
     }
+
+    await _syncToDatabase.getcategory();
+    await _syncToDatabase.getProductPrice();
+    await _syncToDatabase.getDiscount();
+    await _syncToDatabase.getPromo();
   }
 
   Future<void> _sync() async {
@@ -230,7 +250,7 @@ class _PosConfigState extends State<PosConfig> {
 
     if (Platform.isAndroid) {
       print('android');
-      Helper().JsonToFileWrite(serverconfig, 'server.json');
+      Helper().jsonToFileWriteAndroid(serverconfig, 'server.json');
     }
 
     branch = await _getbranch();
@@ -321,7 +341,7 @@ class _PosConfigState extends State<PosConfig> {
             Helper().writeJsonToFile(data, 'pos.json');
           }
           if (Platform.isAndroid) {
-            Helper().JsonToFileWrite(data, 'pos.json');
+            Helper().jsonToFileWriteAndroid(data, 'pos.json');
           }
           // await dbHelper.insertItem({
           //   'posid': data['posid'],
@@ -408,7 +428,7 @@ class _PosConfigState extends State<PosConfig> {
 
           if (Platform.isAndroid) {
             print('android');
-            Helper().JsonToFileWrite(data, 'branch.json');
+            Helper().jsonToFileWriteAndroid(data, 'branch.json');
           }
 
           branchlogo = data['logo'];
@@ -475,7 +495,7 @@ class _PosConfigState extends State<PosConfig> {
       // }, 'email');
 
       if (Platform.isAndroid) {
-        Helper().JsonToFileWrite({
+        Helper().jsonToFileWriteAndroid({
           'emailaddress': emailaddress,
           'emailpassword': emailpassword,
           'emailserver': emailserver,
@@ -535,6 +555,14 @@ class _PosConfigState extends State<PosConfig> {
       }
 
       if (filename == 'printer.json') {
+        jsonData = {
+          'printername': '',
+          'printerip': '',
+          'papersize': '',
+        };
+      }
+
+      if (filename == 'networkjson.json') {
         jsonData = {
           'printername': '',
           'printerip': '',

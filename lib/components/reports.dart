@@ -79,7 +79,7 @@ class _ReportPageState extends State<ReportPage> {
                     size: 40,
                   ),
                   title: Text(
-                    'POS ID: ${reports[index].pos}\nSHIFT NO.: ${reports[index].pos}\nDate: ${reports[index].date}\nTotal Sales: ${CurrencySymbols.PESO} ${toCurrencyString(reports[index].totalsales)}',
+                    'POS ID: ${reports[index].pos}\nSHIFT NO.: ${reports[index].shift}\nDate: ${reports[index].date}\nTotal Sales: ${CurrencySymbols.PESO} ${toCurrencyString(reports[index].totalsales)}',
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,

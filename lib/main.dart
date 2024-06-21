@@ -2,28 +2,33 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fivelPOS/components/receipts.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'components/dashboard.dart';
 import 'components/posconfig.dart';
 import 'components/settings.dart';
-import 'repository/dbhelper.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  if (Platform.isAndroid) {
-    DatabaseHelper dh = DatabaseHelper();
-    dh.database;
-  }
+import 'package:connectivity_plus/connectivity_plus.dart';
 
+void main() {
   if (Platform.isWindows) {
     createJsonFile('pos.json');
     createJsonFile('email.json');
     createJsonFile('branch.json');
     createJsonFile('printer.json');
     createJsonFile('server.json');
-    createJsonFile('products.json');
+
+    createJsonFile('category.json');
+    createJsonFile('productprice.json');
+    createJsonFile('discount.json');
+    createJsonFile('promo.json');
+
     createJsonFile('sales.json');
     createJsonFile('refund.json');
+
+    createJsonFile('networkstatus.json');
   }
 
   runApp(const MyApp());
@@ -33,7 +38,9 @@ void createJsonFile(filename) {
   try {
     // Get the current working
 
-    final String currentDirectory = Directory.current.path;
+    final currentDirectory = Platform.isAndroid
+        ? getApplicationDocumentsDirectory()
+        : Directory.current.path;
 
     // Specify the file name and path
     final String filePath = '$currentDirectory/$filename';
@@ -62,8 +69,47 @@ void createJsonFile(filename) {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  Future<bool> hasInternetConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    print(connectivityResult);
+    if (Platform.isWindows) {
+      Helper()
+          .jsonToFileWriteAndroid({'status': 'offline'}, 'networkstatus.json');
+    }
+
+    if (Platform.isAndroid) {
+      createJsonFile('networkstatus.json');
+      Helper().writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
+    }
+
+    if (connectivityResult == ConnectivityResult.none) {
+      // No connection at all
+      return false;
+    } else {
+      // Connected to a network, check if we can reach an external server
+      try {
+        final result = await InternetAddress.lookup('google.com');
+
+        if (Platform.isWindows) {
+          Helper().jsonToFileWriteAndroid(
+              {'status': 'online'}, 'networkstatus.json');
+        }
+
+        if (Platform.isAndroid) {
+          Helper().writeJsonToFile({'status': 'online'}, 'networkstatus.json');
+        }
+
+        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    hasInternetConnection();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

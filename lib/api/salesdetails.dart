@@ -15,7 +15,7 @@ class SalesDetails {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getdetailidAPI}');
     final response = await http.post(url, body: {'posid': posid});
@@ -38,7 +38,7 @@ class SalesDetails {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getdetailsAPI}');
     final response = await http.post(url, body: {'detailid': detailid});
@@ -62,7 +62,7 @@ class SalesDetails {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.refundAPI}');
     final response = await http.post(url, body: {
@@ -90,7 +90,7 @@ class SalesDetails {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getreceiptsAPI}');
     final response = await http.post(url,

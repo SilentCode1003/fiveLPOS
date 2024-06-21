@@ -73,7 +73,7 @@ class OrderSlip {
     Map<String, dynamic> printerconfig = {};
 
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
     if (Platform.isAndroid && printerconfig['isenable']) {
