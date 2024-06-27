@@ -2,7 +2,7 @@ class DiscountModel {
   final int discountid;
   final String discountname;
   final String description;
-  final int rate;
+  final rate;
   final String status;
   final String createdby;
   final String createddate;

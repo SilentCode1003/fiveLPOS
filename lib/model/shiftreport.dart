@@ -59,13 +59,11 @@ class ShiftReportModel {
 
 class SoldItemModel {
   final dynamic item;
-  final dynamic price;
   final dynamic quantity;
   final dynamic total;
 
   SoldItemModel(
     this.item,
-    this.price,
     this.quantity,
     this.total,
   );
@@ -73,7 +71,6 @@ class SoldItemModel {
   factory SoldItemModel.fromJson(Map<String, dynamic> json) {
     return SoldItemModel(
       json['item'],
-      json['price'],
       json['quantity'],
       json['total'],
     );

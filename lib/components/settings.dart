@@ -1415,7 +1415,7 @@ class _DiscountPageState extends State<DiscountPage> {
           d['discountid'] as int,
           d['discountname'] as String,
           d['description'] as String,
-          d['rate'] as int,
+          d['rate'],
           d['status'] as String,
           d['createdby'] as String,
           d['createddate'] as String,

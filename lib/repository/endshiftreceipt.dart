@@ -99,16 +99,16 @@ class EndShiftReceipt {
     bytes += printer.row([
       PosColumn(
           text: 'DESC',
-          width: 4,
+          width: 7,
           styles: const PosStyles(align: PosAlign.left, bold: true)),
       PosColumn(
           text: 'QTY',
           width: 2,
           styles: const PosStyles(align: PosAlign.center, bold: true)),
-      PosColumn(
-          text: 'PRC',
-          width: 3,
-          styles: const PosStyles(align: PosAlign.center, bold: true)),
+      // PosColumn(
+      //     text: 'PRC',
+      //     width: 3,
+      //     styles: const PosStyles(align: PosAlign.center, bold: true)),
       PosColumn(
           text: 'TOTAL',
           width: 3,
@@ -119,16 +119,16 @@ class EndShiftReceipt {
       bytes += printer.row([
         PosColumn(
             text: '${report.items[index].item}',
-            width: 4,
+            width: 7,
             styles: const PosStyles(align: PosAlign.left, bold: true)),
         PosColumn(
             text: '${report.items[index].quantity}',
             width: 2,
             styles: const PosStyles(align: PosAlign.center, bold: true)),
-        PosColumn(
-            text: '${report.items[index].price}',
-            width: 3,
-            styles: const PosStyles(align: PosAlign.center, bold: true)),
+        // PosColumn(
+        //     text: '${report.items[index].price}',
+        //     width: 3,
+        //     styles: const PosStyles(align: PosAlign.center, bold: true)),
         PosColumn(
             text: formatAsCurrency(report.items[index].total.toString()),
             width: 3,

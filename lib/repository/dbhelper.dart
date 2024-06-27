@@ -32,7 +32,7 @@ class DatabaseHelper {
 
     await db.execute('''CREATE TABLE productprice 
         (productid INT PRIMARY KEY, 
-        description VARCHAR(300) NOT NULL, 
+        description VARCHAR(300) NOT NULL,
         barcode VARCHAR(20) NOT NULL, 
         price DECIMAL(10,2) NOT NULL,
         category INT NOT NULL,

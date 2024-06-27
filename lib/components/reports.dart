@@ -112,7 +112,6 @@ class _ReportPageState extends State<ReportPage> {
                           setState(() {
                             shiftsolditems.add(SoldItemModel(
                                 data['item'],
-                                data['price'],
                                 data['quantity'],
                                 data['total']));
                           });

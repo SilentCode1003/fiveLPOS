@@ -74,3 +74,9 @@
 ### Version 1.2.19.1
 
 - Fix receipt view change int to var type;
+
+### Version 1.2.20
+
+- Fix endshift z-reading total sales
+- show name of discount
+- deduct refunded items on total sales

@@ -328,8 +328,8 @@ class _MyDashboardState extends State<MyDashboard> {
 
       for (var data in json.decode(solditemJson)) {
         setState(() {
-          shiftsolditems.add(SoldItemModel(
-              data['item'], data['price'], data['quantity'], data['total']));
+          shiftsolditems.add(
+              SoldItemModel(data['item'], data['quantity'], data['total']));
         });
       }
 
@@ -783,7 +783,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
     print('Network Status: $networkstatus');
 
-    if (networkstatus['status'] == 'online') {
+    if (networkstatus['status'] == 'offline') {
       final jsonData = await Helper().readJsonListToFile('category.json');
 
       print(jsonData);
@@ -820,6 +820,28 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _getcategoryitems(int category) async {
+    // if (Platform.isAndroid) {
+    //   final productPrice =
+    //       await Helper().jsonListToFileReadAndroid('productprice.json');
+    //   setState(() {
+    //      productList.clear();
+    //     for (var product in productPrice) {
+    //       if (product['category'] == category) {
+    //         print(product);
+
+    //         productList.add(ProductPriceModel(
+    //             product['productid'],
+    //             product['description'],
+    //             product['barcode'],
+    //             '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',
+    //             product['price'],
+    //             product['category'],
+    //             product['quantity']));
+    //       }
+    //     }
+    //   });
+    // }
+
     final result =
         await ProductPrice().getcategoryitems(category.toString(), branchid);
     final jsonData = json.decode(result['data']);
@@ -1807,24 +1829,24 @@ class _MyDashboardState extends State<MyDashboard> {
     try {
       final TextEditingController emailController = TextEditingController();
 
-      // if (Platform.isAndroid) {
-      //   Helper().jsonToFileWriteAndroid({
-      //     'date': date,
-      //     'posid': posid,
-      //     'shift': shift,
-      //     'paymenttype': paymenttype,
-      //     'referenceid': referenceid,
-      //     'paymentname': paymentname,
-      //     'items': items,
-      //     'total': total,
-      //     'cashier':
-      //         salesrepresentative == '' ? widget.fullname : salesrepresentative,
-      //     'cash': cashAmount.toString(),
-      //     'ecash': '0',
-      //     'branch': branchid,
-      //     'discountdetail': jsonEncode(discountDetail)
-      //   }, 'sales.json');
-      // }
+      if (Platform.isAndroid) {
+        Helper().jsonToFileWriteAndroid({
+          'date': date,
+          'posid': posid,
+          'shift': shift,
+          'paymenttype': paymenttype,
+          'referenceid': referenceid,
+          'paymentname': paymentname,
+          'items': items,
+          'total': total,
+          'cashier':
+              salesrepresentative == '' ? widget.fullname : salesrepresentative,
+          'cash': cashAmount.toString(),
+          'ecash': '0',
+          'branch': branchid,
+          'discountdetail': jsonEncode(discountDetail)
+        }, 'sales.json');
+      }
 
       if (Platform.isWindows) {
         Helper().appendDataToJsonFile('sales.json', {
