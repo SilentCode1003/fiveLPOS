@@ -60,6 +60,7 @@ class _PosConfigState extends State<PosConfig> {
       await createJsonFile('printer.json');
       await createJsonFile('server.json');
       await createJsonFile('networkstatus.json');
+      await createJsonFile('user.json');
       //database data
       await createJsonFile('category.json');
       await createJsonFile('productprice.json');
@@ -221,10 +222,12 @@ class _PosConfigState extends State<PosConfig> {
       }
     }
 
-    await _syncToDatabase.getcategory();
-    await _syncToDatabase.getProductPrice();
-    await _syncToDatabase.getDiscount();
-    await _syncToDatabase.getPromo();
+  
+      await _syncToDatabase.getcategory();
+      await _syncToDatabase.getProductPrice();
+      await _syncToDatabase.getDiscount();
+      await _syncToDatabase.getPromo();
+    
   }
 
   Future<void> _sync() async {
@@ -542,6 +545,7 @@ class _PosConfigState extends State<PosConfig> {
 
       // Create a Map (or any other data structure) to convert to JSON
       Map<String, dynamic> jsonData = {};
+      jsonData = {'key': 'value'};
       if (filename == 'branch.json') {
         jsonData = {};
       }
@@ -555,14 +559,6 @@ class _PosConfigState extends State<PosConfig> {
       }
 
       if (filename == 'printer.json') {
-        jsonData = {
-          'printername': '',
-          'printerip': '',
-          'papersize': '',
-        };
-      }
-
-      if (filename == 'networkjson.json') {
         jsonData = {
           'printername': '',
           'printerip': '',

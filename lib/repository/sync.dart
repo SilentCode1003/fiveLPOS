@@ -21,6 +21,7 @@ class SyncToDatabase {
     List<Map<String, dynamic>> jsonToWrite = [];
 
     if (results['msg'] == 'success') {
+      _databaseHelper.deleteItem('category');
       for (var data in json.decode(jsonData)) {
         if (data['categoryname'] == 'Material') {
         } else {
@@ -77,6 +78,7 @@ class SyncToDatabase {
     }
 
     if (categoryResults['msg'] == 'success') {
+      _databaseHelper.deleteItem('productprice');
       for (var data in json.decode(jsonDataCategory)) {
         if (data['categoryname'] == 'Material') {
         } else {
@@ -94,7 +96,7 @@ class SyncToDatabase {
                   'barcode': data['barcode'],
                   'price': data['price'],
                   'category': data['category'],
-                  'quantity': data['quantity']
+                  'quantity': data['quantity'],
                 });
                 if (Platform.isAndroid) {
                   _databaseHelper.insertItem({
@@ -134,6 +136,7 @@ class SyncToDatabase {
     List<Map<String, dynamic>> jsonToWrite = [];
 
     if (results['msg'] == 'success') {
+      _databaseHelper.deleteItem('discount');
       for (var data in json.decode(jsonData)) {
         print(data);
 
@@ -180,6 +183,7 @@ class SyncToDatabase {
     List<Map<String, dynamic>> jsonToWrite = [];
 
     if (results['msg'] == 'success') {
+      _databaseHelper.deleteItem('promo');
       for (var data in json.decode(jsonData)) {
         print(data);
 

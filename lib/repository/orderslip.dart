@@ -52,16 +52,18 @@ class OrderSlip {
     ]);
     bytes += ticket.hr();
     for (int index = 0; index < items.length; index++) {
-      bytes += ticket.row([
-        PosColumn(
-            text: '${items[index]['name']}',
-            width: 9,
-            styles: const PosStyles(align: PosAlign.left, bold: true)),
-        PosColumn(
-            text: '${items[index]['quantity']}',
-            width: 3,
-            styles: const PosStyles(align: PosAlign.center, bold: true)),
-      ]);
+      if (!items[index]['name'].toString().contains('Discount')) {
+        bytes += ticket.row([
+          PosColumn(
+              text: '${items[index]['name']}',
+              width: 9,
+              styles: const PosStyles(align: PosAlign.left, bold: true)),
+          PosColumn(
+              text: '${items[index]['quantity']}',
+              width: 3,
+              styles: const PosStyles(align: PosAlign.center, bold: true)),
+        ]);
+      }
     }
 
     bytes += ticket.feed(2);

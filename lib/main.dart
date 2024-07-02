@@ -14,6 +14,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() {
   if (Platform.isWindows) {
+    createJsonFile('user.json');
     createJsonFile('pos.json');
     createJsonFile('email.json');
     createJsonFile('branch.json');
@@ -70,46 +71,10 @@ void createJsonFile(filename) {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  Future<bool> hasInternetConnection() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    print(connectivityResult);
-    if (Platform.isWindows) {
-      Helper()
-          .jsonToFileWriteAndroid({'status': 'offline'}, 'networkstatus.json');
-    }
-
-    if (Platform.isAndroid) {
-      createJsonFile('networkstatus.json');
-      Helper().writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
-    }
-
-    if (connectivityResult == ConnectivityResult.none) {
-      // No connection at all
-      return false;
-    } else {
-      // Connected to a network, check if we can reach an external server
-      try {
-        final result = await InternetAddress.lookup('google.com');
-
-        if (Platform.isWindows) {
-          Helper().jsonToFileWriteAndroid(
-              {'status': 'online'}, 'networkstatus.json');
-        }
-
-        if (Platform.isAndroid) {
-          Helper().writeJsonToFile({'status': 'online'}, 'networkstatus.json');
-        }
-
-        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-      } catch (_) {
-        return false;
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    hasInternetConnection();
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:fivelPOS/main.dart';
+
 import '/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -92,55 +95,112 @@ class _LoginPageState extends State<LoginPage> {
           );
         });
 
-    await Login().authenticate(username, password).then((response) {
-      if (response['msg'] == 'success') {
-        Navigator.of(context).pop();
-        final jsonData = json.encode(response['data']);
-        final results = json.decode(jsonData);
+    final isOnline = await hasInternetConnection();
 
-        print(results);
+    print(isOnline);
 
-        UserInfoModel userinfomodel = UserInfoModel(
-            results[0]['employeeid'].toString(),
-            results[0]['fullname'],
-            results[0]['position'],
-            results[0]['contactinfo'],
-            results[0]['datehired'],
-            results[0]['usercode'],
-            results[0]['accesstype'],
-            results[0]['status']);
-
-        _saveRememberedCredentials();
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => MyDashboard(
-                    accesstype: userinfomodel.accesstype,
-                    employeeid: userinfomodel.employeeid,
-                    fullname: userinfomodel.fullname,
-                    positiontype: userinfomodel.position,
-                    logo: branchlogo,
-                  )),
-        );
-      } else {
-        Navigator.of(context).pop();
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Access'),
-            content: const Text('Incorrect username and password'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
+    if (!isOnline) {
+      Map<String, dynamic> offlineData = {};
+      if (Platform.isWindows) {
+        offlineData = await Helper().readJsonToFile('user.json');
       }
-    });
+      if (Platform.isAndroid) {
+        offlineData = await Helper().jsonToFileReadAndroid('user.json');
+      }
+
+      Navigator.of(context).pop();
+
+      UserInfoModel userinfomodel = UserInfoModel(
+          offlineData['employeeid'].toString(),
+          offlineData['fullname'],
+          offlineData['position'],
+          offlineData['contactinfo'],
+          offlineData['datehired'],
+          offlineData['usercode'],
+          offlineData['accesstype'],
+          offlineData['status']);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => MyDashboard(
+                  accesstype: userinfomodel.accesstype,
+                  employeeid: userinfomodel.employeeid,
+                  fullname: userinfomodel.fullname,
+                  positiontype: userinfomodel.position,
+                  logo: branchlogo,
+                )),
+      );
+    } else {
+      await Login().authenticate(username, password).then((response) {
+        if (response['msg'] == 'success') {
+          Navigator.of(context).pop();
+          final jsonData = json.encode(response['data']);
+          final results = json.decode(jsonData);
+
+          print(results);
+
+          UserInfoModel userinfomodel = UserInfoModel(
+              results[0]['employeeid'].toString(),
+              results[0]['fullname'],
+              results[0]['position'],
+              results[0]['contactinfo'],
+              results[0]['datehired'],
+              results[0]['usercode'],
+              results[0]['accesstype'],
+              results[0]['status']);
+
+          final userinfo = {
+            'employeeid': results[0]['employeeid'].toString(),
+            'fullname': results[0]['fullname'],
+            'position': results[0]['position'],
+            'contactinfo': results[0]['contactinfo'],
+            'datehired': results[0]['datehired'],
+            'usercode': results[0]['usercode'],
+            'accesstype': results[0]['accesstype'],
+            'status': results[0]['status'],
+          };
+
+          if (Platform.isAndroid) {
+            Helper().jsonToFileWriteAndroid(userinfo, 'user.json');
+          }
+
+          if (Platform.isWindows) {
+            Helper().writeJsonToFile(userinfo, 'user.json');
+          }
+
+          _saveRememberedCredentials();
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => MyDashboard(
+                      accesstype: userinfomodel.accesstype,
+                      employeeid: userinfomodel.employeeid,
+                      fullname: userinfomodel.fullname,
+                      positiontype: userinfomodel.position,
+                      logo: branchlogo,
+                    )),
+          );
+        } else {
+          Navigator.of(context).pop();
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Access'),
+              content: const Text('Incorrect username and password'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      });
+    }
   }
 
   void _printerinitiate() async {
@@ -172,6 +232,44 @@ class _LoginPageState extends State<LoginPage> {
     // printer.text('INITIAL PRINT');
     // printer.feed(1);
     // printer.cut();
+  }
+
+  Future<bool> hasInternetConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+
+    if (connectivityResult == ConnectivityResult.none) {
+      // No connection at all
+      if (Platform.isWindows) {
+        await Helper()
+            .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
+      }
+
+      if (Platform.isAndroid) {
+        print('offline');
+        await Helper().jsonToFileWriteAndroid(
+            {'status': 'offline'}, 'networkstatus.json');
+      }
+      print('offline');
+      return false;
+    } else {
+      // Connected to a network, check if we can reach an external server
+      try {
+        final result = await InternetAddress.lookup('google.com');
+        print('online');
+        if (Platform.isWindows) {
+          Helper().writeJsonToFile({'status': 'online'}, 'networkstatus.json');
+        }
+
+        if (Platform.isAndroid) {
+          Helper().jsonToFileWriteAndroid(
+              {'status': 'online'}, 'networkstatus.json');
+        }
+
+        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      } catch (_) {
+        return false;
+      }
+    }
   }
 
   @override

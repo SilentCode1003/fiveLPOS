@@ -75,8 +75,20 @@
 
 - Fix receipt view change int to var type;
 
-### Version 1.2.20
+### Version 1.2.21
 
 - Fix endshift z-reading total sales
 - show name of discount
 - deduct refunded items on total sales
+
+### Version 1.2.21
+
+- Offline login
+
+### Version 1.2.22
+
+- Fix EPAYMENT
+- Fix discount
+- Fix refund
+- Fix split payment
+- Fix split payment     
