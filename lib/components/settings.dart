@@ -84,10 +84,8 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     // TODO: implement
-    if (Platform.isAndroid) {
-      _printerinitiate();
-      _getprinterconfig();
-    }
+    _printerinitiate();
+    _getprinterconfig();
 
     _getemailconfig();
     _getposconfig();
@@ -510,11 +508,6 @@ class _PrinterPageState extends State<PrinterPage> {
                   }));
         }
       });
-    }
-
-    Stream<bool> isEnable(bool value) {
-      print(value);
-      return Stream<bool>.value(value);
     }
 
     return SafeArea(

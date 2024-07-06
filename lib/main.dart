@@ -25,6 +25,10 @@ void main() {
     createJsonFile('productprice.json');
     createJsonFile('discount.json');
     createJsonFile('promo.json');
+    createJsonFile('payments.json');
+    createJsonFile('employees.json');
+    createJsonFile('posdetailid.json');
+    createJsonFile('posshift.json');
 
     createJsonFile('sales.json');
     createJsonFile('refund.json');
@@ -71,10 +75,8 @@ void createJsonFile(filename) {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-
   @override
   Widget build(BuildContext context) {
-    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

@@ -242,7 +242,7 @@ class EndShiftReceipt {
     address = branch['address'];
     logo = utf8.decode(base64.decode(branch['logo'])).split('<svg');
 
-    if (Platform.isAndroid && printerconfig['isenable']) {
+    if (Platform.isAndroid || Platform.isWindows && printerconfig['isenable']) {
       PrinterNetworkManager printer =
           PrinterNetworkManager(printerconfig['printerip']);
       PosPrintResult connect = await printer.connect();

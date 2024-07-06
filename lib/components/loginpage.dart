@@ -95,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         });
 
-    final isOnline = await hasInternetConnection();
+    final isOnline = await Helper().hasInternetConnection();
 
     print(isOnline);
 
@@ -232,44 +232,6 @@ class _LoginPageState extends State<LoginPage> {
     // printer.text('INITIAL PRINT');
     // printer.feed(1);
     // printer.cut();
-  }
-
-  Future<bool> hasInternetConnection() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-
-    if (connectivityResult == ConnectivityResult.none) {
-      // No connection at all
-      if (Platform.isWindows) {
-        await Helper()
-            .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
-      }
-
-      if (Platform.isAndroid) {
-        print('offline');
-        await Helper().jsonToFileWriteAndroid(
-            {'status': 'offline'}, 'networkstatus.json');
-      }
-      print('offline');
-      return false;
-    } else {
-      // Connected to a network, check if we can reach an external server
-      try {
-        final result = await InternetAddress.lookup('google.com');
-        print('online');
-        if (Platform.isWindows) {
-          Helper().writeJsonToFile({'status': 'online'}, 'networkstatus.json');
-        }
-
-        if (Platform.isAndroid) {
-          Helper().jsonToFileWriteAndroid(
-              {'status': 'online'}, 'networkstatus.json');
-        }
-
-        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-      } catch (_) {
-        return false;
-      }
-    }
   }
 
   @override

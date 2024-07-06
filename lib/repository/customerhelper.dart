@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -101,7 +104,7 @@ class Helper {
       // Write the JSON string to the file
       await file.writeAsString(jsonString);
 
-      print('Data written to ${file.path} data: $jsnonData');
+      print('Data written to ${file.path}');
     } catch (e) {
       print(e);
     }
@@ -119,7 +122,7 @@ class Helper {
       // Write the JSON string to the file
       await file.writeAsString(jsonString);
 
-      print('Data written to ${file.path} data: $jsnonData');
+      print('Data written to ${file.path}');
     } catch (e) {
       print(e);
     }
@@ -198,7 +201,6 @@ class Helper {
     // Read the contents of the file
     String jsonString = await file.readAsString();
 
-
     // Parse the JSON string into a Map
     dynamic jsonData = jsonDecode(jsonString);
 
@@ -206,31 +208,140 @@ class Helper {
   }
 
 // Function to read existing data from the JSON file
-Future<List<dynamic>> readJsonFile(String filePath) async {
-  try {
-    final file = File(filePath);
-    if (await file.exists()) {
-      final contents = await file.readAsString();
-      return jsonDecode(contents);
+  Future<List<dynamic>> readJsonFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        final contents = await file.readAsString();
+        print('readJsonFile Contents of JSON file: $contents');
+        return jsonDecode(contents);
+      }
+    } catch (e) {
+      print('Error reading JSON file: $e');
     }
-  } catch (e) {
-    print('Error reading JSON file: $e');
+    // Return an empty list if the file doesn't exist or an error occurs
+    return [];
   }
-  // Return an empty list if the file doesn't exist or an error occurs
-  return [];
-}
 
 // Function to append new data to the existing list
-Future<void> appendDataToJsonFile(String filePath, Map<String, dynamic> newData) async {
-  // Read existing data
-  List<dynamic> data = await readJsonFile(filePath);
+  Future<void> appendDataToJsonFile(
+      String filenname, Map<String, dynamic> newData) async {
+    // Read existing data
+    List<dynamic> data = [];
+    File? file;
 
-  // Append the new data
-  data.add(newData);
+    if (Platform.isWindows) {
+      print('Reading JSON file at $filenname');
+      data = await readJsonFile(filenname);
+      print('Contents of JSON file: $data');
+      file = File(filenname);
+    }
+    if (Platform.isAndroid) {
+      final directory = await getApplicationDocumentsDirectory();
+      final fileLocation = '${directory.path}/$filenname';
+      print('Reading JSON file at $fileLocation');
 
-  // Write the updated data back to the JSON file
-  final file = File(filePath);
-  await file.writeAsString(jsonEncode(data), flush: true);
-}
+      data = await readJsonFile(fileLocation);
+      print('Contents of JSON file: $data');
+      file = File(fileLocation);
+    }
 
+    // Append the new data
+    print('New Data: $newData');
+    data.add(newData);
+
+    // Write the updated data back to the JSON file
+
+    await file!.writeAsString(jsonEncode(data), flush: true);
+  }
+
+  Future<bool> hasInternetConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+
+    if (connectivityResult == ConnectivityResult.none) {
+      // No connection at all
+      if (Platform.isWindows) {
+        print('offline');
+        await Helper()
+            .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
+      }
+
+      if (Platform.isAndroid) {
+        print('offline');
+        await Helper().jsonToFileWriteAndroid(
+            {'status': 'offline'}, 'networkstatus.json');
+      }
+
+      return false;
+    } else {
+      // Connected to a network, check if we can reach an external server
+      print('Local network detected');
+
+      if (Platform.isWindows) {
+        print('offline');
+        await Helper()
+            .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
+      }
+
+      if (Platform.isAndroid) {
+        print('offline');
+        await Helper().jsonToFileWriteAndroid(
+            {'status': 'offline'}, 'networkstatus.json');
+      }
+
+      try {
+        print('Checking internet connection...');
+        int checkConnection = 0;
+        await checkAddressWithPort('192.168.10.22', 3050)
+            .then((value) => {if (value) checkConnection++});
+        // await InternetAddress.lookup('google.com').then(
+        //     (value) => {if (value.isNotEmpty) checkConnection++});
+
+        print('checkConnection: $checkConnection');
+        if (checkConnection != 0) {
+          print('Internet connection available');
+
+          if (Platform.isWindows) {
+            print('online');
+            Helper()
+                .writeJsonToFile({'status': 'online'}, 'networkstatus.json');
+          }
+
+          if (Platform.isAndroid) {
+            print('online');
+            Helper().jsonToFileWriteAndroid(
+                {'status': 'online'}, 'networkstatus.json');
+          }
+          return true;
+        } else {
+          print('Internet connection not available');
+          if (Platform.isWindows) {
+            print('offline');
+            Helper()
+                .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
+          }
+
+          if (Platform.isAndroid) {
+            print('offline');
+            Helper().jsonToFileWriteAndroid(
+                {'status': 'offline'}, 'networkstatus.json');
+          }
+          return false;
+        }
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  Future<bool> checkAddressWithPort(String address, int port) async {
+    try {
+      final socket =
+          await Socket.connect(address, port, timeout: Duration(seconds: 5));
+      socket.destroy();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }

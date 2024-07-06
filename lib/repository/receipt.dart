@@ -515,7 +515,12 @@ class Receipt {
     String address = '';
     List<String> logo = [];
 
-    String promodetails = await promo();
+    String promodetails = '';
+
+    final isOnline = await Helper().hasInternetConnection();
+    if (isOnline) {
+      promodetails = await promo();
+    }
 
     PdfPageFormat format = PdfPageFormat.roll80;
     // final pdf = pw.Document(version: PdfVersion.pdf_1_5, compress: true);
@@ -575,7 +580,8 @@ class Receipt {
       printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
-    if (Platform.isAndroid && printerconfig['isenable'] == true) {
+    if (Platform.isAndroid ||
+        Platform.isWindows && printerconfig['isenable'] == true) {
       PrinterNetworkManager printer =
           PrinterNetworkManager(printerconfig['printerip']);
       PosPrintResult connect = await printer.connect();

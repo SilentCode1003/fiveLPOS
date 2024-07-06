@@ -340,18 +340,39 @@ class _ReceiptPageState extends State<ReceiptPage> {
                                   actions: [
                                     TextButton(
                                       onPressed: () async {
-                                        String email =
-                                            _emailAddressController.text;
-                                        String result = widget.email(
-                                            email, receipts[index].detailid!);
                                         showDialog(
                                             context: context,
                                             builder: (context) {
                                               return LoadingSpinner(
                                                   message: 'Sending...');
                                             });
+                                        String email =
+                                            _emailAddressController.text;
+                                        dynamic result = await widget.email(
+                                            email, receipts[index].detailid!);
+
                                         if (result == 'success') {
                                           Navigator.of(context).pop();
+                                          Navigator.of(context).pop();
+
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('Success'),
+                                                  content: const Text(
+                                                      'E-Receipt sent successfully!'),
+                                                  actions: [
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                        child: const Text('Ok'))
+                                                  ],
+                                                );
+                                              });
                                         }
                                       },
                                       child: const Text('Send'),

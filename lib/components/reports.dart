@@ -137,6 +137,7 @@ class _ReportPageState extends State<ReportPage> {
                         final staffsalesJson = json.encode(staffsales['data']);
 
                         for (var data in json.decode(staffsalesJson)) {
+                          print(data);
                           setState(() {
                             shiftstaffsales.add(StaffSalesModel(
                                 data['salesstaff'], data['total']));
@@ -149,7 +150,7 @@ class _ReportPageState extends State<ReportPage> {
                           reports[index].shift,
                           reports[index].cashier,
                           reports[index].salesbeginning,
-                          reports[index].salesbeginning,
+                          reports[index].salesending,
                           reports[index].totalsales,
                           reports[index].receiptbeginning,
                           reports[index].receiptending,

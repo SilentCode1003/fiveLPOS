@@ -134,12 +134,13 @@ class _MyDashboardState extends State<MyDashboard> {
   void initState() {
     // TODO: implement initState
     _getbranchdetail();
-    _getposconfig();
-    _getcategory();
-    _getdiscount();
     _getpayment();
     _getemployees();
-    // _getbranchdetail();
+    _getcategory();
+
+    _getposconfig();
+    _getdiscount();
+    _getbranchdetail();
 
     super.initState();
   }
@@ -192,22 +193,25 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _getPOSShift(posid) async {
-    final results = await POSShiftLogAPI().getPOSShift(posid);
-    final jsonData = json.encode(results['data']);
+    //
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('posshift.json');
+    }
 
-    print(jsonData);
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('posshift.json');
+    }
 
-    if (jsonData.length == 2) {
-      print('empty');
+    if (jsonData.length == 0) {
       setState(() {
         isStartShift = true;
         isEndShift = false;
       });
     }
 
-    for (var data in json.decode(jsonData)) {
-      print('processing');
-      businessdate = data['date'];
+    for (var data in jsonData) {
+      businessdate = data['date'].toString();
       shift = data['shift'];
       if (data['status'] != 'START') {
         setState(() {
@@ -219,9 +223,6 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
     }
-
-    print('Start Shift: $isStartShift');
-    print('End Shift: $isEndShift');
   }
 
   Future<void> _startShift(BuildContext context, posid) async {
@@ -237,8 +238,6 @@ class _MyDashboardState extends State<MyDashboard> {
     final results = await POSShiftLogAPI()
         .startShift(posid, widget.fullname, (detailid + 1).toString());
     // final jsonData = json.encode(results['data']);
-    print(results['msg']);
-
     if (results['msg'] == 'success') {
       setState(() {
         isStartShift = false;
@@ -247,6 +246,8 @@ class _MyDashboardState extends State<MyDashboard> {
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pop(context);
       Navigator.pop(context);
+
+      _syncPOS();
 
       showDialog(
           context: context,
@@ -287,18 +288,15 @@ class _MyDashboardState extends State<MyDashboard> {
 
     final results = await POSShiftLogAPI().endShift(posid, detailid.toString());
     // final jsonData = json.encode(results['data']);
-    print(results['msg']);
 
     if (results['msg'] == 'success') {
       setState(() {
-        isStartShift = false;
+        isStartShift = true;
       });
 
       final shiftreport =
           await ShiftReportAPI().getShiftReport(businessdate, posid, shift);
       final shiftreportJson = json.encode(shiftreport['data']);
-
-      print(shiftreport);
 
       for (var data in json.decode(shiftreportJson)) {
         ShiftReportModel report = ShiftReportModel(
@@ -325,8 +323,6 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
 
-      print('begin:$receiptbeginning end:$receiptending');
-
       final solditems = await ShiftReportAPI()
           .getShiftItemSold(receiptbeginning, receiptending);
       final solditemJson = json.encode(solditems['data']);
@@ -337,8 +333,6 @@ class _MyDashboardState extends State<MyDashboard> {
               SoldItemModel(data['item'], data['quantity'], data['total']));
         });
       }
-
-      print(shiftsolditems);
 
       final summarypayment = await ShiftReportAPI()
           .getShiftSummaryPayment(receiptbeginning, receiptending);
@@ -351,8 +345,6 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
 
-      print(shiftsummarypayment);
-
       final staffsales = await ShiftReportAPI()
           .getShiftStaffSales(receiptbeginning, receiptending);
       final staffsalesJson = json.encode(staffsales['data']);
@@ -363,8 +355,6 @@ class _MyDashboardState extends State<MyDashboard> {
               .add(StaffSalesModel(data['salesstaff'], data['total']));
         });
       }
-
-      print(shiftstaffsales);
     }
 
     await EndShiftReceipt(ShiftReceiptModel(
@@ -387,6 +377,8 @@ class _MyDashboardState extends State<MyDashboard> {
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pop(context);
       Navigator.pop(context);
+
+      _syncPOS();
 
       showDialog(
           context: context,
@@ -413,8 +405,6 @@ class _MyDashboardState extends State<MyDashboard> {
     try {
       final results = await SalesDetails().getdetails(detailid);
       final jsonData = json.encode(results['data']);
-
-      print(jsonData);
 
       if (jsonData.length == 2) {
         showDialog(
@@ -448,7 +438,6 @@ class _MyDashboardState extends State<MyDashboard> {
         String epaymentname = '';
         String referenceid = '';
         for (var data in json.decode(jsonData)) {
-          print(data['orpaymenttype']);
           setState(() {
             ornumber = data['ornumber'];
             ordate = data['ordate'];
@@ -462,7 +451,6 @@ class _MyDashboardState extends State<MyDashboard> {
             referenceid = data['referenceid'];
 
             if (orpaymenttype == 'SPLIT') {
-              print(orpaymenttype);
               if (data['paymentmethod'] != 'Cash') {
                 ecash = data['amount'];
               } else {
@@ -489,22 +477,16 @@ class _MyDashboardState extends State<MyDashboard> {
                 ecash.toDouble())
             .printReceipt();
 
-        if (Platform.isWindows) {
-          List<Printer> printerList = await Printing.listPrinters();
-          for (var printer in printerList) {
-            if (printer.isDefault) {
-              Printing.directPrintPdf(
-                  printer: printer,
-                  onLayout: (PdfPageFormat format) => pdfBytes);
-            }
-          }
-        }
-
-        if (Platform.isAndroid) {
-          // Printing.layoutPdf(
-          //   onLayout: (PdfPageFormat format) async => pdfBytes,
-          // );
-        }
+        // if (Platform.isWindows) {
+        //   List<Printer> printerList = await Printing.listPrinters();
+        //   for (var printer in printerList) {
+        //     if (printer.isDefault) {
+        //       Printing.directPrintPdf(
+        //           printer: printer,
+        //           onLayout: (PdfPageFormat format) => pdfBytes);
+        //     }
+        //   }
+        // }
       }
     } catch (e) {
       print(e);
@@ -515,8 +497,6 @@ class _MyDashboardState extends State<MyDashboard> {
     try {
       final results = await SalesDetails().getdetails(detailid);
       final jsonData = json.encode(results['data']);
-
-      print(jsonData);
 
       dynamic cash = 0;
       dynamic ecash = 0;
@@ -531,7 +511,6 @@ class _MyDashboardState extends State<MyDashboard> {
       String epaymentname = '';
       String referenceid = '';
       for (var data in json.decode(jsonData)) {
-        print(data['orpaymenttype']);
         setState(() {
           ornumber = data['ornumber'];
           ordate = data['ordate'];
@@ -545,7 +524,6 @@ class _MyDashboardState extends State<MyDashboard> {
           referenceid = data['referenceid'];
 
           if (orpaymenttype == 'SPLIT') {
-            print(orpaymenttype);
             if (data['paymentmethod'] != 'CASH') {
               ecash = data['amount'];
             } else {
@@ -557,7 +535,7 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
 
-      final pdfBytes = await ReprintingReceipt(
+      await ReprintingReceipt(
               ornumber,
               ordate,
               ordescription,
@@ -572,15 +550,15 @@ class _MyDashboardState extends State<MyDashboard> {
               ecash.toDouble())
           .printReceipt();
 
-      if (Platform.isWindows) {
-        List<Printer> printerList = await Printing.listPrinters();
-        for (var printer in printerList) {
-          if (printer.isDefault) {
-            Printing.directPrintPdf(
-                printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
-          }
-        }
-      }
+      // if (Platform.isWindows) {
+      //   List<Printer> printerList = await Printing.listPrinters();
+      //   for (var printer in printerList) {
+      //     if (printer.isDefault) {
+      //       Printing.directPrintPdf(
+      //           printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
+      //     }
+      //   }
+      // }
     } catch (e) {
       print(e);
     }
@@ -592,9 +570,11 @@ class _MyDashboardState extends State<MyDashboard> {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return LoadingSpinner(
-            message: 'Loading',
+            message: 'Sending Email',
           );
         });
+
+    print('$email $ornumber');
 
     final results = await SalesDetails().getdetails(ornumber);
     final jsonData = json.encode(results['data']);
@@ -622,7 +602,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
         return 'notfound';
       } else {
-        int cash = 0;
+        dynamic cash = 0;
         int ecash = 0;
         String ornumber = '';
         String ordate = '';
@@ -645,8 +625,8 @@ class _MyDashboardState extends State<MyDashboard> {
             shift = data['shift'];
             cashier = data['cashier'];
             total = data['total'];
-            epaymentname = data['epaymentname'];
-            referenceid = data['referenceid'];
+            epaymentname = data['paymentmethod'] ?? '';
+            referenceid = data['referenceid'] ?? '';
 
             if (orpaymenttype == 'SPLIT') {
               if (data['paymentmethod'] != 'CASH') {
@@ -673,7 +653,7 @@ class _MyDashboardState extends State<MyDashboard> {
           referenceid,
           cash.toDouble(),
           ecash.toDouble(),
-        ).printReceipt();
+        ).gereateEreceipt();
 
         List<Map<String, dynamic>> items =
             List<Map<String, dynamic>>.from(jsonDecode(ordescription));
@@ -775,28 +755,18 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _getcategory() async {
-    // Map<String, dynamic> networkstatus = {};
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('category.json');
+    }
 
-    // if (Platform.isAndroid) {
-    //   networkstatus =
-    //       await Helper().jsonToFileReadAndroid('networkstatus.json');
-    // }
-
-    // if (Platform.isWindows) {
-    //   networkstatus = await Helper().readJsonToFile('networkstatus.json');
-    // }
-
-    // print('Network Status: $networkstatus');
-
-    // if (networkstatus['status'] == 'offline') {
-    final jsonData = await Helper().jsonListToFileReadAndroid('category.json');
-
-    print(jsonData);
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('category.json');
+    }
     setState(() {
       for (var data in jsonData) {
         if (data['categoryname'] == 'Material') {
         } else {
-          print(data['categoryname']);
           if (data['categoryname'].toString().contains('Paint')) {
             int existingIndex =
                 mergeProducts.indexWhere((item) => item == 'Asvesti Paint');
@@ -821,34 +791,23 @@ class _MyDashboardState extends State<MyDashboard> {
         }
       }
     });
-    // } else {
-    //   final results = await CategoryAPI().getCategory();
-    //   final jsonData = json.encode(results['data']);
-    //   setState(() {
-    //     for (var data in json.decode(jsonData)) {
-    //       if (data['categoryname'] == 'Material') {
-    //       } else {
-    //         categoryList.add(CategoryModel(
-    //             data['categorycode'],
-    //             data['categoryname'],
-    //             data['status'],
-    //             data['createdby'],
-    //             data['createddate']));
-    //       }
-    //     }
-    //   });
-    // }
   }
 
   Future<void> _getcategoryitems(int category) async {
-    final productPrice =
-        await Helper().jsonListToFileReadAndroid('productprice.json');
+    dynamic productPrice;
+
+    if (Platform.isAndroid) {
+      productPrice =
+          await Helper().jsonListToFileReadAndroid('productprice.json');
+    }
+    if (Platform.isWindows) {
+      productPrice = await Helper().readJsonListToFile('productprice.json');
+    }
+
     setState(() {
       productList.clear();
       for (var product in productPrice) {
         if (product['category'] == category) {
-          print(product);
-
           productList.add(ProductPriceModel(
               product['productid'],
               product['description'],
@@ -860,125 +819,130 @@ class _MyDashboardState extends State<MyDashboard> {
         }
       }
     });
-    // print(category);
-    // final result =
-    //     await ProductPrice().getcategoryitems(category.toString(), branchid);
-    // final jsonData = json.decode(result['data']);
-
-    // if (result['msg'] == 'success') {
-    //   setState(() {
-    //     productList.clear();
-    //     // productList =
-    //     //     jsonData.map((data) => ProductPriceModel.fromJson(data)).toList();
-
-    //     for (var data in jsonData) {
-    //       productList.add(ProductPriceModel(
-    //           data['productid'],
-    //           data['description'],
-    //           data['barcode'],
-    //           data['productimage'],
-    //           data['price'],
-    //           data['category'],
-    //           data['quantity']));
-    //     }
-    //   });
-    // }
   }
 
   Future<void> _getdetailid(String pos) async {
-    final result = await SalesDetails().getdetailid(pos);
-    int id = int.parse(result['data']);
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('posdetailid.json');
+    }
 
-    print(id);
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('posdetailid.json');
+    }
+    int id = int.parse(jsonData[0]['detailid']);
 
     setState(() {
       detailid = id;
-      print(detailid);
     });
   }
 
   Future<void> _getdiscountrate(type) async {
-    final results = await DiscountAPI().getDiscountRate(type);
-    final jsonData = json.encode(results['data']);
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('discount.json');
+    }
 
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('discount.json');
+    }
     setState(() {
-      for (var data in json.decode(jsonData)) {
-        double discount = (calculateGrandTotal() * (data['rate'] / 100)) * -1;
+      for (var data in jsonData) {
+        if (data['discountname'] == type) {
+          double discount = (calculateGrandTotal() * (data['rate'] / 100)) * -1;
 
-        if (calculateGrandTotal() == 0) {
-          showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Discount'),
-                  content:
-                      const Text('Can not do discount if empty transaction'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              });
-        } else {
-          String fullname = _discountFullnameController.text == ''
-              ? 'N/A'
-              : _discountFullnameController.text;
-          String id = _discountIDController.text == ''
-              ? 'N/A'
-              : _discountIDController.text;
+          if (calculateGrandTotal() == 0) {
+            showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Discount'),
+                    content:
+                        const Text('Can not do discount if empty transaction'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close the dialog
+                        },
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  );
+                });
+          } else {
+            String fullname = _discountFullnameController.text == ''
+                ? 'N/A'
+                : _discountFullnameController.text;
+            String id = _discountIDController.text == ''
+                ? 'N/A'
+                : _discountIDController.text;
 
-          discountDetail = [
-            {
-              'detailid': detailid,
-              'discountid': data['discountid'],
-              'customerinfo': [
-                {'id': id, 'fullname': fullname}
-              ],
-              'amount': discount,
-            }
-          ];
+            discountDetail = [
+              {
+                'detailid': detailid,
+                'discountid': data['discountid'],
+                'customerinfo': [
+                  {'id': id, 'fullname': fullname}
+                ],
+                'amount': discount,
+              }
+            ];
 
-          addItem(data['discountid'], 'Discount ($type)', discount, 1, 1);
+            addItem(data['discountid'], 'Discount ($type)', discount, 1, 1);
 
-          discountItemCounter += 1;
+            discountItemCounter += 1;
+          }
         }
       }
     });
   }
 
   Future<void> _getdiscount() async {
-    final results = await DiscountAPI().getDiscount();
-    final jsonData = json.encode(results['data']);
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('discount.json');
+    }
+
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('discount.json');
+    }
 
     setState(() {
-      for (var data in json.decode(jsonData)) {
-        discountList.add(data['name']);
+      for (var data in jsonData) {
+        discountList.add(data['discountname']);
       }
     });
   }
 
   Future<void> _getpayment() async {
-    final results = await PaymentAPI().getPayment();
-    final jsonData = json.encode(results['data']);
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('payments.json');
+    }
 
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('payments.json');
+    }
     setState(() {
-      for (var data in json.decode(jsonData)) {
+      for (var data in jsonData) {
         paymentList.add(data['paymentname']);
       }
     });
   }
 
   Future<void> _getemployees() async {
-    final results = await EmployeesAPI().getEmployees();
-    final jsonData = json.encode(results['data']);
+    dynamic jsonData;
+    if (Platform.isAndroid) {
+      jsonData = await Helper().jsonListToFileReadAndroid('employees.json');
+    }
+
+    if (Platform.isWindows) {
+      jsonData = await Helper().readJsonListToFile('employees.json');
+    }
 
     setState(() {
-      for (var data in json.decode(jsonData)) {
+      for (var data in jsonData) {
         employees.add(data['fullname']);
       }
     });
@@ -1098,7 +1062,6 @@ class _MyDashboardState extends State<MyDashboard> {
       int existingIndex = itemsList.indexWhere((item) => item['name'] == name);
 
       if (stocks == 0) {
-        print(stocks);
         showDialog(
             context: context,
             barrierDismissible: false,
@@ -1845,30 +1808,129 @@ class _MyDashboardState extends State<MyDashboard> {
     String referenceid,
     String paymentname,
   ) async {
+    Map<String, dynamic> result = {};
     try {
       final TextEditingController emailController = TextEditingController();
+      final isOnline = await Helper().hasInternetConnection();
+      Uint8List? pdfBytes;
 
-      if (Platform.isAndroid) {
-        Helper().jsonToFileWriteAndroid({
-          'date': date,
-          'posid': posid,
-          'shift': shift,
-          'paymenttype': paymenttype,
-          'referenceid': referenceid,
-          'paymentname': paymentname,
-          'items': items,
-          'total': total,
-          'cashier':
-              salesrepresentative == '' ? widget.fullname : salesrepresentative,
-          'cash': cashAmount.toString(),
-          'ecash': '0',
-          'branch': branchid,
-          'discountdetail': jsonEncode(discountDetail)
-        }, 'sales.json');
+      Map<String, dynamic> printerconfig = {};
+      Map<String, dynamic> emailconfig = {};
+      if (Platform.isWindows) {
+        printerconfig = await Helper().readJsonToFile('printer.json');
+        emailconfig = await Helper().readJsonToFile('email.json');
       }
 
-      if (Platform.isWindows) {
+      if (Platform.isAndroid) {
+        printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
+        emailconfig = await Helper().jsonToFileReadAndroid('email.json');
+      }
+
+      if (isOnline) {
+        result = await POSTransaction().sending(
+            detailid,
+            date,
+            posid,
+            shift,
+            paymenttype,
+            referenceid,
+            paymentname,
+            items,
+            total,
+            salesrepresentative == '' ? widget.fullname : salesrepresentative,
+            cashAmount.toString(),
+            '0',
+            branchid,
+            jsonEncode(discountDetail));
+
+        pdfBytes = await Receipt(
+                itemsList,
+                cashAmount,
+                detailid,
+                posid,
+                cashier,
+                shift,
+                companyname,
+                address,
+                tin,
+                paymenttype,
+                referenceid,
+                paymentname,
+                0,
+                salesrepresentative == '' ? cashier : salesrepresentative)
+            .printReceipt();
+
+        if (result['msg'] == 'success') {
+          // if (Platform.isAndroid && printerconfig['printerip'] == '') {
+          //   Printing.layoutPdf(
+          //       onLayout: (PdfPageFormat format) async => pdfBytes,
+          //       name: detailid.toString());
+          // } else if (Platform.isWindows) {
+          //   List<Printer> printerList = await Printing.listPrinters();
+          //   for (var localprinter in printerList) {
+          //     if (localprinter.isDefault) {
+          //       Printing.directPrintPdf(
+          //           printer: localprinter,
+          //           onLayout: (PdfPageFormat format) => pdfBytes);
+          //     }
+          //   }
+          // }
+
+          if (Platform.isAndroid) {
+            Helper().jsonListToFileWriteAndroid([
+              {
+                'detailid': detailid,
+              }
+            ], 'posdetailid.json');
+          }
+          if (Platform.isWindows) {
+            Helper().writeListJsonToFile([
+              {
+                'detailid': detailid,
+              }
+            ], 'posdetailid.json');
+          }
+        } else {
+          showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Error'),
+                  content: Text(
+                      'Please inform administrator. Thank you! ${result['status']}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close the dialog
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+        }
+
+        await _syncSales();
+      } else {
+        if (Platform.isAndroid) {
+          Helper().jsonListToFileWriteAndroid([
+            {
+              'detailid': detailid,
+            }
+          ], 'posdetailid.json');
+        }
+
+        if (Platform.isWindows) {
+          Helper().writeListJsonToFile([
+            {
+              'detailid': detailid,
+            }
+          ], 'posdetailid.json');
+        }
+
         Helper().appendDataToJsonFile('sales.json', {
+          'detailid': detailid,
           'date': date,
           'posid': posid,
           'shift': shift,
@@ -1886,218 +1948,116 @@ class _MyDashboardState extends State<MyDashboard> {
           'issync': 0
         });
 
-        // Helper().writeJsonToFile({
-        //   'date': date,
-        //   'posid': posid,
-        //   'shift': shift,
-        //   'paymenttype': paymenttype,
-        //   'referenceid': referenceid,
-        //   'paymentname': paymentname,
-        //   'items': items,
-        //   'total': total,
-        //   'cashier':
-        //       salesrepresentative == '' ? widget.fullname : salesrepresentative,
-        //   'cash': cashAmount.toString(),
-        //   'ecash': '0',
-        //   'branch': branchid,
-        //   'discountdetail': jsonEncode(discountDetail)
-        // }, 'sales.json');
+        await Receipt(
+                itemsList,
+                cashAmount,
+                detailid,
+                posid,
+                cashier,
+                shift,
+                companyname,
+                address,
+                tin,
+                paymenttype,
+                referenceid,
+                paymentname,
+                0,
+                salesrepresentative == '' ? cashier : salesrepresentative)
+            .printReceipt();
       }
 
-      final result = await POSTransaction().sending(
-          detailid,
-          date,
-          posid,
-          shift,
-          paymenttype,
-          referenceid,
-          paymentname,
-          items,
-          total,
-          salesrepresentative == '' ? widget.fullname : salesrepresentative,
-          cashAmount.toString(),
-          '0',
-          branchid,
-          jsonEncode(discountDetail));
-      final pdfBytes = await Receipt(
-              itemsList,
-              cashAmount,
-              detailid,
-              posid,
-              cashier,
-              shift,
-              companyname,
-              address,
-              tin,
-              paymenttype,
-              referenceid,
-              paymentname,
-              0,
-              salesrepresentative == '' ? cashier : salesrepresentative)
-          .printReceipt();
-      Map<String, dynamic> printerconfig = {};
-      Map<String, dynamic> emailconfig = {};
-      if (Platform.isWindows) {
-        printerconfig = await Helper().readJsonToFile('printer.json');
-        emailconfig = await Helper().readJsonToFile('email.json');
-      }
-
-      if (Platform.isAndroid) {
-        printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
-        emailconfig = await Helper().jsonToFileReadAndroid('email.json');
-      }
-
-      if (result['msg'] == 'success') {
-        if (Platform.isAndroid && printerconfig['printerip'] == '') {
-          Printing.layoutPdf(
-              onLayout: (PdfPageFormat format) async => pdfBytes,
-              name: detailid.toString());
-        } else if (Platform.isWindows) {
-          List<Printer> printerList = await Printing.listPrinters();
-          for (var localprinter in printerList) {
-            if (localprinter.isDefault) {
-              Printing.directPrintPdf(
-                  printer: localprinter,
-                  onLayout: (PdfPageFormat format) => pdfBytes);
-            }
-          }
-        }
-
-        showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Success'),
-                content: const Text('Transaction successfull'),
-                actions: <Widget>[
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Transaction successfull'),
+              actions: <Widget>[
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    _clearItems();
+                    await _syncInventory();
+                  },
+                  child: const Text('OK'),
+                ),
+                if (printerconfig['productionprinterip'] != '')
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor:
                             Theme.of(context).colorScheme.onPrimary),
                     onPressed: () async {
-                      Navigator.of(context).pop();
-                      _clearItems();
-                      await _syncInventory();
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (context) => ReceiptScreen(
-                      //       cash: cashAmount,
-                      //       items: itemsList,
-                      //       cashier: cashier,
-                      //       detailid: detailid,
-                      //       posid: posid,
-                      //       shift: shift,
-                      //     ),
-                      //   ),
-                      // );
+                      await OrderSlip(itemsList, Helper().GetCurrentDatetime(),
+                              detailid)
+                          .printOrderSlip();
                     },
-                    child: const Text('OK'),
+                    child: const Text('Printer Order Slip'),
                   ),
-                  if (printerconfig['productionprinterip'] != '')
-                    ElevatedButton(
+                if (emailconfig['emailaddress'] != '' && isOnline)
+                  ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor:
                               Theme.of(context).colorScheme.primary,
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary),
-                      onPressed: () async {
-                        await OrderSlip(itemsList,
-                                Helper().GetCurrentDatetime(), detailid)
-                            .printOrderSlip();
-                      },
-                      child: const Text('Printer Order Slip'),
-                    ),
-                  if (emailconfig['emailaddress'] != '')
-                    ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor:
-                                Theme.of(context).colorScheme.onPrimary),
-                        onPressed: () {
-                          showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text('Customer Email'),
-                                  content: SizedBox(
-                                    height: 200,
-                                    width: 200,
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        TextField(
-                                          controller: emailController,
-                                          keyboardType:
-                                              TextInputType.emailAddress,
-                                          decoration: const InputDecoration(
-                                              labelText: 'Customer Email',
-                                              hintText: 'you@example.com'),
-                                        )
-                                      ],
-                                    ),
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Customer Email'),
+                                content: SizedBox(
+                                  height: 200,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: emailController,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Customer Email',
+                                            hintText: 'you@example.com'),
+                                      )
+                                    ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                        onPressed: () async {
-                                          String email = emailController.text;
-                                          if (isValidEmail(email)) {
-                                            String message = '';
+                                ),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () async {
+                                        String email = emailController.text;
+                                        if (isValidEmail(email)) {
+                                          String message = '';
 
-                                            showDialog(
-                                                context: context,
-                                                barrierDismissible: false,
-                                                builder:
-                                                    (BuildContext context) {
-                                                  return LoadingSpinner(
-                                                    message: 'Sending...',
-                                                  );
-                                                });
-                                            message = await Email().sendMail(
-                                                detailid.toString(),
-                                                email,
-                                                pdfBytes,
-                                                cashier,
-                                                itemsList,
-                                                paymentname,
-                                                referenceid);
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return LoadingSpinner(
+                                                  message: 'Sending...',
+                                                );
+                                              });
+                                          message = await Email().sendMail(
+                                              detailid.toString(),
+                                              email,
+                                              pdfBytes!,
+                                              cashier,
+                                              itemsList,
+                                              paymentname,
+                                              referenceid);
 
-                                            Navigator.of(context).pop();
+                                          Navigator.of(context).pop();
 
-                                            if (message != 'success') {
-                                            } else {
-                                              Navigator.of(context).pop();
-                                              showDialog(
-                                                  context: context,
-                                                  barrierDismissible: false,
-                                                  builder:
-                                                      (BuildContext context) {
-                                                    return AlertDialog(
-                                                      title:
-                                                          const Text('Success'),
-                                                      content: const Text(
-                                                          'E-Receipt sent successfully!'),
-                                                      actions: [
-                                                        TextButton(
-                                                            onPressed: () {
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                            },
-                                                            child: const Text(
-                                                                'Ok'))
-                                                      ],
-                                                    );
-                                                  });
-
-                                              _clearItems();
-                                            }
+                                          if (message != 'success') {
                                           } else {
+                                            Navigator.of(context).pop();
                                             showDialog(
                                                 context: context,
                                                 barrierDismissible: false,
@@ -2105,9 +2065,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     (BuildContext context) {
                                                   return AlertDialog(
                                                     title:
-                                                        const Text('Invalid'),
+                                                        const Text('Success'),
                                                     content: const Text(
-                                                        'Invalid Email Address!'),
+                                                        'E-Receipt sent successfully!'),
                                                     actions: [
                                                       TextButton(
                                                           onPressed: () {
@@ -2115,47 +2075,50 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                     context)
                                                                 .pop();
                                                           },
-                                                          child: const Text(
-                                                              'Close'))
+                                                          child:
+                                                              const Text('Ok'))
                                                     ],
                                                   );
                                                 });
+
+                                            _clearItems();
                                           }
-                                        },
-                                        child: const Text('Send')),
-                                    TextButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: const Text('Close')),
-                                  ],
-                                );
-                              });
-                        },
-                        child: const Text('Send E-Receipt')),
-                ],
-              );
-            });
-      } else {
-        showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content: Text(
-                    'Please inform administrator. Thank you! ${result['status']}'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
-                    },
-                    child: const Text('OK'),
-                  ),
-                ],
-              );
-            });
-      }
+                                        } else {
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('Invalid'),
+                                                  content: const Text(
+                                                      'Invalid Email Address!'),
+                                                  actions: [
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                        child:
+                                                            const Text('Close'))
+                                                  ],
+                                                );
+                                              });
+                                        }
+                                      },
+                                      child: const Text('Send')),
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Close')),
+                                ],
+                              );
+                            });
+                      },
+                      child: const Text('Send E-Receipt')),
+              ],
+            );
+          });
     } catch (e) {
       print(e);
       showDialog(
@@ -2200,6 +2163,14 @@ class _MyDashboardState extends State<MyDashboard> {
 
   Future<void> _syncInventory() async {
     await _syncToDatabase.getProductPrice();
+  }
+
+  Future<void> _syncPOS() async {
+    await _syncToDatabase.getPosShift();
+  }
+
+  Future<void> _syncSales() async {
+    await _syncToDatabase.syncSales();
   }
 
   double _remaining() {
@@ -2647,6 +2618,15 @@ class _MyDashboardState extends State<MyDashboard> {
                                       Theme.of(context).colorScheme.onPrimary,
                                 ),
                                 onPressed: () {
+                                  showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (BuildContext context) {
+                                        return LoadingSpinner(
+                                          message: 'Loading',
+                                        );
+                                      });
+
                                   String paymenttype = 'EPAYMENT';
                                   String paymentname = paymentList[index];
                                   String message = '';
@@ -2696,6 +2676,14 @@ class _MyDashboardState extends State<MyDashboard> {
                                           );
                                         });
                                   } else {
+                                    showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (BuildContext context) {
+                                          return LoadingSpinner(
+                                            message: 'Loading',
+                                          );
+                                        });
                                     detailid++;
                                     _transaction(
                                         detailid.toString(),
@@ -2709,7 +2697,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                         referenceid,
                                         paymentname);
 
-                                    Navigator.of(context).pop();
                                     Navigator.of(context).pop();
                                     Navigator.of(context).pop();
                                   }
@@ -3118,6 +3105,11 @@ class _MyDashboardState extends State<MyDashboard> {
                         DataCell(Text(formatAsCurrency(totalCost))),
                         DataCell(IconButton(
                             onPressed: () {
+                              if (product['name']
+                                  .toString()
+                                  .contains('Discount')) {
+                                discountItemCounter -= 1;
+                              }
                               confirmAndRemove(index);
                             },
                             icon: const Icon(Icons.delete))),
@@ -3246,9 +3238,6 @@ class _MyDashboardState extends State<MyDashboard> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      if (kDebugMode) {
-                        print(itemsList.length);
-                      }
                       if (itemsList.isEmpty) {
                         showDialog(
                             context: context,
@@ -3270,6 +3259,7 @@ class _MyDashboardState extends State<MyDashboard> {
                               );
                             });
                       } else {
+                        print('PUMASOK');
                         showDialog(
                           context: context,
                           barrierDismissible: false,
@@ -3384,7 +3374,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                                   ),
                                                 ],
                                               ),
-                                              ////ARECEIPT
                                               actions: [
                                                 ElevatedButton(
                                                   style:

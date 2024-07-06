@@ -61,6 +61,28 @@ class DatabaseHelper {
         createdby VARCHAR(300) NOT NULL,
         createddate VARCHAR(20) NOT NULL)''');
     print('done creating promo table');
+
+    await db.execute('''CREATE TABLE payments 
+        (id INT AUTO_INCREMENT PRIMARY KEY, 
+        paymentname VARCHAR(300) NOT NULL)''');
+    print('done creating payments table');
+
+    await db.execute('''CREATE TABLE employees
+        (id INT AUTO_INCREMENT  PRIMARY KEY, 
+        fullname VARCHAR(300) NOT NULL)''');
+    print('done creating employees table');
+
+    await db.execute('''CREATE TABLE posdetailid
+        (id INT AUTO_INCREMENT  PRIMARY KEY, 
+        detailid int NOT NULL)''');
+    print('done creating posdetailid table');
+
+    await db.execute('''CREATE TABLE posshift
+        (posid INT  PRIMARY KEY, 
+        date varchar(20) NOT NULL,
+        shift int NOT NULL,
+        status varchar(20) NOT NULL)''');
+    print('done creating posshift table');
   }
 
   Future<int> insertItem(Map<String, dynamic> item, String tablename) async {

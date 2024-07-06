@@ -66,6 +66,12 @@ class _PosConfigState extends State<PosConfig> {
       await createJsonFile('productprice.json');
       await createJsonFile('discounts.json');
       await createJsonFile('promo.json');
+      await createJsonFile('payments.json');
+      await createJsonFile('employees.json');
+      await createJsonFile('posdetailid.json');
+      await createJsonFile('posshift.json');
+      await createJsonFile('sales.json');
+      await createJsonFile('refund.json');
 
       Map<String, dynamic> pos =
           await Helper().jsonToFileReadAndroid('pos.json');
@@ -222,12 +228,20 @@ class _PosConfigState extends State<PosConfig> {
       }
     }
 
-  
+    final isOnline = await Helper().hasInternetConnection();
+
+    if (isOnline) {
       await _syncToDatabase.getcategory();
       await _syncToDatabase.getProductPrice();
       await _syncToDatabase.getDiscount();
       await _syncToDatabase.getPromo();
-    
+      await _syncToDatabase.getPayments();
+      await _syncToDatabase.getEmployees();
+      await _syncToDatabase.getDetailID();
+      await _syncToDatabase.getPosShift();
+
+      await _syncToDatabase.syncSales();
+    }
   }
 
   Future<void> _sync() async {

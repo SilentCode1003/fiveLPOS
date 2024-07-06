@@ -87,8 +87,8 @@
 
 ### Version 1.2.22
 
-- Fix EPAYMENT
-- Fix discount
-- Fix refund
-- Fix split payment
-- Fix split payment     
+- Added offline data for discount, category, productprice, employees, payments
+
+### Version 1.2.23
+
+- Added offline posshiftlo, posdetailid, posshiftlog

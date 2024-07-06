@@ -78,7 +78,11 @@ class OrderSlip {
       printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
     }
 
-    if (Platform.isAndroid && printerconfig['isenable']) {
+    if (Platform.isWindows) {
+      printerconfig = await Helper().readJsonToFile('printer.json');
+    }
+
+    if (Platform.isAndroid || Platform.isWindows && printerconfig['isenable']) {
       PrinterNetworkManager printer =
           PrinterNetworkManager(printerconfig['productionprinterip']);
       PosPrintResult connect = await printer.connect();
