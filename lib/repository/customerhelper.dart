@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:fivelPOS/api/category.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:intl/intl.dart';
@@ -290,12 +291,15 @@ class Helper {
       }
 
       try {
-        print('Checking internet connection...');
         int checkConnection = 0;
-        await checkAddressWithPort('192.168.10.22', 3050)
-            .then((value) => {if (value) checkConnection++});
-        // await InternetAddress.lookup('google.com').then(
-        //     (value) => {if (value.isNotEmpty) checkConnection++});
+        print('Checking internet connection...');
+
+        await checkAddressWithPort('142.251.221.46', 80).then((value) {
+          print(value);
+          if (value) {
+            checkConnection++;
+          }
+        });
 
         print('checkConnection: $checkConnection');
         if (checkConnection != 0) {
@@ -328,7 +332,8 @@ class Helper {
           }
           return false;
         }
-      } catch (_) {
+      } catch (error) {
+        print('Error: $error \n Internet connection not available');
         return false;
       }
     }
@@ -336,8 +341,10 @@ class Helper {
 
   Future<bool> checkAddressWithPort(String address, int port) async {
     try {
-      final socket =
-          await Socket.connect(address, port, timeout: Duration(seconds: 5));
+      final socket = await Socket.connect(address, port,
+          timeout: const Duration(seconds: 5));
+
+      print(socket.remoteAddress.address);
       socket.destroy();
       return true;
     } catch (e) {

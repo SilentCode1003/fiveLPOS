@@ -581,7 +581,11 @@ class _PosConfigState extends State<PosConfig> {
       }
 
       // Convert the Map to a JSON string
-      final jsonString = jsonEncode(jsonData);
+      String jsonString = jsonEncode(jsonData);
+
+      if(filename == 'sales.json'){
+        jsonString = '[]';
+      }
 
       // Write the JSON string to the file
       file.writeAsStringSync(jsonString);

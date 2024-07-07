@@ -92,3 +92,8 @@
 ### Version 1.2.23
 
 - Added offline posshiftlo, posdetailid, posshiftlog
+
+### Version 1.2.24
+
+- Fix offline sales saving
+- Fix email sending and removed print during sending

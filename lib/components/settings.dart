@@ -362,7 +362,7 @@ class _SettingsPageState extends State<SettingsPage> {
       case 1:
         return EmailPage(
           emailaddress: emailaddress,
-          emailpassword: emailaddress,
+          emailpassword: emailpassword,
           smtp: smtp,
         );
       case 2:
@@ -721,7 +721,7 @@ class _PrinterPageState extends State<PrinterPage> {
   }
 }
 
-class EmailPage extends StatelessWidget {
+class EmailPage extends StatefulWidget {
   final String emailaddress;
   final String emailpassword;
   final String smtp;
@@ -734,147 +734,179 @@ class EmailPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    TextEditingController _emailaddress =
-        TextEditingController(text: emailaddress);
-    TextEditingController _emailpassword =
-        TextEditingController(text: emailpassword);
-    TextEditingController _smtpserver = TextEditingController(text: smtp);
+  State<EmailPage> createState() => _EmailPageState();
+}
 
-    Future<void> saveEmailConfig(jsnonData) async {
-      if (Platform.isWindows) {
-        await Helper()
-            .writeJsonToFile(jsnonData, 'email.json')
-            .then((value) => showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text('Success'),
-                    content: const Text('Email configuration saved!'),
-                    icon: const Icon(Icons.check),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                }));
-      }
-      if (Platform.isAndroid) {
-        await Helper()
-            .jsonToFileWriteAndroid(jsnonData, 'email.json')
-            .then((value) => showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Success'),
-                    content: const Text('Email configuration saved!'),
-                    icon: const Icon(Icons.check),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                }));
-      }
+class _EmailPageState extends State<EmailPage> {
+  final TextEditingController _emailaddress = TextEditingController();
+  final TextEditingController _emailpassword = TextEditingController();
+  final TextEditingController _smtpserver = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailaddress.text = widget.emailaddress;
+    _emailpassword.text = widget.emailpassword;
+    _smtpserver.text = widget.smtp;
+  }
+
+  Future<void> saveEmailConfig(jsnonData) async {
+    if (Platform.isWindows) {
+      await Helper()
+          .writeJsonToFile(jsnonData, 'email.json')
+          .then((value) => showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Success'),
+                  content: const Text('Email configuration saved!'),
+                  icon: const Icon(Icons.check),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              }));
     }
+    if (Platform.isAndroid) {
+      await Helper()
+          .jsonToFileWriteAndroid(jsnonData, 'email.json')
+          .then((value) => showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Success'),
+                  content: const Text('Email configuration saved!'),
+                  icon: const Icon(Icons.check),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              }));
+    }
+  }
 
+  bool obscureText = true;
+
+  void togglePasswordVisibility() {
+    setState(() {
+      obscureText = !obscureText;
+      print(obscureText);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            constraints: const BoxConstraints(
-              minWidth: 200.0,
-              maxWidth: 380.0,
-            ),
-            child: TextField(
-              controller: _emailaddress,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                  ),
-                  labelText: 'Email',
-                  labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                  border: OutlineInputBorder(),
-                  hintText: 'Email Address',
-                  prefixIcon: Icon(Icons.email)),
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Container(
-            constraints: const BoxConstraints(
-              minWidth: 200.0,
-              maxWidth: 380.0,
-            ),
-            child: TextField(
-              controller: _emailpassword,
-              keyboardType: TextInputType.text,
-              decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                  ),
-                  labelText: 'Password',
-                  labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                  border: OutlineInputBorder(),
-                  hintText: 'Email Password',
-                  prefixIcon: Icon(Icons.password)),
-              obscureText: true,
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Container(
-            constraints: const BoxConstraints(
-              minWidth: 200.0,
-              maxWidth: 380.0,
-            ),
-            child: TextField(
-              controller: _smtpserver,
-              keyboardType: TextInputType.text,
-              decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                  ),
-                  labelText: 'SMTP',
-                  labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                  border: OutlineInputBorder(),
-                  hintText: 'SMTP Server',
-                  prefixIcon: Icon(Icons.desktop_windows)),
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Container(
+      child: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
               constraints: const BoxConstraints(
-                minHeight: 40,
                 minWidth: 200.0,
                 maxWidth: 380.0,
               ),
-              child: ElevatedButton(
-                  onPressed: () {
-                    saveEmailConfig({
-                      'emailaddress': _emailaddress.text,
-                      'emailpassword': _emailpassword.text,
-                      'emailserver': _smtpserver.text
-                    });
-                  },
-                  child: const Text(
-                    'SAVE',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                  )))
-        ],
+              child: TextField(
+                controller: _emailaddress,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                    ),
+                    labelText: 'Email',
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    border: OutlineInputBorder(),
+                    hintText: 'Email Address',
+                    prefixIcon: Icon(Icons.email)),
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Container(
+              constraints: const BoxConstraints(
+                minWidth: 200.0,
+                maxWidth: 380.0,
+              ),
+              child: TextField(
+                controller: _emailpassword,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureText
+                          ? Icons.visibility_off
+                          : Icons.visibility),
+                      onPressed: togglePasswordVisibility,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                    ),
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    border: OutlineInputBorder(),
+                    hintText: 'Email Password',
+                    prefixIcon: Icon(Icons.password)),
+                obscureText: obscureText,
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Container(
+              constraints: const BoxConstraints(
+                minWidth: 200.0,
+                maxWidth: 380.0,
+              ),
+              child: TextField(
+                controller: _smtpserver,
+                keyboardType: TextInputType.text,
+                decoration: const InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                    ),
+                    labelText: 'SMTP',
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    border: OutlineInputBorder(),
+                    hintText: 'SMTP Server',
+                    prefixIcon: Icon(Icons.desktop_windows)),
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Container(
+                constraints: const BoxConstraints(
+                  minHeight: 40,
+                  minWidth: 200.0,
+                  maxWidth: 380.0,
+                ),
+                child: ElevatedButton(
+                    onPressed: () {
+                      saveEmailConfig({
+                        'emailaddress': _emailaddress.text,
+                        'emailpassword': _emailpassword.text,
+                        'emailserver': _smtpserver.text
+                      });
+                    },
+                    child: const Text(
+                      'SAVE',
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                    )))
+          ],
+        ),
       ),
     );
   }

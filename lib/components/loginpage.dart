@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fivelPOS/main.dart';
+import 'package:flutter/widgets.dart';
 
 import '/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
@@ -16,28 +17,11 @@ import '../model/userinfo.dart';
 import '../api/login.dart';
 import 'loadingspinner.dart';
 
-// void main() {
-//   runApp(MyApp());
-// }
-
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'POS Shift Login',
-//       theme: ThemeData(
-//         primarySwatch: Colors.blue,
-//       ),
-//       home: LoginPage(),
-//     );
-//   }
-// }
-
 class LoginPage extends StatefulWidget {
-  String logo;
-  LoginPage({super.key, required this.logo});
+  final String logo;
+  const LoginPage({super.key, required this.logo});
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -48,24 +32,18 @@ class _LoginPageState extends State<LoginPage> {
   String tin = '';
   String address = '';
   String branchlogo = '';
-  var _printerStatus;
-  // DatabaseHelper dbHelper = DatabaseHelper();
 
-  var _printer;
+  bool obscureText = true;
 
   @override
   void initState() {
     super.initState();
-    // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
     _loadRememberedCredentials();
     setState(() {
       List<String> logo =
           utf8.decode(base64.decode(widget.logo)).split('<svg ');
       branchlogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
-      // _printerinitiate();
     });
-
-    // print(branchlogo);
   }
 
   Future<void> _loadRememberedCredentials() async {
@@ -203,35 +181,11 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _printerinitiate() async {
-    const PaperSize paper = PaperSize.mm80;
-    final profile = await CapabilityProfile.load();
-    var printerconfig = {};
-    if (Platform.isWindows) {
-      printerconfig = await Helper().readJsonToFile('printer.json');
-    }
-    if (Platform.isAndroid) {
-      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
-    }
-
-    // print(profile.name);
-
-    // final printer = Generator(paper, profile);
-    final printer = PrinterNetworkManager(printerconfig['key'] == 'value'
-        ? '192.168.10.120'
-        : printerconfig['printerip']);
-
-    final PosPrintResult res = await printer.connect();
-
-    print(res.msg);
-    // print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
-    _printerStatus = res.msg;
-    _printer = printer;
-
-    // printer.text('INITIAL PRINT');
-    // printer.text('INITIAL PRINT');
-    // printer.feed(1);
-    // printer.cut();
+  void togglePasswordVisibility() {
+    setState(() {
+      obscureText = !obscureText;
+      print(obscureText);
+    });
   }
 
   @override
@@ -268,9 +222,15 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
-                          obscureText: true,
-                          decoration:
-                              const InputDecoration(labelText: 'Password'),
+                          obscureText: obscureText,
+                          decoration: InputDecoration(
+                              labelText: 'Password',
+                              suffixIcon: IconButton(
+                                onPressed: togglePasswordVisibility,
+                                icon: Icon(obscureText
+                                    ? Icons.visibility
+                                    : Icons.visibility_off),
+                              )),
                         ),
                         const SizedBox(height: 32),
                         ElevatedButton(

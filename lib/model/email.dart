@@ -6,6 +6,7 @@ class EmailModel {
   EmailModel(this.emailaddress, this.emailpassword, this.emailserver);
 
   factory EmailModel.fromJson(Map<String, dynamic> json) {
-    return EmailModel(json['branchid'], json['emailpassword'], json['emailserver']);
+    return EmailModel(
+        json['emailaddress'], json['emailpassword'], json['emailserver']);
   }
 }
