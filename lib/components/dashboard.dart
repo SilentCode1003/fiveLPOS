@@ -1233,6 +1233,24 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
+                      onPressed: isEndShift
+                          ? () async {
+                              await _syncSales();
+                            }
+                          : null,
+                      child: const Text(
+                        'SYNC DATA',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      )),
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 90)),
                       onPressed: () {
                         // Navigator.pushReplacementNamed(context, '/setting');
                         Navigator.push(
@@ -1242,6 +1260,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                     reprint: _reprint,
                                     refund: _refund,
                                     email: _sendreceipt,
+                                    orderslip: _orderslip,
                                     posid: posid,
                                   )),
                         );
@@ -1925,7 +1944,6 @@ class _MyDashboardState extends State<MyDashboard> {
                 );
               });
         }
-
         await _syncSales();
       } else {
         if (Platform.isAndroid) {
@@ -2160,6 +2178,51 @@ class _MyDashboardState extends State<MyDashboard> {
       showDialog(
           context: context,
           barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Transaction Error'),
+              content: Text('Please inform administrator. Thank you! $e'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
+  }
+
+  Future<void> _orderslip(detailid) async {
+    try {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return LoadingSpinner(message: 'Printing...');
+          });
+      final results = await SalesDetails().getdetails(detailid);
+      final jsonData = json.encode(results['data']);
+      String ordescription = '';
+      String date = '';
+
+      for (var data in json.decode(jsonData)) {
+        setState(() {
+          ordescription = data['ordescription'];
+          date = data['ordate'];
+        });
+      }
+      List<Map<String, dynamic>> items =
+          List<Map<String, dynamic>>.from(jsonDecode(ordescription));
+
+      await OrderSlip(items, date, detailid)
+          .printOrderSlip()
+          .then((e) => Navigator.of(context).pop());
+    } catch (e) {
+      print(e);
+      showDialog(
+          context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Transaction Error'),

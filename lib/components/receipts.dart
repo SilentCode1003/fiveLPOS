@@ -14,6 +14,7 @@ class ReceiptPage extends StatefulWidget {
   final Function reprint;
   final Function refund;
   final Function email;
+  final Function orderslip;
   final String posid;
 
   const ReceiptPage({
@@ -21,7 +22,7 @@ class ReceiptPage extends StatefulWidget {
     required this.reprint,
     required this.refund,
     required this.email,
-    required this.posid,
+    required this.posid, required this.orderslip,
   });
 
   @override
@@ -309,6 +310,14 @@ class _ReceiptPageState extends State<ReceiptPage> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      IconButton(
+                        onPressed: () {
+                          widget.orderslip(receipts[index].detailid!);
+                        },
+                        icon: Icon(Icons.receipt),
+                        color: Colors.teal,
+                        iconSize: 40,
+                      ),
                       IconButton(
                         onPressed: () {
                           widget.reprint(receipts[index].detailid!);

@@ -10,6 +10,7 @@ import 'package:fivelPOS/model/discount.dart';
 import 'package:fivelPOS/model/productprice.dart';
 import 'package:fivelPOS/repository/bluetoothprinter.dart';
 import 'package:fivelPOS/repository/dbhelper.dart';
+import 'package:fivelPOS/repository/sync.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import '../api/category.dart';
@@ -331,6 +332,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     label: Text('Promo & Discounts'),
                   ),
                   NavigationRailDestination(
+                    icon: Icon(Icons.install_desktop),
+                    selectedIcon: Icon(Icons.install_desktop),
+                    label: Text('Offline Files'),
+                  ),
+                  NavigationRailDestination(
                     icon: Icon(Icons.exit_to_app),
                     selectedIcon: Icon(Icons.exit_to_app),
                     label: Text('Exit'),
@@ -370,6 +376,8 @@ class _SettingsPageState extends State<SettingsPage> {
       case 3:
         return const DiscountPromoPage();
       case 4:
+        return ConfigFiles();
+      case 5:
         return AlertDialog(
           title: const Text('Return'),
           content: const Text('Click click button to return.'),
@@ -1661,5 +1669,77 @@ class _PromoPageState extends State<PromoPage> {
                 );
               });
         });
+  }
+}
+
+class ConfigFiles extends StatefulWidget {
+  const ConfigFiles({super.key});
+
+  @override
+  State<ConfigFiles> createState() => _ConfigFilesState();
+}
+
+class _ConfigFilesState extends State<ConfigFiles> {
+  Future<void> _syncAndReset() async {
+    try {
+      showDialog(
+          context: context,
+          builder: (context) {
+            return LoadingSpinner(message: 'Loading...');
+          });
+
+      if (Platform.isAndroid) {
+        resetJsonFileArrayAndroid('sales.json');
+      }
+
+      if (Platform.isWindows) {
+        resetJsonFileArray('sales.json');
+      }
+
+      Navigator.pop(context);
+    } catch (e) {
+      print(e);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('Please inform administrator. Thank you! $e'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+        child: Container(
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      SizedBox(
+        height: 70,
+        width: 240,
+        child: ElevatedButton(
+          onPressed: () async {
+            await _syncAndReset();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          ),
+          child: const Text(
+            'SYNC AND RESET',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    ])));
   }
 }

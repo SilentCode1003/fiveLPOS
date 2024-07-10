@@ -352,3 +352,53 @@ class Helper {
     }
   }
 }
+
+Future<void> resetJsonFileArrayAndroid(filename) async {
+  try {
+    // Get the current working
+
+    final directory = await getApplicationDocumentsDirectory();
+
+    // Specify the file name and path
+    final filePath = '${directory.path}/$filename';
+
+    // Create a File object
+    final File file = File(filePath);
+
+    // Convert the Map to a JSON string
+    String jsonString = '[]';
+
+    // Write the JSON string to the file
+    file.writeAsStringSync(jsonString);
+
+    print('JSON file created successfully at: $filePath');
+  } catch (e) {
+    print('Error creating JSON file: $e');
+  }
+}
+
+Future<void> resetJsonFileArray(filename) async {
+  try {
+    // Get the current working
+
+    final currentDirectory = Platform.isAndroid
+        ? getApplicationDocumentsDirectory()
+        : Directory.current.path;
+
+    // Specify the file name and path
+    final String filePath = '$currentDirectory/$filename';
+
+    // Create a File object
+    final File file = File(filePath);
+
+    // Convert the Map to a JSON string
+    String jsonString = '[]';
+
+    // Write the JSON string to the file
+    file.writeAsStringSync(jsonString);
+
+    print('JSON file created successfully at: $filePath');
+  } catch (e) {
+    print('Error creating JSON file: $e');
+  }
+}

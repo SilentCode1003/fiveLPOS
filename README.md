@@ -101,3 +101,8 @@
 ### Version 1.2.25
 
 - Remove stock display
+
+### Version 1.2.26
+
+- Add sync and reset button
+- Added reprint of order slip
