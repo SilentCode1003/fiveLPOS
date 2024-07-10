@@ -97,3 +97,7 @@
 
 - Fix offline sales saving
 - Fix email sending and removed print during sending
+
+### Version 1.2.25
+
+- Remove stock display

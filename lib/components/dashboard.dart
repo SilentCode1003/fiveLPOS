@@ -4235,11 +4235,23 @@ class _SearchModalState extends State<SearchModal> {
                           1,
                           _filteredItems[index].quantity);
                     },
-              label: Text(
-                '${_filteredItems[index].description}\nStocks:${_filteredItems[index].quantity}\n\nSKU:${_filteredItems[index].barcode}',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              label: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${_filteredItems[index].description}',
+                    style: const TextStyle(
+                        fontSize: 28, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    'SKU:${_filteredItems[index].barcode}',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ));
 

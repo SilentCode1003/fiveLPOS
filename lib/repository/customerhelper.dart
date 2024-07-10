@@ -294,7 +294,7 @@ class Helper {
         int checkConnection = 0;
         print('Checking internet connection...');
 
-        await checkAddressWithPort('142.251.221.46', 80).then((value) {
+        await checkAddressWithPort('104.21.85.83', 80).then((value) {
           print(value);
           if (value) {
             checkConnection++;
