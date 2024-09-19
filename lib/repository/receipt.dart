@@ -13,7 +13,7 @@ import 'package:image/image.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '/api/promo.dart';
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 import '/repository/dbhelper.dart';
 
 class Receipt {

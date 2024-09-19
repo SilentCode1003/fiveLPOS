@@ -6,13 +6,13 @@ import 'dart:io';
 import 'package:fivelPOS/repository/sync.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
-import '/api/branch.dart';
-import '/components/circularprogressbar.dart';
-import '/components/loginpage.dart';
-import '/repository/dbhelper.dart';
-import '/api/posconfig.dart';
+import 'package:fivelPOS/api/branch.dart';
+import 'package:fivelPOS/components/circularprogressbar.dart';
+import 'package:fivelPOS/components/loginpage.dart';
+import 'package:fivelPOS/repository/dbhelper.dart';
+import 'package:fivelPOS/api/posconfig.dart';
 import 'package:path_provider/path_provider.dart';
 
 class PosConfig extends StatefulWidget {
@@ -71,6 +71,7 @@ class _PosConfigState extends State<PosConfig> {
       await createJsonFile('posdetailid.json');
       await createJsonFile('posshift.json');
       await createJsonFile('sales.json');
+      await createJsonFile('splitpayment.json');
       await createJsonFile('refund.json');
 
       Map<String, dynamic> pos =
@@ -241,6 +242,8 @@ class _PosConfigState extends State<PosConfig> {
       await _syncToDatabase.getPosShift();
 
       await _syncToDatabase.syncSales();
+      await _syncToDatabase.syncSplitSales();
+      await _syncToDatabase.syncRefund();
     }
   }
 
@@ -583,7 +586,7 @@ class _PosConfigState extends State<PosConfig> {
       // Convert the Map to a JSON string
       String jsonString = jsonEncode(jsonData);
 
-      if(filename == 'sales.json'){
+      if (filename == 'sales.json' || filename == 'splitpayment.json' || filename == 'refund.json') {
         jsonString = '[]';
       }
 

@@ -106,3 +106,14 @@
 
 - Add sync and reset button
 - Added reprint of order slip
+
+### Version 1.2.27
+
+-Change item display from 4 to 6 columns
+
+
+### Version 1.2.28
+
+- Fix added split payement with epayment to epayment
+- Added offline splitpayment
+- Added Syncing of split sales and refund offline

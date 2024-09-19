@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
+// import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fivelPOS/main.dart';
 import 'package:flutter/widgets.dart';
 
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '/components/dashboard.dart';

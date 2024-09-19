@@ -10,7 +10,7 @@ import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 
 import 'package:image/image.dart';
 import 'package:pdf/pdf.dart';
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 import '/repository/dbhelper.dart';
 import 'package:pdf/widgets.dart' as pw;
 

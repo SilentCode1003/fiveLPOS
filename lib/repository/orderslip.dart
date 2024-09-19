@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 

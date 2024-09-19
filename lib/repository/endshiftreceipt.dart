@@ -5,7 +5,7 @@ import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_blue/gen/flutterblue.pbserver.dart' as pbserver;
 
 import '/model/shiftreport.dart';
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';

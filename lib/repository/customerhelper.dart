@@ -351,54 +351,54 @@ class Helper {
       return false;
     }
   }
-}
 
-Future<void> resetJsonFileArrayAndroid(filename) async {
-  try {
-    // Get the current working
+  Future<void> resetJsonFileArrayAndroid(filename) async {
+    try {
+      // Get the current working
 
-    final directory = await getApplicationDocumentsDirectory();
+      final directory = await getApplicationDocumentsDirectory();
 
-    // Specify the file name and path
-    final filePath = '${directory.path}/$filename';
+      // Specify the file name and path
+      final filePath = '${directory.path}/$filename';
 
-    // Create a File object
-    final File file = File(filePath);
+      // Create a File object
+      final File file = File(filePath);
 
-    // Convert the Map to a JSON string
-    String jsonString = '[]';
+      // Convert the Map to a JSON string
+      String jsonString = '[]';
 
-    // Write the JSON string to the file
-    file.writeAsStringSync(jsonString);
+      // Write the JSON string to the file
+      file.writeAsStringSync(jsonString);
 
-    print('JSON file created successfully at: $filePath');
-  } catch (e) {
-    print('Error creating JSON file: $e');
+      print('JSON file created successfully at: $filePath');
+    } catch (e) {
+      print('Error creating JSON file: $e');
+    }
   }
-}
 
-Future<void> resetJsonFileArray(filename) async {
-  try {
-    // Get the current working
+  Future<void> resetJsonFileArray(filename) async {
+    try {
+      // Get the current working
 
-    final currentDirectory = Platform.isAndroid
-        ? getApplicationDocumentsDirectory()
-        : Directory.current.path;
+      final currentDirectory = Platform.isAndroid
+          ? getApplicationDocumentsDirectory()
+          : Directory.current.path;
 
-    // Specify the file name and path
-    final String filePath = '$currentDirectory/$filename';
+      // Specify the file name and path
+      final String filePath = '$currentDirectory/$filename';
 
-    // Create a File object
-    final File file = File(filePath);
+      // Create a File object
+      final File file = File(filePath);
 
-    // Convert the Map to a JSON string
-    String jsonString = '[]';
+      // Convert the Map to a JSON string
+      String jsonString = '[]';
 
-    // Write the JSON string to the file
-    file.writeAsStringSync(jsonString);
+      // Write the JSON string to the file
+      file.writeAsStringSync(jsonString);
 
-    print('JSON file created successfully at: $filePath');
-  } catch (e) {
-    print('Error creating JSON file: $e');
+      print('JSON file created successfully at: $filePath');
+    } catch (e) {
+      print('Error creating JSON file: $e');
+    }
   }
 }

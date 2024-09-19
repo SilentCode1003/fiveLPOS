@@ -9,7 +9,9 @@ import 'package:fivelPOS/api/salesdetails.dart';
 import 'package:fivelPOS/model/customert.dart';
 import 'package:fivelPOS/model/discountdetail.dart';
 import 'package:fivelPOS/model/items.dart';
+import 'package:fivelPOS/model/refund.dart';
 import 'package:fivelPOS/model/sales.dart';
+import 'package:fivelPOS/model/splitsales.dart';
 import 'package:fivelPOS/repository/dbhelper.dart';
 
 import '../api/category.dart';
@@ -498,6 +500,153 @@ class SyncToDatabase {
     if (Platform.isAndroid) {
       print('android');
       Helper().jsonListToFileWriteAndroid(jsonToWrite, 'sales.json');
+    }
+  }
+
+  Future<void> syncSplitSales() async {
+    List<dynamic> sales = [];
+    String posid = '';
+    if (Platform.isWindows) {
+      sales = await Helper().readJsonListToFile('splitpayment.json');
+    }
+
+    if (Platform.isAndroid) {
+      sales = await Helper().jsonListToFileReadAndroid('splitpayment.json');
+    }
+
+    print(sales);
+
+    if (sales.isEmpty) {
+      return;
+    }
+
+    for (var s in sales) {
+      SplitSalesModel ss = SplitSalesModel.fromJson(s);
+      List<Map<String, dynamic>> items = [];
+      List<Map<String, dynamic>> discount = [];
+
+      print('Syncing: OR# ${ss.detaildid}...');
+
+      for (ItemsModel item in ss.items) {
+        items.add({
+          'id': item.id,
+          'name': item.name,
+          'price': item.price,
+          'quantity': item.quantity,
+          'stocks': item.stocks,
+        });
+      }
+
+      if (ss.discountdetails.isNotEmpty) {
+        for (DiscountDetailModel discountdetail in ss.discountdetails) {
+          List<CustomerModel> customerinfo = discountdetail.customerinfo;
+          for (CustomerModel customer in customerinfo) {
+            discount.add({
+              'detailid': discountdetail.detailid,
+              'discountid': discountdetail.discountid,
+              'customerinfo': [
+                {'fullname': customer.fullname, 'id': customer.id}
+              ],
+              'amount': discountdetail.amount,
+            });
+          }
+        }
+        print('DISCOUNT: $discount');
+      }
+
+      print('ITEMS: $items');
+
+      final results = await POSTransaction().splitpayment(
+          ss.detaildid,
+          ss.date,
+          ss.posid,
+          ss.shift,
+          jsonEncode(items),
+          ss.staff,
+          ss.firstpayment,
+          ss.secondpayment,
+          ss.firstpaymenttype,
+          ss.secondpaymenttype,
+          ss.branchid,
+          ss.firstpatmentreference,
+          ss.secondpaymentreference,
+          jsonEncode(discount),
+          ss.total);
+
+      final jsonData = json.encode(results['data']);
+      if (results['msg'] == 'success') {
+        print('Success: OR# ${ss.detaildid} Synced');
+      } else {
+        print(results['msg']);
+      }
+    }
+
+    List<Map<String, dynamic>> jsonToWrite = [];
+
+    // if (Platform.isAndroid) {
+    //   _databaseHelper.deleteItem('sales');
+    // }
+
+    if (Platform.isWindows) {
+      print('windows');
+      Helper().writeListJsonToFile(jsonToWrite, 'splitpayment.json');
+    }
+
+    if (Platform.isAndroid) {
+      print('android');
+      Helper().jsonListToFileWriteAndroid(jsonToWrite, 'splitpayment.json');
+    }
+  }
+
+  Future<void> syncRefund() async {
+    List<dynamic> sales = [];
+    String posid = '';
+    if (Platform.isWindows) {
+      sales = await Helper().readJsonListToFile('refund.json');
+    }
+
+    if (Platform.isAndroid) {
+      sales = await Helper().jsonListToFileReadAndroid('refund.json');
+    }
+
+    print(sales);
+
+    if (sales.isEmpty) {
+      return;
+    }
+
+    for (var s in sales) {
+      RefundModel ss = RefundModel.fromJson(s);
+      print('Syncing: OR# ${ss.detaildid} for REFUND...');
+
+      final results = await SalesDetails().refund(
+        ss.detaildid,
+        ss.reason,
+        ss.cashier
+      );
+
+      final jsonData = json.encode(results['data']);
+      if (results['msg'] == 'success') {
+        print('Success: OR# ${ss.detaildid} Synced');
+      } else {
+        print(results['msg']);
+      }
+    }
+
+    List<Map<String, dynamic>> jsonToWrite = [];
+
+    // if (Platform.isAndroid) {
+    //   _databaseHelper.deleteItem('sales');
+    // }
+
+    if (Platform.isWindows) {
+      print('windows');
+      Helper().writeListJsonToFile(jsonToWrite, 'refund.json');
+    }
+
+    if (Platform.isAndroid) {
+      print('android');
+      Helper().jsonListToFileWriteAndroid(jsonToWrite, 'refund.json');
     }
   }
 }

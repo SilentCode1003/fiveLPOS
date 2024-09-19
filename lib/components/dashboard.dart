@@ -5,38 +5,38 @@ import 'dart:io';
 import 'package:fivelPOS/components/receipts.dart';
 import 'package:fivelPOS/components/reports.dart';
 
-import '../repository/sync.dart';
-import '/api/addon.dart';
-import '/api/employees.dart';
-import '/api/package.dart';
-import '/api/services.dart';
-import '/api/shiftreport.dart';
-import '/components/settings.dart';
-import '/model/addon.dart';
-import '/model/category.dart';
-import '/model/servicepackage.dart';
-import '/model/services.dart';
-import '/model/shiftreport.dart';
-import '/repository/endshiftreceipt.dart';
-import '/repository/orderslip.dart';
+import 'package:fivelPOS/repository/sync.dart';
+import 'package:fivelPOS/api/addon.dart';
+import 'package:fivelPOS/api/employees.dart';
+import 'package:fivelPOS/api/package.dart';
+import 'package:fivelPOS/api/services.dart';
+import 'package:fivelPOS/api/shiftreport.dart';
+import 'package:fivelPOS/components/settings.dart';
+import 'package:fivelPOS/model/addon.dart';
+import 'package:fivelPOS/model/category.dart';
+import 'package:fivelPOS/model/servicepackage.dart';
+import 'package:fivelPOS/model/services.dart';
+import 'package:fivelPOS/model/shiftreport.dart';
+import 'package:fivelPOS/repository/endshiftreceipt.dart';
+import 'package:fivelPOS/repository/orderslip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '/api/discount.dart';
-import '/api/payment.dart';
-import '/api/posshiftlog.dart';
-import '/components/loadingspinner.dart';
-import '/model/productprice.dart';
-import '/api/category.dart';
-import '/repository/customerhelper.dart';
-import '/api/salesdetails.dart';
-import '/api/productprice.dart';
-import '/repository/email.dart';
-import '/repository/receipt.dart';
-import '/api/transaction.dart';
-import '/repository/reprint.dart';
+import 'package:fivelPOS/api/discount.dart';
+import 'package:fivelPOS/api/payment.dart';
+import 'package:fivelPOS/api/posshiftlog.dart';
+import 'package:fivelPOS/components/loadingspinner.dart';
+import 'package:fivelPOS/model/productprice.dart';
+import 'package:fivelPOS/api/category.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
+import 'package:fivelPOS/api/salesdetails.dart';
+import 'package:fivelPOS/api/productprice.dart';
+import 'package:fivelPOS/repository/email.dart';
+import 'package:fivelPOS/repository/receipt.dart';
+import 'package:fivelPOS/api/transaction.dart';
+import 'package:fivelPOS/repository/reprint.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 
@@ -96,7 +96,6 @@ class _MyDashboardState extends State<MyDashboard> {
 
   double splitcash = 0;
   double splitepayamount = 0;
-  double remaining = 0;
   int discountItemCounter = 0;
 
   final TextEditingController _serialNumberController = TextEditingController();
@@ -131,6 +130,26 @@ class _MyDashboardState extends State<MyDashboard> {
 
   bool isConnected = true;
 
+  String splitEPaymentType = '';
+
+  final TextEditingController _firstepaymentController =
+      TextEditingController();
+  final TextEditingController _secondepymentController =
+      TextEditingController();
+  String firstepayment = '';
+  String secondepyment = '';
+
+  double firstepaymentReceive = 0;
+  double secondepaymentReceive = 0;
+
+  final TextEditingController firstpaymentreferenceController =
+      TextEditingController();
+  final TextEditingController secondepaymentreferenceController =
+      TextEditingController();
+
+  String firstepaymentreference = '';
+  String secondepaymentreference = '';
+
 //printer parameters
   @override
   void initState() {
@@ -156,10 +175,10 @@ class _MyDashboardState extends State<MyDashboard> {
     _searchController.dispose();
     _refundORController.dispose();
     _refundReasonController.dispose();
+    _firstepaymentController.dispose();
+    _secondepymentController.dispose();
     super.dispose();
   }
-
-// #region API CALLS
 
   Future<void> _checknetowrkstatus() async {
     final isOnline = await Helper().hasInternetConnection();
@@ -2253,10 +2272,20 @@ class _MyDashboardState extends State<MyDashboard> {
       _discountIDController.clear();
 
       discountItemCounter = 0;
+      splitcash = 0;
+      splitepayamount = 0;
+
+      firstepaymentReceive = 0;
+      secondepaymentReceive = 0;
 
       shiftsolditems.clear();
       shiftstaffsales.clear();
       shiftsummarypayment.clear();
+
+      firstpaymentreferenceController.clear();
+      secondepaymentreferenceController.clear();
+      _firstepaymentController.clear();
+      _secondepymentController.clear();
     });
   }
 
@@ -2270,16 +2299,29 @@ class _MyDashboardState extends State<MyDashboard> {
 
   Future<void> _syncSales() async {
     await _syncToDatabase.syncSales();
+    await _syncToDatabase.syncSplitSales();
+    await _syncToDatabase.syncRefund();
   }
 
   double _remaining() {
     double total = calculateGrandTotal();
-
+    double balance = 0;
     setState(() {
-      remaining = total - (splitcash + splitepayamount);
+      balance = total - (splitcash + splitepayamount);
     });
 
-    return remaining;
+    return balance;
+  }
+
+  double _remainingSplit() {
+    double total = calculateGrandTotal();
+    double balance = 0;
+
+    setState(() {
+      balance = total - (firstepaymentReceive + secondepaymentReceive);
+    });
+
+    return balance;
   }
 
   Future<void> _splitpayment(
@@ -2418,6 +2460,7 @@ class _MyDashboardState extends State<MyDashboard> {
               salesrepresentative == '' ? widget.fullname : salesrepresentative)
           .printReceipt();
 
+      Navigator.of(context).pop();
       Navigator.of(context).pop();
       Navigator.of(context).pop();
       Navigator.of(context).pop();
@@ -2592,6 +2635,304 @@ class _MyDashboardState extends State<MyDashboard> {
     }
   }
 
+  Future<void> _splitepayment(
+      double firstepayment,
+      double secondepayment,
+      String firstepaymentreference,
+      String secondepaymentreference,
+      String firstepaymentname,
+      String secondepaymentname,
+      String paymentmethod,
+      String detailid,
+      String salesreprentative,
+      String items) async {
+    try {
+      final TextEditingController emailController = TextEditingController();
+      double total = firstepayment + secondepayment;
+      final isOnline = await Helper().hasInternetConnection();
+      Uint8List? pdfBytes;
+      String date = helper.GetCurrentDatetime();
+
+      Map<String, dynamic> printerconfig = {};
+      Map<String, dynamic> emailconfig = {};
+      if (Platform.isWindows) {
+        printerconfig = await Helper().readJsonToFile('printer.json');
+        emailconfig = await Helper().readJsonToFile('email.json');
+      }
+
+      if (Platform.isAndroid) {
+        printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
+        emailconfig = await Helper().jsonToFileReadAndroid('email.json');
+      }
+
+      if (isOnline) {
+        final result = await POSTransaction().splitpayment(
+          detailid,
+          date,
+          posid,
+          shift,
+          items,
+          salesreprentative,
+          firstepayment.toString(),
+          secondepayment.toString(),
+          firstepaymentname,
+          secondepaymentname,
+          branchid,
+          firstepaymentreference,
+          secondepaymentreference,
+          json.encode(discountDetail),
+          calculateGrandTotal().toString(),
+        );
+
+        print(result);
+
+        if (result['status'] == 200) {
+          if (Platform.isAndroid) {
+            Helper().jsonListToFileWriteAndroid([
+              {
+                'detailid': detailid,
+              }
+            ], 'posdetailid.json');
+          }
+          if (Platform.isWindows) {
+            Helper().writeListJsonToFile([
+              {
+                'detailid': detailid,
+              }
+            ], 'posdetailid.json');
+          }
+
+          await _syncSales();
+        } else {
+          return showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Error'),
+                  content: Text('${result['msg']}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close the dialog
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+        }
+      } else {
+        if (Platform.isAndroid) {
+          Helper().jsonListToFileWriteAndroid([
+            {
+              'detailid': detailid,
+            }
+          ], 'posdetailid.json');
+        }
+
+        if (Platform.isWindows) {
+          Helper().writeListJsonToFile([
+            {
+              'detailid': detailid,
+            }
+          ], 'posdetailid.json');
+        }
+
+        Helper().appendDataToJsonFile('splitpayment', {
+          'detailid': detailid,
+          'date': date,
+          'posid': posid,
+          'shift': shift,
+          'items': items,
+          'staff':
+              salesrepresentative == '' ? widget.fullname : salesrepresentative,
+          'firstpayment': firstepayment,
+          'secondpayment': secondepayment,
+          'firstpaymenttype': firstepaymentname,
+          'secondpaymenttype': secondepaymentname,
+          'branchid': branchid,
+          'firstpatmentreference': firstepaymentreference,
+          'secondpaymentreference': secondepaymentreference,
+          'discountdetails': jsonEncode(discountDetail),
+          'total': calculateGrandTotal().toString(),
+        });
+      }
+
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Transaction process successfully!'),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    _clearItems();
+                  },
+                  child: const Text('OK'),
+                ),
+                if (printerconfig['productionprinterip'] != '')
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary),
+                    onPressed: () async {
+                      await OrderSlip(itemsList, Helper().GetCurrentDatetime(),
+                              detailid)
+                          .printOrderSlip();
+                    },
+                    child: const Text('Printer Order Slip'),
+                  ),
+                if (emailconfig['emailaddress'] != '' && isOnline)
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary),
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Customer Email'),
+                                content: SizedBox(
+                                  height: 200,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      TextField(
+                                        controller: emailController,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Customer Email',
+                                            hintText: 'you@example.com'),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () async {
+                                        String email = emailController.text;
+                                        if (isValidEmail(email)) {
+                                          String message = '';
+
+                                          showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return LoadingSpinner(
+                                                  message: 'Sending...',
+                                                );
+                                              });
+                                          // message = await Email().sendMail(
+                                          //     detailid.toString(),
+                                          //     email,
+                                          //     pdfBytes!,
+                                          //     cashier,
+                                          //     itemsList,
+                                          //     epaymentname,
+                                          //     referenceid);
+
+                                          Navigator.of(context).pop();
+
+                                          if (message != 'success') {
+                                          } else {
+                                            Navigator.of(context).pop();
+                                            showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title:
+                                                        const Text('Success'),
+                                                    content: const Text(
+                                                        'E-Receipt sent successfully!'),
+                                                    actions: [
+                                                      TextButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                          child:
+                                                              const Text('Ok'))
+                                                    ],
+                                                  );
+                                                });
+
+                                            _clearItems();
+                                          }
+                                        } else {
+                                          showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('Invalid'),
+                                                  content: const Text(
+                                                      'Invalid Email Address!'),
+                                                  actions: [
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                        child:
+                                                            const Text('Close'))
+                                                  ],
+                                                );
+                                              });
+                                        }
+                                      },
+                                      child: const Text('Send')),
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Close')),
+                                ],
+                              );
+                            });
+                      },
+                      child: const Text('Send E-Receipt')),
+              ],
+            );
+          });
+    } catch (e) {
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+      print(e);
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Transaction Error'),
+              content: Text('Please inform administrator. Thank you! $e'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
+  }
+
   Future<void> _discount() async {
     final List<Widget> discount = List<Widget>.generate(
         discountList.length,
@@ -2626,52 +2967,66 @@ class _MyDashboardState extends State<MyDashboard> {
                           context: context,
                           barrierDismissible: false,
                           builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text(discountList[index]),
-                              content: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: TextField(
-                                      controller: _discountIDController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'ID',
-                                        hintText: '163456',
-                                        border: OutlineInputBorder(),
-                                      ),
+                            return SingleChildScrollView(
+                              child: AlertDialog(
+                                title: Text(discountList[index]),
+                                content: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 520,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: TextField(
+                                              controller: _discountIDController,
+                                              decoration: const InputDecoration(
+                                                labelText: 'ID',
+                                                hintText: '163456',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                    Row(children: [
+                                      SizedBox(
+                                        width: 520,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: TextField(
+                                            controller:
+                                                _discountFullnameController,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Fullname',
+                                              hintText: 'Juan Dela Cruz',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ]),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('Close'),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: TextField(
-                                      controller: _discountFullnameController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Fullname',
-                                        hintText: 'Juan Dela Cruz',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
+                                  TextButton(
+                                    onPressed: () {
+                                      _getdiscountrate(discountList[index]);
+                                      Navigator.of(context)
+                                          .pop(); // Close the dialog
+                                    },
+                                    child: const Text('Apply'),
                                   ),
                                 ],
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context)
-                                        .pop(); // Close the dialog
-                                  },
-                                  child: const Text('Close'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    _getdiscountrate(discountList[index]);
-                                    Navigator.of(context)
-                                        .pop(); // Close the dialog
-                                  },
-                                  child: const Text('Apply'),
-                                ),
-                              ],
                             );
                           })
                       : _getdiscountrate(discountList[index]);
@@ -2898,21 +3253,144 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<void> _refund(ornumber, reason) async {
-    final results =
-        await SalesDetails().refund(ornumber, reason, widget.fullname);
-    final jsonData = json.encode(results['data']);
+    bool isOnline = await Helper().hasInternetConnection();
+    if (!isOnline) {
+      Helper().appendDataToJsonFile('refund', {
+        'detailid': detailid,
+        'reason': reason,
+        'cashier': widget.fullname,
+      });
+    } else {
+      final results =
+          await SalesDetails().refund(ornumber, reason, widget.fullname);
+      final jsonData = json.encode(results['data']);
 
-    print(results);
+      print(results);
 
-    if (jsonData.length == 2) {
+      if (jsonData.length == 2) {
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Not Found'),
+                content: Text('OR Number $ornumber not found'),
+                icon: const Icon(Icons.warning),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            });
+      } else {
+        if (results['msg'] == 'refunded') {
+          return showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Already Exist'),
+                  content: Text('OR Number $ornumber already refunded!'),
+                  icon: const Icon(Icons.warning),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+        }
+
+        if (results['msg'] == 'ornotexist') {
+          return showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Not Exist'),
+                  content: Text('OR Number $ornumber does not exist!'),
+                  icon: const Icon(Icons.warning),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+        }
+      }
+    }
+
+    return showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Success'),
+            content: Text('OR Number $ornumber successfully refunded!'),
+            icon: const Icon(Icons.check),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        });
+  }
+
+  Future<void> _splitoptions() async {
+    try {
       showDialog(
           context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
+          builder: (context) {
             return AlertDialog(
-              title: const Text('Not Found'),
-              content: Text('OR Number $ornumber not found'),
-              icon: const Icon(Icons.warning),
+              title: const Text('Select Options'),
+              content: Row(
+                children: [
+                  SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                        onPressed: () {
+                          _cash_epaymentoption();
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onPrimary,
+                            minimumSize: const Size(120, 70)),
+                        child: const Text('CASH AND E-PAYMENT')),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                        onPressed: () {
+                          _epayment_epaymentoption();
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onPrimary,
+                            minimumSize: const Size(120, 70)),
+                        child: const Text('E-PAYMENT AND E-PAYMENT')),
+                  )
+                ],
+              ),
               actions: [
                 TextButton(
                   onPressed: () async {
@@ -2923,71 +3401,516 @@ class _MyDashboardState extends State<MyDashboard> {
               ],
             );
           });
-    } else {
-      if (results['msg'] == 'refunded') {
-        return showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Already Exist'),
-                content: Text('OR Number $ornumber already refunded!'),
-                icon: const Icon(Icons.warning),
-                actions: [
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('OK'),
-                  ),
-                ],
-              );
-            });
-      }
-
-      if (results['msg'] == 'ornotexist') {
-        return showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Not Exist'),
-                content: Text('OR Number $ornumber does not exist!'),
-                icon: const Icon(Icons.warning),
-                actions: [
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('OK'),
-                  ),
-                ],
-              );
-            });
-      }
-
-      return showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Success'),
-              content: Text('OR Number $ornumber successfully refunded!'),
-              icon: const Icon(Icons.check),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          });
+    } catch (e) {
+      AlertDialog(
+        title: const Text('Error'),
+        content: Text(e.toString()),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      );
     }
   }
 
-// #endregion
+  Future<void> _cash_epaymentoption() async {
+    _remaining();
+
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          double remaining = 0;
+          return StatefulBuilder(builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Total:'),
+                  Text(
+                      '${CurrencySymbols.PESO} ${formatAsCurrency(calculateGrandTotal())}',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green)),
+                  const SizedBox(width: 120),
+                  const Text(
+                    'Remaining:',
+                  ),
+                  Text('${CurrencySymbols.PESO} ${formatAsCurrency(remaining)}',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 520,
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            CurrencyInputFormatter(
+                              leadingSymbol: CurrencySymbols.PESO,
+                            ),
+                          ],
+                          onChanged: (value) {
+                            String numericValue = value.replaceAll(
+                              RegExp('[${CurrencySymbols.PESO},]'),
+                              '',
+                            );
+
+                            setState(() {
+                              splitcash = double.tryParse(numericValue) ?? 0;
+
+                              remaining = _remaining();
+                            });
+                          },
+                          controller: _splitCashController,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter cash received',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 60,
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SizedBox(
+                        width: 240,
+                        child: DropdownMenu(
+                          initialSelection: paymentList.first,
+                          onSelected: (String? value) {
+                            setState(() {
+                              splitEPaymentType = value!;
+                            });
+                          },
+                          dropdownMenuEntries: paymentList
+                              .map<DropdownMenuEntry<String>>((String value) {
+                            return DropdownMenuEntry<String>(
+                                value: value, label: value);
+                          }).toList(),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 240,
+                        child: TextField(
+                          controller: _splitReferenceidController,
+                          decoration:
+                              const InputDecoration(labelText: 'Reference ID'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 520,
+                        child: TextField(
+                          controller: _splitAmountController,
+                          inputFormatters: [
+                            CurrencyInputFormatter(
+                              leadingSymbol: CurrencySymbols.PESO,
+                            ),
+                          ],
+                          onChanged: (value) {
+                            String numericValue = value.replaceAll(
+                              RegExp('[${CurrencySymbols.PESO},]'),
+                              '',
+                            );
+
+                            setState(() {
+                              splitepayamount =
+                                  double.tryParse(numericValue) ?? 0;
+
+                              remaining = _remaining();
+                            });
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Enter e-payment received amount',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return LoadingSpinner(
+                              message: 'Loading',
+                            );
+                          });
+
+                      String splitReferenceid =
+                          _splitReferenceidController.text;
+
+                      double totaltendered = splitcash + splitepayamount;
+
+                      String message = '';
+                      String title = '';
+
+                      if (totaltendered == 0) {
+                        message += 'Please enter amount to proceed.\n';
+                        title += '[Enter Amount]';
+                      }
+                      if (totaltendered < calculateGrandTotal()) {
+                        message +=
+                            'Please enter the right amount received from e-payment or cash.\n';
+                        title += '[Insufficient Funds]';
+                      }
+                      if (splitReferenceid == '') {
+                        message += 'Please enter reference id.\n';
+                        title += '[Reference ID]';
+                      }
+
+                      if (totaltendered > calculateGrandTotal()) {
+                        message +=
+                            'Please enter the right amount received from e-payment or cash.\n';
+                        title += '[Overfunds]';
+                      }
+
+                      if (remaining > 0) {
+                        message += 'Remaining: $remaining\n';
+                        title += '[Remaining Balance]';
+                      }
+
+                      if (splitEPaymentType == 'Select Payment Type') {
+                        message += 'Please select payment type\n';
+                        title += '[Payment Type]';
+                      }
+
+                      if (message != '') {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text(title),
+                                content: Text(message),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('Close'))
+                                ],
+                              );
+                            });
+                      } else {
+                        detailid++;
+
+                        print(splitEPaymentType);
+
+                        _splitpayment(
+                          splitcash,
+                          splitepayamount,
+                          'SPLIT',
+                          splitReferenceid,
+                          splitEPaymentType == ''
+                              ? paymentList.first
+                              : splitEPaymentType,
+                          detailid.toString(),
+                          salesrepresentative == ''
+                              ? widget.fullname
+                              : salesrepresentative,
+                          jsonEncode(itemsList),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(120, 70)),
+                    child: const Text('Submit')),
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                    child: const Text('Close'))
+              ],
+            );
+          });
+        });
+  }
+
+  Future<void> _epayment_epaymentoption() async {
+    _remainingSplit();
+
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          double balance = 0;
+          return StatefulBuilder(builder: (context, setState) {
+            return SingleChildScrollView(
+              child: AlertDialog(
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Amount Due:'),
+                    Text(
+                        '${CurrencySymbols.PESO} ${formatAsCurrency(calculateGrandTotal())}',
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green)),
+                    const Text('Remaining:'),
+                    Text('${CurrencySymbols.PESO} ${formatAsCurrency(balance)}',
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.red)),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        DropdownMenu(
+                          initialSelection: paymentList.first,
+                          onSelected: (String? value) {
+                            setState(() {
+                              firstepayment = value!;
+                            });
+                          },
+                          dropdownMenuEntries: paymentList
+                              .map<DropdownMenuEntry<String>>((String value) {
+                            return DropdownMenuEntry<String>(
+                                value: value, label: value);
+                          }).toList(),
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        SizedBox(
+                          width: 300,
+                          child: TextField(
+                            controller: firstpaymentreferenceController,
+                            decoration: const InputDecoration(
+                                labelText: 'Reference ID'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 520,
+                          child: TextField(
+                            controller: _firstepaymentController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              CurrencyInputFormatter(
+                                leadingSymbol: CurrencySymbols.PESO,
+                              ),
+                            ],
+                            onChanged: (value) {
+                              String numericValue = value.replaceAll(
+                                RegExp('[${CurrencySymbols.PESO},]'),
+                                '',
+                              );
+
+                              setState(() {
+                                firstepaymentReceive =
+                                    double.tryParse(numericValue) ?? 0;
+
+                                balance = _remainingSplit();
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Enter first payment received amount',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+                    Row(
+                      children: [
+                        DropdownMenu(
+                          initialSelection: paymentList.first,
+                          onSelected: (String? value) {
+                            setState(() {
+                              secondepyment = value!;
+                            });
+                          },
+                          dropdownMenuEntries: paymentList
+                              .map<DropdownMenuEntry<String>>((String value) {
+                            return DropdownMenuEntry<String>(
+                                value: value, label: value);
+                          }).toList(),
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        SizedBox(
+                          width: 300,
+                          child: TextField(
+                            controller: secondepaymentreferenceController,
+                            decoration: const InputDecoration(
+                                labelText: 'Reference ID'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 520,
+                          child: TextField(
+                            controller: _secondepymentController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              CurrencyInputFormatter(
+                                leadingSymbol: CurrencySymbols.PESO,
+                              ),
+                            ],
+                            onChanged: (value) {
+                              String numericValue = value.replaceAll(
+                                RegExp('[${CurrencySymbols.PESO},]'),
+                                '',
+                              );
+
+                              setState(() {
+                                secondepaymentReceive =
+                                    double.tryParse(numericValue) ?? 0;
+
+                                balance = _remainingSplit();
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Enter e-payment received amount',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+                actions: [
+                  ElevatedButton(
+                      onPressed: () {
+                        double balance = _remainingSplit();
+                        String message = '';
+                        firstepaymentreference =
+                            firstpaymentreferenceController.text;
+                        secondepaymentreference =
+                            secondepaymentreferenceController.text;
+
+                        print(
+                            'first: $firstepaymentReceive second: $secondepaymentReceive balance: $balance');
+
+                        if (firstepaymentReceive == 0 ||
+                            secondepaymentReceive == 0) {
+                          message += 'Please enter valid amount';
+                        }
+                        if (balance > 0) {
+                          message += 'Insufficient funds';
+                        }
+                        if (balance < 0) {
+                          message += 'Over funds';
+                        }
+                        if (firstepayment == secondepyment) {
+                          message += 'Please select different payment method';
+                        }
+
+                        if (message != '') {
+                          showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: Text('Transaction Failed'),
+                                  content: Text(
+                                    message,
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Close'))
+                                  ],
+                                );
+                              });
+                        } else {
+                          detailid += 1;
+                          _splitepayment(
+                            firstepaymentReceive,
+                            secondepaymentReceive,
+                            firstepaymentreference,
+                            secondepaymentreference,
+                            firstepayment == ''
+                                ? paymentList.first
+                                : firstepayment,
+                            secondepyment == ''
+                                ? paymentList.first
+                                : secondepyment,
+                            'SPLIT',
+                            detailid.toString(),
+                            salesrepresentative == ''
+                                ? widget.fullname
+                                : salesrepresentative,
+                            jsonEncode(itemsList),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(120, 70)),
+                      child: const Text('Proceed')),
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close the dialog
+                      },
+                      child: const Text('Close'))
+                ],
+              ),
+            );
+          });
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> category = List<Widget>.generate(
@@ -3081,8 +4004,6 @@ class _MyDashboardState extends State<MyDashboard> {
               ),
             ));
 
-    List<String> options = ['Select Payment Type', 'GCASH', 'PAYMAYA', 'CARD'];
-    String splitEPaymentType = options[1];
     String selectedSalesRepresentative = '';
 
     return WillPopScope(
@@ -3682,273 +4603,7 @@ class _MyDashboardState extends State<MyDashboard> {
                                       width: 120,
                                       child: ElevatedButton(
                                           onPressed: () {
-                                            _remaining();
-
-                                            showDialog(
-                                                context: context,
-                                                barrierDismissible: false,
-                                                builder:
-                                                    (BuildContext context) {
-                                                  return AlertDialog(
-                                                    title: const Text(
-                                                        'Split Payment'),
-                                                    content: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                            'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        TextField(
-                                                          keyboardType:
-                                                              TextInputType
-                                                                  .number,
-                                                          inputFormatters: [
-                                                            CurrencyInputFormatter(
-                                                              leadingSymbol:
-                                                                  CurrencySymbols
-                                                                      .PESO,
-                                                            ),
-                                                          ],
-                                                          onChanged: (value) {
-                                                            String
-                                                                numericValue =
-                                                                value
-                                                                    .replaceAll(
-                                                              RegExp(
-                                                                  '[${CurrencySymbols.PESO},]'),
-                                                              '',
-                                                            );
-
-                                                            setState(() {
-                                                              splitcash = double
-                                                                      .tryParse(
-                                                                          numericValue) ??
-                                                                  0;
-
-                                                              _remaining();
-                                                            });
-                                                          },
-                                                          controller:
-                                                              _splitCashController,
-                                                          decoration:
-                                                              const InputDecoration(
-                                                            hintText:
-                                                                'Enter amount',
-                                                            border:
-                                                                OutlineInputBorder(),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 90,
-                                                        ),
-                                                        DropdownMenu(
-                                                          initialSelection:
-                                                              paymentList.first,
-                                                          onSelected:
-                                                              (String? value) {
-                                                            setState(() {
-                                                              splitEPaymentType =
-                                                                  value!;
-                                                            });
-                                                          },
-                                                          dropdownMenuEntries:
-                                                              paymentList.map<
-                                                                  DropdownMenuEntry<
-                                                                      String>>((String
-                                                                  value) {
-                                                            return DropdownMenuEntry<
-                                                                    String>(
-                                                                value: value,
-                                                                label: value);
-                                                          }).toList(),
-                                                        ),
-                                                        TextField(
-                                                          controller:
-                                                              _splitReferenceidController,
-                                                          decoration:
-                                                              const InputDecoration(
-                                                                  labelText:
-                                                                      'Reference ID'),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        TextField(
-                                                          controller:
-                                                              _splitAmountController,
-                                                          inputFormatters: [
-                                                            CurrencyInputFormatter(
-                                                              leadingSymbol:
-                                                                  CurrencySymbols
-                                                                      .PESO,
-                                                            ),
-                                                          ],
-                                                          onChanged: (value) {
-                                                            String
-                                                                numericValue =
-                                                                value
-                                                                    .replaceAll(
-                                                              RegExp(
-                                                                  '[${CurrencySymbols.PESO},]'),
-                                                              '',
-                                                            );
-
-                                                            setState(() {
-                                                              splitepayamount =
-                                                                  double.tryParse(
-                                                                          numericValue) ??
-                                                                      0;
-
-                                                              _remaining();
-                                                            });
-                                                          },
-                                                          decoration:
-                                                              const InputDecoration(
-                                                            hintText:
-                                                                'Enter amount',
-                                                            border:
-                                                                OutlineInputBorder(),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    actions: [
-                                                      ElevatedButton(
-                                                          onPressed: () {
-                                                            showDialog(
-                                                                context:
-                                                                    context,
-                                                                barrierDismissible:
-                                                                    false,
-                                                                builder:
-                                                                    (BuildContext
-                                                                        context) {
-                                                                  return LoadingSpinner(
-                                                                    message:
-                                                                        'Loading',
-                                                                  );
-                                                                });
-
-                                                            String
-                                                                splitReferenceid =
-                                                                _splitReferenceidController
-                                                                    .text;
-
-                                                            double
-                                                                totaltendered =
-                                                                splitcash +
-                                                                    splitepayamount;
-
-                                                            String message = '';
-                                                            String title = '';
-
-                                                            if (totaltendered ==
-                                                                0) {
-                                                              message +=
-                                                                  'Please enter amount to proceed.\n';
-                                                              title +=
-                                                                  '[Enter Amount]';
-                                                            }
-                                                            if (totaltendered <
-                                                                calculateGrandTotal()) {
-                                                              message +=
-                                                                  'Please enter the right amount received from e-payment or cash.\n';
-                                                              title +=
-                                                                  '[Insufficient Funds]';
-                                                            }
-                                                            if (splitReferenceid ==
-                                                                '') {
-                                                              message +=
-                                                                  'Please enter reference id.\n';
-                                                              title +=
-                                                                  '[Reference ID]';
-                                                            }
-
-                                                            if (totaltendered >
-                                                                calculateGrandTotal()) {
-                                                              message +=
-                                                                  'Please enter the right amount received from e-payment or cash.\n';
-                                                              title +=
-                                                                  '[Overfunds]';
-                                                            }
-
-                                                            if (remaining > 0) {
-                                                              message +=
-                                                                  'Remaining: $remaining\n';
-                                                              title +=
-                                                                  '[Remaining Balance]';
-                                                            }
-
-                                                            if (splitEPaymentType ==
-                                                                'Select Payment Type') {
-                                                              message +=
-                                                                  'Please select payment type\n';
-                                                              title +=
-                                                                  '[Payment Type]';
-                                                            }
-
-                                                            if (message != '') {
-                                                              showDialog(
-                                                                  context:
-                                                                      context,
-                                                                  barrierDismissible:
-                                                                      false,
-                                                                  builder:
-                                                                      (BuildContext
-                                                                          context) {
-                                                                    return AlertDialog(
-                                                                      title: Text(
-                                                                          title),
-                                                                      content: Text(
-                                                                          message),
-                                                                      actions: [
-                                                                        TextButton(
-                                                                            onPressed:
-                                                                                () {
-                                                                              Navigator.pop(context);
-                                                                            },
-                                                                            child:
-                                                                                const Text('Close'))
-                                                                      ],
-                                                                    );
-                                                                  });
-                                                            } else {
-                                                              detailid++;
-
-                                                              _splitpayment(
-                                                                splitcash,
-                                                                splitepayamount,
-                                                                'SPLIT',
-                                                                splitReferenceid,
-                                                                splitEPaymentType,
-                                                                detailid
-                                                                    .toString(),
-                                                                salesrepresentative ==
-                                                                        ''
-                                                                    ? widget
-                                                                        .fullname
-                                                                    : salesrepresentative,
-                                                                jsonEncode(
-                                                                    itemsList),
-                                                              );
-                                                            }
-                                                          },
-                                                          child: const Text(
-                                                              'Submit')),
-                                                      TextButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(); // Close the dialog
-                                                          },
-                                                          child: const Text(
-                                                              'Close'))
-                                                    ],
-                                                  );
-                                                });
+                                            _splitoptions();
                                           },
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor: Theme.of(context)
@@ -4286,7 +4941,7 @@ class _SearchModalState extends State<SearchModal> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                fixedSize: const Size(320, 120),
+                fixedSize: const Size(240, 120),
               ),
               onPressed: (_filteredItems[index].quantity <= 0)
                   ? null
@@ -4305,7 +4960,7 @@ class _SearchModalState extends State<SearchModal> {
                   Text(
                     '${_filteredItems[index].description}',
                     style: const TextStyle(
-                        fontSize: 28, fontWeight: FontWeight.bold),
+                        fontSize: 24, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   Text(

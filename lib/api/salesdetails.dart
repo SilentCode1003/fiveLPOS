@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../model/response.dart';
-import '/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;

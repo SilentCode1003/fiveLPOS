@@ -2,15 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fivelPOS/components/receipts.dart';
-import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'components/dashboard.dart';
 import 'components/posconfig.dart';
 import 'components/settings.dart';
 import 'package:flutter/material.dart';
-
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() {
   if (Platform.isWindows) {
@@ -32,6 +29,7 @@ void main() {
 
     createJsonFile('sales.json');
     createJsonFile('refund.json');
+    createJsonFile('splitpayment.json');
 
     createJsonFile('networkstatus.json');
   }

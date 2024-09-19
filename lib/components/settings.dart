@@ -15,12 +15,12 @@ import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import '../api/category.dart';
 import '../model/promo.dart';
-import '/model/branch.dart';
-import '/model/email.dart';
-import '/model/pos.dart';
-import '/model/printer.dart';
-import '/repository/customerhelper.dart';
-import '/repository/printing.dart';
+import 'package:fivelPOS/model/branch.dart';
+import 'package:fivelPOS/model/email.dart';
+import 'package:fivelPOS/model/pos.dart';
+import 'package:fivelPOS/model/printer.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/printing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1689,14 +1689,29 @@ class _ConfigFilesState extends State<ConfigFiles> {
           });
 
       if (Platform.isAndroid) {
-        resetJsonFileArrayAndroid('sales.json');
+        await Helper().resetJsonFileArrayAndroid('sales.json');
       }
 
       if (Platform.isWindows) {
-        resetJsonFileArray('sales.json');
+        await Helper().resetJsonFileArray('sales.json');
       }
 
       Navigator.pop(context);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Data has been reset.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
     } catch (e) {
       print(e);
 
