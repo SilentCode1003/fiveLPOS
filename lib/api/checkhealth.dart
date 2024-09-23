@@ -6,11 +6,10 @@ import 'package:fivelPOS/repository/customerhelper.dart';
 import '../config.dart';
 import 'package:http/http.dart' as http;
 
-class AddonAPI {
-  Future<Map<String, dynamic>> getAddons(String stat) async {
+class CheckHealthAPI {
+  Future<Map<String, dynamic>> getCheckHealth() async {
     Map<String, dynamic> api = {};
     Map<String, dynamic> userinfo = {};
-
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
       userinfo = await Helper().readJsonToFile('user.json');
@@ -20,9 +19,8 @@ class AddonAPI {
       api = await Helper().jsonToFileReadAndroid('server.json');
       userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
-    final url = Uri.parse('${api['uri']}${Config.addonAPI}');
-    final response =
-        await http.post(url, body: {'status': stat, 'APK': userinfo['APK']});
+    final url = Uri.parse('${api['uri']}${Config.checkHealthAPI}');
+    final response = await http.get(url);
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

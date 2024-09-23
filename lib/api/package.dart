@@ -9,15 +9,21 @@ import 'package:http/http.dart' as http;
 class PackageAPI {
   Future<Map<String, dynamic>> getPackage(String stat) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.packageAPI}');
-    final response = await http.post(url, body: {'status': stat});
+    final response =
+        await http.post(url, body: {'status': stat, 'APK': userinfo['APK']});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

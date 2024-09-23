@@ -23,14 +23,17 @@ class POSTransaction {
       String branch,
       String discountdetail) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       // api = await helper.readJsonToFile('server.json');
 
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.salesDetailAPI}');
     final response = await http.post(url, body: {
@@ -47,7 +50,8 @@ class POSTransaction {
       'cash': cash,
       'ecash': ecash,
       'branch': branch,
-      'discountdetail': discountdetail
+      'discountdetail': discountdetail,
+      'APK': userinfo['APK'],
     });
 
     final responseData = json.decode(response.body);
@@ -77,14 +81,17 @@ class POSTransaction {
       String discountdetails,
       String total) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       // api = await helper.readJsonToFile('server.json');
 
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.splitpaymentAPI}');
     final response = await http.post(url, body: {
@@ -103,6 +110,7 @@ class POSTransaction {
       'secondpaymentreference': secondpaymentreference,
       'discountdetails': discountdetails,
       'total': total,
+      'APK': userinfo['APK'],
     });
 
     final responseData = json.decode(response.body);

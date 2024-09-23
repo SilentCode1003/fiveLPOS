@@ -10,17 +10,21 @@ class ProductPrice {
   Future<Map<String, dynamic>> getcategoryitems(
       String category, String branchid) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+       userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+       userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getcategoryAPI}');
     final response = await http.post(url, body: {
       'category': category,
       'branchid': branchid,
+      'APK': userinfo['APK'],
     });
 
     final responseData = json.decode(response.body);

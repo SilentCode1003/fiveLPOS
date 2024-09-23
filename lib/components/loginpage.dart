@@ -96,7 +96,8 @@ class _LoginPageState extends State<LoginPage> {
           offlineData['datehired'],
           offlineData['usercode'],
           offlineData['accesstype'],
-          offlineData['status']);
+          offlineData['status'],
+          offlineData['APK']);
 
       Navigator.push(
         context,
@@ -126,7 +127,8 @@ class _LoginPageState extends State<LoginPage> {
               results[0]['datehired'],
               results[0]['usercode'],
               results[0]['accesstype'],
-              results[0]['status']);
+              results[0]['status'],
+              results[0]['APK']);
 
           final userinfo = {
             'employeeid': results[0]['employeeid'].toString(),
@@ -137,6 +139,7 @@ class _LoginPageState extends State<LoginPage> {
             'usercode': results[0]['usercode'],
             'accesstype': results[0]['accesstype'],
             'status': results[0]['status'],
+            'APK': results[0]['APK'],
           };
 
           if (Platform.isAndroid) {

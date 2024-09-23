@@ -1,5 +1,5 @@
 class Config {
-  static const String authenticationLoginAPI = 'login/poslogin';
+  static const String authenticationLoginAPI = 'poslogin';
   static const String salesDetailAPI = 'salesdetails/save';
   static const String getcategoryAPI = 'productprice/getcategory';
   static const String getpriceAPI = 'productprice/getprice';
@@ -29,4 +29,5 @@ class Config {
   static const String getreceiptsAPI = 'salesdetails/getreceipts';
   static const String getreportAPI = 'shiftreports/getreport';
   static const String splitpaymentAPI = 'salesdetails/splitpayment';
+  static const String checkHealthAPI = 'checkhealth/alive';
 }

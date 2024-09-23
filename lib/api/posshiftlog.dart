@@ -9,16 +9,20 @@ import 'package:http/http.dart' as http;
 class POSShiftLogAPI {
   Future<Map<String, dynamic>> getPOSShift(String posid) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getPOSShiftAPI}');
     final response = await http.post(url, body: {
       'posid': posid,
+      'APK': userinfo['APK'],
     });
 
     final responseData = json.decode(response.body);

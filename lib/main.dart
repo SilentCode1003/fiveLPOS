@@ -55,13 +55,40 @@ void createJsonFile(filename) {
       return;
     }
 
-    // Create a Map (or any other data structure) to convert to JSON
-    final Map<String, dynamic> jsonData = {'key': 'value'};
-
     // Convert the Map to a JSON string
-    String jsonString = jsonEncode(jsonData);
+    Map<String, dynamic> jsonData = {};
+    jsonData = {'key': 'value'};
+    if (filename == 'branch.json') {
+      jsonData = {};
+    }
 
-    if (filename == 'sales.json') {
+    if (filename == 'pos.json') {
+      jsonData = {};
+    }
+
+    if (filename == 'email.json') {
+      jsonData = {};
+    }
+
+    if (filename == 'printer.json') {
+      jsonData = {
+        'printername': '',
+        'printerip': '',
+        'papersize': '',
+      };
+    }
+
+    if (filename == 'user.json') {
+      jsonData = {
+        'APK':
+            'e7e21a794cec6b17c095679a3410759c952a6a2cdd4870611647110d6a8a6c432df458db3ca56d015d00d660482992a61dd192d0afb92d1a158bfc6c60dd30059b72f54995549d2f876d1a6913689f1741de28044d06b1eceb729905eaef24ddd7de6f1244f6a93d59e793c08465c53ed867b9a20f90b7d505e96eebc9a8e572cdab167a327e3245b6a5af913a7f6ad7a2649e6e5be0fa70231c25ff9787cfc92558f7d9fcf093a15024ff688b1b72fec9b0794657ed1cfb8e4f9f52f226a1aa6264e6f9e90f7da274d048fdafcb708d479fae6fbf248ed37c14daa27594ce4aa6dc904149ad4f2468481d6ae0f5f3594c8eb35c0fbe03b6bf8e453a3206f741e974f2e0a15a0a4284e89e8c6b0f2aeaeefe92899beb450e015141e95613619f5c95ee238e96aab7d994679bc90fdbf811eb50e81020cd123ac878ec87d8c73e',
+      };
+    }
+
+    String jsonString = jsonEncode(jsonData);
+    if (filename == 'sales.json' ||
+        filename == 'splitpayment.json' ||
+        filename == 'refund.json') {
       jsonString = '[]';
     }
 

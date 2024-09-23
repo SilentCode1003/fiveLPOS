@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fivelPOS/api/category.dart';
+import 'package:fivelPOS/api/checkhealth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:intl/intl.dart';
@@ -291,18 +292,21 @@ class Helper {
       }
 
       try {
-        int checkConnection = 0;
-        print('Checking internet connection...');
+        // int checkConnection = 0;
+        // print('Checking internet connection...');
 
-        await checkAddressWithPort('104.21.85.83', 80).then((value) {
-          print(value);
-          if (value) {
-            checkConnection++;
-          }
-        });
+        // await checkAddressWithPort('104.21.85.83', 80).then((value) {
+        //   print(value);
+        //   if (value) {
+        //     checkConnection++;
+        //   }
+        // });
 
-        print('checkConnection: $checkConnection');
-        if (checkConnection != 0) {
+        // print('checkConnection: $checkConnection');
+
+        bool isAlive = await checkHealth();
+        print(isAlive);
+        if (isAlive) {
           print('Internet connection available');
 
           if (Platform.isWindows) {
@@ -349,6 +353,19 @@ class Helper {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<bool> checkHealth() async {
+    try {
+      final response = await CheckHealthAPI().getCheckHealth();
+      if (response['status'] == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 

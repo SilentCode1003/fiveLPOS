@@ -2200,7 +2200,7 @@ class _MyDashboardState extends State<MyDashboard> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Transaction Error'),
-              content: Text('Please inform administrator. Thank you! $e'),
+              content: Text('Please inform administrator. Thank you!\nError:${e}'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -3670,6 +3670,7 @@ class _MyDashboardState extends State<MyDashboard> {
         builder: (context) {
           double balance = 0;
           return StatefulBuilder(builder: (context, setState) {
+            
             return SingleChildScrollView(
               child: AlertDialog(
                 title: Row(
@@ -4357,7 +4358,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                 );
                               });
                         } else {
-                          print('PUMASOK');
                           showDialog(
                             context: context,
                             barrierDismissible: false,

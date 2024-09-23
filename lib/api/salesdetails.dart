@@ -10,15 +10,19 @@ import 'package:http/http.dart' as http;
 class SalesDetails {
   Future<Map<String, dynamic>> getdetailid(String posid) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getdetailidAPI}');
-    final response = await http.post(url, body: {'posid': posid});
+    final response =
+        await http.post(url, body: {'posid': posid, 'APK': userinfo['APK']});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;
@@ -33,15 +37,19 @@ class SalesDetails {
 
   Future<Map<String, dynamic>> getdetails(String detailid) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getdetailsAPI}');
-    final response = await http.post(url, body: {'detailid': detailid});
+    final response = await http
+        .post(url, body: {'detailid': detailid, 'APK': userinfo['APK']});
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;
@@ -57,18 +65,22 @@ class SalesDetails {
   Future<Map<String, dynamic>> refund(
       String detailid, String reason, String cashier) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.refundAPI}');
     final response = await http.post(url, body: {
       'detailid': detailid,
       'reason': reason,
       'cashier': cashier,
+      'APK': userinfo['APK']
     });
 
     final responseData = json.decode(response.body);
@@ -85,16 +97,23 @@ class SalesDetails {
   Future<ResponseModel> getreceipts(
       String datefrom, String dateto, String posid) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getreceiptsAPI}');
-    final response = await http.post(url,
-        body: {'datefrom': datefrom, 'dateto': dateto, 'posid': posid});
+    final response = await http.post(url, body: {
+      'datefrom': datefrom,
+      'dateto': dateto,
+      'posid': posid,
+      'APK': userinfo['APK']
+    });
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

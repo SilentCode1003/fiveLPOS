@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:fivelPOS/repository/sync.dart';
 import 'package:sqflite/sqflite.dart';
@@ -42,7 +43,9 @@ class _PosConfigState extends State<PosConfig> {
   @override
   void initState() {
     super.initState();
-    _check();
+    Future.delayed(Duration.zero, () async {
+      await _check();
+    });
   }
 
   Future<void> _check() async {
@@ -82,6 +85,12 @@ class _PosConfigState extends State<PosConfig> {
           await Helper().jsonToFileReadAndroid('email.json');
       Map<String, dynamic> printer =
           await Helper().jsonToFileReadAndroid('printer.json');
+      Map<String, dynamic> server =
+          await Helper().jsonToFileReadAndroid('server.json');
+
+      _branchidController.text = branch['branchid'];
+      _posidController.text = pos['posid'].toString();
+      _serverController.text = server['uri'];
 
       if (pos.isNotEmpty && branch.isNotEmpty) {
         // List<Map<String, dynamic>> branchconfig = await db.query('branch');
@@ -157,11 +166,15 @@ class _PosConfigState extends State<PosConfig> {
       Map<String, dynamic> pos = await Helper().readJsonToFile('pos.json');
       Map<String, dynamic> branch =
           await Helper().readJsonToFile('branch.json');
-      Map<String, dynamic> email = await Helper().readJsonToFile('email.json');
+      Map<String, dynamic> server =
+          await Helper().readJsonToFile('server.json');
 
-      if (pos.isNotEmpty && branch.isNotEmpty && email.isNotEmpty) {
+      if (pos.isNotEmpty && branch.isNotEmpty) {
         // List<Map<String, dynamic>> branchconfig = await db.query('branch');
         // for (var branch in branchconfig) {
+        _branchidController.text = branch['branchid'];
+        _posidController.text = pos['posid'].toString();
+        _serverController.text = server['uri'];
         setState(() {
           branchlogo = branch['logo'];
           Navigator.push(
@@ -232,18 +245,341 @@ class _PosConfigState extends State<PosConfig> {
     final isOnline = await Helper().hasInternetConnection();
 
     if (isOnline) {
-      await _syncToDatabase.getcategory();
-      await _syncToDatabase.getProductPrice();
-      await _syncToDatabase.getDiscount();
-      await _syncToDatabase.getPromo();
-      await _syncToDatabase.getPayments();
-      await _syncToDatabase.getEmployees();
-      await _syncToDatabase.getDetailID();
-      await _syncToDatabase.getPosShift();
+      showDialog(
+          context: context,
+          builder: (context) {
+            return CircularProgressBar(
+              status: 'Start Syncing...',
+              module: 'Categories',
+            );
+          });
+      Future.delayed(const Duration(seconds: 1), () async {
+        await _syncToDatabase.getcategory().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Category',
+                  module: 'Product Price',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
 
-      await _syncToDatabase.syncSales();
-      await _syncToDatabase.syncSplitSales();
-      await _syncToDatabase.syncRefund();
+      Future.delayed(const Duration(seconds: 2), () async {
+        await _syncToDatabase.getProductPrice().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Product Price',
+                  module: 'Discounts',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: const Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+      });
+
+      Future.delayed(const Duration(seconds: 3), () async {
+        await _syncToDatabase.getDiscount().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Discounts',
+                  module: 'Promos',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 4), () async {
+        await _syncToDatabase.getPromo().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Promos',
+                  module: 'Payments',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 5), () async {
+        await _syncToDatabase.getPayments().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Payments',
+                  module: 'Employees',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 6), () async {
+        await _syncToDatabase.getEmployees().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Employees',
+                  module: 'Detail ID',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 7), () async {
+        await _syncToDatabase.getDetailID().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Detail ID',
+                  module: 'POS Shift',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 6), () async {
+        await _syncToDatabase.getPosShift().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done POS Shift',
+                  module: 'Sales',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 9), () async {
+        await _syncToDatabase.syncSales().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Sales',
+                  module: 'Split Sales',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 10), () async {
+        await _syncToDatabase.syncSplitSales().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Split Sales',
+                  module: 'Refunds',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+
+      Future.delayed(const Duration(seconds: 11), () async {
+        await _syncToDatabase.syncRefund().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done POS Refund',
+                  module: '',
+                );
+              });
+
+          Navigator.pop(context);
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
+    } else {
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) => AlertDialog(
+                content: Text('Offline Mode'),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('OK')),
+                  ElevatedButton(
+                      onPressed: () {
+                        _check();
+                      },
+                      child: const Text('Retry'))
+                ],
+              ));
     }
   }
 
@@ -256,7 +592,8 @@ class _PosConfigState extends State<PosConfig> {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return CircularProgressBar(
-            status: 'Loading...',
+            status: 'Syncing...',
+            module: '',
           );
         });
 
@@ -273,65 +610,57 @@ class _PosConfigState extends State<PosConfig> {
       Helper().jsonToFileWriteAndroid(serverconfig, 'server.json');
     }
 
-    branch = await _getbranch();
-
-    if (branch != 'success') {
-    } else {
+    await _getbranch().then((value) async {
+      branch = value;
       showDialog(
           context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return CircularProgressBar(
-              status: 'Branch Done Syncing...',
-            );
-          });
-    }
+          builder: (context) => CircularProgressBar(
+                status: 'Done Syncing Branch',
+                module: 'POS Configuration...',
+              ));
+      await _getposconfig().then((value) {
+        pos = value;
+        showDialog(
+            context: context,
+            builder: (context) => CircularProgressBar(
+                  status: 'Done Syncing POS Configuration',
+                  module: '',
+                ));
 
-    pos = await _getposconfig();
-    if (pos != 'success') {
-    } else {
-      showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return CircularProgressBar(
-              status: 'POS Done Syncing...',
-            );
-          });
-    }
+        if (branch == '' || pos == '') {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        } else {
+          Navigator.pop(context);
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Success'),
+              content: Text('POS ${_posidController.text} sync successfully'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
 
-    if (branch == '' || pos == '') {
-      Navigator.pop(context);
-      Navigator.pop(context);
-    } else {
-      Navigator.pop(context);
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Success'),
-          content: Text('POS ${_posidController.text} sync successfully'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
+                    _check();
 
-                _check();
-
-                // Navigator.pushReplacement(
-                //   context,
-                //   MaterialPageRoute(
-                //       builder: (context) => LoginPage(
-                //             logo: branchlogo,
-                //           )),
-                // );
-              },
-              child: const Text('OK'),
+                    // Navigator.pushReplacement(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => LoginPage(
+                    //             logo: branchlogo,
+                    //           )),
+                    // );
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          );
+        }
+      });
+    });
   }
 
   Future<String> _getposconfig() async {
@@ -407,7 +736,7 @@ class _PosConfigState extends State<PosConfig> {
       }
       // }
     } catch (e) {
-      return e.toString();
+      return 'Please check your network or contact administrator';
     }
   }
 
@@ -482,7 +811,7 @@ class _PosConfigState extends State<PosConfig> {
       }
       //}
     } catch (e) {
-      return e.toString();
+      return 'Please check your network or contact administrator';
     }
   }
 
@@ -540,7 +869,7 @@ class _PosConfigState extends State<PosConfig> {
       return 'success';
       //}
     } catch (e) {
-      return e.toString();
+      return 'Please check your network or contact administrator';
     }
   }
 
@@ -586,7 +915,9 @@ class _PosConfigState extends State<PosConfig> {
       // Convert the Map to a JSON string
       String jsonString = jsonEncode(jsonData);
 
-      if (filename == 'sales.json' || filename == 'splitpayment.json' || filename == 'refund.json') {
+      if (filename == 'sales.json' ||
+          filename == 'splitpayment.json' ||
+          filename == 'refund.json') {
         jsonString = '[]';
       }
 
