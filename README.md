@@ -117,3 +117,8 @@
 - Fix added split payement with epayment to epayment
 - Added offline splitpayment
 - Added Syncing of split sales and refund offline
+
+### Version 1.3.0
+
+- Revise Home Screen
+- Revise Settings Screen for printer setup
