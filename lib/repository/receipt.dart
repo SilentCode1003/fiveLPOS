@@ -589,6 +589,7 @@ class Receipt {
       PaperSize paper = printerconfig['papersize'] == 'mm80'
           ? PaperSize.mm80
           : PaperSize.mm58;
+      print(printerconfig['papersize']);
       final profile = await CapabilityProfile.load();
 
       if (connect == PosPrintResult.success) {

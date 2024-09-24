@@ -5,12 +5,14 @@ import 'dart:io';
 import 'package:fivelPOS/api/discount.dart';
 import 'package:fivelPOS/api/productprice.dart';
 import 'package:fivelPOS/components/loadingspinner.dart';
+import 'package:fivelPOS/components/settings/networkprinter.dart';
 import 'package:fivelPOS/model/category.dart';
 import 'package:fivelPOS/model/discount.dart';
 import 'package:fivelPOS/model/productprice.dart';
 import 'package:fivelPOS/repository/bluetoothprinter.dart';
 import 'package:fivelPOS/repository/dbhelper.dart';
 import 'package:fivelPOS/repository/sync.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import '../api/category.dart';
@@ -50,12 +52,6 @@ class _SettingsPageState extends State<SettingsPage> {
   String emailpassword = '';
   String smtp = '';
 
-  PaperSize papersize = PaperSize.mm80;
-  String printername = '';
-  String printerip = '';
-  String productionprinterip = '';
-  bool isenable = false;
-
   String branchid = '';
   String branchname = '';
 
@@ -68,15 +64,15 @@ class _SettingsPageState extends State<SettingsPage> {
   String createdby = '';
   String createddate = '';
 
-  bool _ischange = false;
+  // bool _ischange = false;
 
-  final List<String> _selectPrinterType = [
-    'Select Type',
-    'Network',
-    'Bluetooth',
-  ];
+  // final List<String> _selectPrinterType = [
+  //   'Select Type',
+  //   'Network',
+  //   'Bluetooth',
+  // ];
 
-  PrinterNetworkManager _printer = PrinterNetworkManager('');
+  // PrinterNetworkManager _printer = PrinterNetworkManager('');
   NavigationRailLabelType labelType = NavigationRailLabelType.all;
   bool showLeading = false;
   bool showTrailing = false;
@@ -85,9 +81,6 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     // TODO: implement
-    _printerinitiate();
-    _getprinterconfig();
-
     _getemailconfig();
     _getposconfig();
     _getbranchconfig();
@@ -203,77 +196,10 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _getprinterconfig() async {
-    if (Platform.isWindows) {
-      var printer = await Helper().readJsonToFile('printer.json');
-      print(printer);
-      if (printer['printername'] != null) {
-        PrinterModel model = PrinterModel(
-            printer['printername'],
-            printer['printerip'],
-            printer['productionprinterip'],
-            printer['papersize'],
-            printer['isenable']);
-
-        setState(() {
-          printername = model.printername;
-          printerip = model.printerip;
-          productionprinterip = model.productionprinterip;
-          papersize =
-              model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
-        });
-        isenable = model.isenable;
-        papersize =
-            printer['papersize'] == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
-      }
-    }
-
-    if (Platform.isAndroid) {
-      var printer = await Helper().jsonToFileReadAndroid('printer.json');
-
-      print(printer);
-      if (printer['printername'] != null) {
-        PrinterModel model = PrinterModel(
-            printer['printername'],
-            printer['printerip'],
-            printer['productionprinterip'],
-            printer['papersize'],
-            printer['isenable']);
-
-        setState(() {
-          printername = model.printername;
-          printerip = model.printerip;
-          productionprinterip = model.productionprinterip;
-          papersize =
-              model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
-          isenable = model.isenable;
-        });
-      }
-    }
-  }
-
   void changePage(int page) {
     setState(() {
       currentPage = page;
     });
-  }
-
-  void _printerinitiate() async {
-    Map<String, dynamic> printerConfig = {};
-
-    if (Platform.isWindows) {
-      printerConfig = await Helper().readJsonToFile('printer.json');
-    }
-
-    if (Platform.isAndroid) {
-      printerConfig = await Helper().jsonToFileReadAndroid('printer.json');
-    }
-    final printer = PrinterNetworkManager(printerConfig['printerip']);
-    _printer = printer;
-  }
-
-  void isPrinterStatus() {
-    _getprinterconfig();
   }
 
   @override
@@ -355,16 +281,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget buildBody() {
     switch (currentPage) {
       case 0:
-        return PrinterPage(
-          printername: printername,
-          ipaddress: printerip,
-          papersize: papersize,
-          isenable: isenable,
-          getPrinterConfig: isPrinterStatus,
-          printer: _printer,
-          printertype: _ischange,
-          productionipaddress: productionprinterip,
-        );
+        return const PrinterPage();
       case 1:
         return EmailPage(
           emailaddress: emailaddress,
@@ -398,30 +315,7 @@ class _SettingsPageState extends State<SettingsPage> {
   PreferredSizeWidget buildAppBar() {
     switch (currentPage) {
       case 0:
-        return AppBar(
-            centerTitle: true,
-            flexibleSpace: Align(
-              alignment: Alignment.center,
-              child: DropdownMenu(
-                width: 200,
-                initialSelection: _selectPrinterType.first,
-                textStyle: const TextStyle(color: Colors.white),
-                onSelected: (String? value) {
-                  setState(() {
-                    if (value == 'Network') {
-                      _ischange = true;
-                    }
-                    if (value == 'Bluetooth') {
-                      _ischange = false;
-                    }
-                  });
-                },
-                dropdownMenuEntries: _selectPrinterType
-                    .map<DropdownMenuEntry<String>>((String value) {
-                  return DropdownMenuEntry<String>(value: value, label: value);
-                }).toList(),
-              ),
-            ));
+        return AppBar();
       case 1:
         return AppBar();
       case 2:
@@ -435,293 +329,51 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class PrinterPage extends StatefulWidget {
-  final String printername;
-  final String ipaddress;
-  final String productionipaddress;
-  final PaperSize papersize;
-  final bool isenable;
-  final Function() getPrinterConfig;
-  final PrinterNetworkManager? printer;
-  final bool printertype;
-
-  const PrinterPage(
-      {super.key,
-      required this.printername,
-      required this.ipaddress,
-      required this.papersize,
-      required this.isenable,
-      required this.getPrinterConfig,
-      required this.printer,
-      required this.printertype,
-      required this.productionipaddress});
+  const PrinterPage({super.key});
 
   @override
   State<PrinterPage> createState() => _PrinterPageState();
 }
 
-class _PrinterPageState extends State<PrinterPage> {
+class _PrinterPageState extends State<PrinterPage>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    TextEditingController printername =
-        TextEditingController(text: widget.printername);
-    TextEditingController printeripaddress =
-        TextEditingController(text: widget.ipaddress);
-    TextEditingController printerproductionipaddress =
-        TextEditingController(text: widget.productionipaddress);
-    TextEditingController printerpaperwidth = TextEditingController(
-        text: widget.papersize.value == 1 ? 'mm58' : 'mm80');
-
-    bool isenable = widget.isenable;
-
-    Future<void> savePrinterConfig(jsnonData) async {
-      setState(() async {
-        if (Platform.isWindows) {
-          await Helper()
-              .writeJsonToFile(jsnonData, 'printer.json')
-              .then((value) => showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('Success'),
-                      content: const Text('Printer configuration saved!'),
-                      icon: const Icon(Icons.check),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    );
-                  }));
-        }
-        if (Platform.isAndroid) {
-          await Helper()
-              .jsonToFileWriteAndroid(jsnonData, 'printer.json')
-              .then((value) => showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('Success'),
-                      content: const Text('Printer configuration saved!'),
-                      icon: const Icon(Icons.check),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    );
-                  }));
-        }
-      });
-    }
-
     return SafeArea(
       child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          bottom: TabBar(
+              labelColor: Colors.white,
+              controller: _tabController,
+              tabs: const [
+                Tab(icon: Icon(Icons.print), text: 'Network Printer'),
+                Tab(
+                    icon: Icon(Icons.bluetooth_searching_sharp),
+                    text: 'Bluetooth Printer')
+              ]),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: widget.printertype
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                        Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 200.0,
-                            maxWidth: 380.0,
-                          ),
-                          child: TextField(
-                            controller: printername,
-                            keyboardType: TextInputType.text,
-                            decoration: const InputDecoration(
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Color.fromARGB(255, 0, 0, 0)),
-                              ),
-                              labelText: 'Name',
-                              labelStyle: TextStyle(
-                                  color: Color.fromARGB(255, 0, 0, 0)),
-                              border: OutlineInputBorder(),
-                              hintText: 'Priter Name',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 200.0,
-                            maxWidth: 380.0,
-                          ),
-                          child: TextField(
-                            controller: printeripaddress,
-                            keyboardType: TextInputType.text,
-                            decoration: const InputDecoration(
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Color.fromARGB(255, 0, 0, 0)),
-                              ),
-                              labelText: 'POS Printer IP Address',
-                              labelStyle: TextStyle(
-                                  color: Color.fromARGB(255, 0, 0, 0)),
-                              border: OutlineInputBorder(),
-                              hintText: 'Printer IP Address',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 200.0,
-                            maxWidth: 380.0,
-                          ),
-                          child: TextField(
-                            controller: printerproductionipaddress,
-                            keyboardType: TextInputType.text,
-                            decoration: const InputDecoration(
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Color.fromARGB(255, 0, 0, 0)),
-                              ),
-                              labelText:
-                                  'Production/Kitchen Printer IP Address',
-                              labelStyle: TextStyle(
-                                  color: Color.fromARGB(255, 0, 0, 0)),
-                              border: OutlineInputBorder(),
-                              hintText: 'Printer IP Address',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 200.0,
-                            maxWidth: 380.0,
-                          ),
-                          child: TextField(
-                            controller: printerpaperwidth,
-                            keyboardType: TextInputType.text,
-                            decoration: const InputDecoration(
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Color.fromARGB(255, 0, 0, 0)),
-                              ),
-                              labelText: 'Paper',
-                              labelStyle: TextStyle(
-                                  color: Color.fromARGB(255, 0, 0, 0)),
-                              border: OutlineInputBorder(),
-                              hintText: 'Paper width',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                            constraints: const BoxConstraints(
-                              minHeight: 40,
-                              minWidth: 200.0,
-                              maxWidth: 380.0,
-                            ),
-                            child: ElevatedButton(
-                                onPressed: () {
-                                  savePrinterConfig({
-                                    'printername': printername.text,
-                                    'printerip': printeripaddress.text,
-                                    'productionprinterip':
-                                        printerproductionipaddress.text,
-                                    'papersize': printerpaperwidth.text,
-                                    'isenable': false,
-                                  });
-                                },
-                                child: const Text(
-                                  'SAVE',
-                                  style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w600),
-                                ))),
-                        const SizedBox(
-                          height: 5,
-                        ),
-                        Container(
-                            constraints: const BoxConstraints(
-                              minHeight: 40,
-                              minWidth: 200.0,
-                              maxWidth: 380.0,
-                            ),
-                            child: ElevatedButton(
-                                onPressed: () {
-                                  String ipaddress = printeripaddress.text;
-                                  LocalPrint().printnetwork(ipaddress);
-                                },
-                                child: const Text(
-                                  'TEST PRINT',
-                                  style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w600),
-                                ))),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          constraints: const BoxConstraints(
-                            minHeight: 40,
-                            minWidth: 200.0,
-                            maxWidth: 380.0,
-                          ),
-                          child: (!isenable)
-                              ? ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      savePrinterConfig({
-                                        'printername': printername.text,
-                                        'printerip': printeripaddress.text,
-                                        'productionprinterip':
-                                            printerproductionipaddress.text,
-                                        'papersize': printerpaperwidth.text,
-                                        'isenable': true,
-                                      });
-                                      isenable = true;
-                                    });
-                                  },
-                                  child: const Text(
-                                    'ENABLE',
-                                    style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w600),
-                                  ))
-                              : ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      savePrinterConfig({
-                                        'printername': printername.text,
-                                        'printerip': printeripaddress.text,
-                                        'productionprinterip':
-                                            printerproductionipaddress.text,
-                                        'papersize': printerpaperwidth.text,
-                                        'isenable': false,
-                                      });
-
-                                      isenable = false;
-                                    });
-                                  },
-                                  child: const Text(
-                                    'DISABLE',
-                                    style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w600),
-                                  )),
-                        )
-                      ])
-                : const Bluetoothprinter(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [NetworkPrinterConfig(), Bluetoothprinter()],
+            ),
           ),
         ),
       ),

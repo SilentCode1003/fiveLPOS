@@ -137,6 +137,7 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
+
       key: Snackbar.snackBarKeyB,
       child: Scaffold(
         appBar: AppBar(
