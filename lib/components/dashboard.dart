@@ -4073,7 +4073,7 @@ class _MyDashboardState extends State<MyDashboard> {
             children: [
               Container(
                 width: 760,
-                height: 800,
+                height: 720,
                 padding: const EdgeInsets.all(5),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -4200,7 +4200,7 @@ class _MyDashboardState extends State<MyDashboard> {
               Container(
                   color: Colors.teal,
                   width: 70,
-                  height: 800,
+                  height: 720,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -4218,7 +4218,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
               Container(
                 width: 600,
-                height: 800,
+                height: 720,
                 padding: const EdgeInsets.all(5),
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8.0),
