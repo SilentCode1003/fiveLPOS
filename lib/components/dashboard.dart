@@ -4072,7 +4072,7 @@ class _MyDashboardState extends State<MyDashboard> {
           child: Row(
             children: [
               Container(
-                width: 760,
+                width: 600,
                 height: 720,
                 padding: const EdgeInsets.all(5),
                 child: Padding(

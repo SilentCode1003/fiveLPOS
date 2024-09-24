@@ -13,12 +13,12 @@ class ProductPrice {
     Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
-       userinfo = await Helper().readJsonToFile('user.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
-       userinfo = await Helper().jsonToFileReadAndroid('user.json');
+      userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getcategoryAPI}');
     final response = await http.post(url, body: {
@@ -41,16 +41,21 @@ class ProductPrice {
   Future<Map<String, dynamic>> getitemserial(
       String barcode, String branchid) async {
     Map<String, dynamic> api = {};
+    Map<String, dynamic> userinfo = {};
     if (Platform.isWindows) {
       api = await Helper().readJsonToFile('server.json');
+      userinfo = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       api = await Helper().jsonToFileReadAndroid('server.json');
     }
     final url = Uri.parse('${api['uri']}${Config.getpriceAPI}');
-    final response =
-        await http.post(url, body: {'barcode': barcode, 'branchid': branchid});
+    final response = await http.post(url, body: {
+      'barcode': barcode,
+      'branchid': branchid,
+      'APK': userinfo['APK']
+    });
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

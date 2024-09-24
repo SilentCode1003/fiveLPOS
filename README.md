@@ -122,3 +122,7 @@
 
 - Revise Home Screen
 - Revise Settings Screen for printer setup
+
+### Version 1.3.4
+
+- Fix Syncing of POS Configuration
