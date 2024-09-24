@@ -4072,7 +4072,7 @@ class _MyDashboardState extends State<MyDashboard> {
           child: Row(
             children: [
               Container(
-                width: 800,
+                width: 760,
                 height: 800,
                 padding: const EdgeInsets.all(5),
                 child: Padding(
@@ -4217,7 +4217,7 @@ class _MyDashboardState extends State<MyDashboard> {
                   )), //Other Function Buttons
 
               Container(
-                width: 800,
+                width: 600,
                 height: 800,
                 padding: const EdgeInsets.all(5),
                 child: Padding(
