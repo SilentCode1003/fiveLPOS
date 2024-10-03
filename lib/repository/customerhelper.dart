@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fivelPOS/api/category.dart';
 import 'package:fivelPOS/api/checkhealth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 
@@ -417,5 +420,40 @@ class Helper {
     } catch (e) {
       print('Error creating JSON file: $e');
     }
+  }
+
+  Future<void> writeAssetData(
+      String filename, String type, String content) async {
+    try {
+      final currentDirectory = Platform.isAndroid
+          ? getApplicationDocumentsDirectory()
+          : Directory.current.path;
+
+      final String filePath = '$currentDirectory/$filename.$type';
+
+      print(filePath);
+
+      final File file = File(filePath);
+
+      await file.writeAsString(content);
+      print('File created successfully at: $filePath');
+    } catch (e) {
+      print('Error writing SVG to file: $e');
+    }
+  }
+
+    Future<Uint8List> svgToPng(String svgString) async {
+
+    final pictureInfo = await vg.loadPicture(SvgStringLoader(svgString), null);
+
+    final image = await pictureInfo.picture.toImage(250, 250);
+    final byteData = await image.toByteData(format: ImageByteFormat.png);
+
+    if (byteData == null) {
+      throw Exception('Unable to convert SVG to PNG');
+    }
+
+    final pngBytes = byteData.buffer.asUint8List();
+    return pngBytes;
   }
 }

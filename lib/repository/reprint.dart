@@ -102,12 +102,13 @@ class ReprintingReceipt {
   }
 
   Future<List<int>> reprintReceipt(PaperSize paper, CapabilityProfile profile,
-      branchname, id, serial, branchid, address, tin, min, ptu, items) async {
+      branchname, id, serial, branchid, address, tin, min, ptu, items, logo) async {
     final Generator printer = Generator(paper, profile);
     List<int> bytes = [];
 
-    final ByteData data = await rootBundle.load('assets/logo.png');
-    final Uint8List imagebytes = data.buffer.asUint8List();
+    // final ByteData data = await rootBundle.load('assets/logo.png');
+    // final Uint8List imagebytes = data.buffer.asUint8List();
+    final Uint8List imagebytes = await Helper().svgToPng('<svg ${logo[1]}');
     final Image? image = decodeImage(imagebytes);
 
     bytes += printer.image(image!);
@@ -432,7 +433,7 @@ class ReprintingReceipt {
       if (connect == PosPrintResult.success) {
         PosPrintResult printing = await printer.printTicket(
             (await reprintReceipt(paper, profile, branchname, id, serial,
-                branchid, address, tin, min, ptu, items)));
+                branchid, address, tin, min, ptu, items, logo)));
       }
     }
 

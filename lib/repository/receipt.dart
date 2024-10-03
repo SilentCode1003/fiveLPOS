@@ -3,18 +3,16 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_blue/flutter_blue.dart';
-import 'package:flutter_blue/gen/flutterblue.pbserver.dart' as pbserver;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:image/image.dart';
+import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '/api/promo.dart';
 import 'package:fivelPOS/repository/customerhelper.dart';
-import '/repository/dbhelper.dart';
 
 class Receipt {
   List<Map<String, dynamic>> items;
@@ -211,31 +209,6 @@ class Receipt {
     return staff;
   }
 
-  Future<Uint8List> svgToRaster(
-      String svgString, double width, double height) async {
-    // Create a PictureRecorder and Canvas
-    final recorder = PictureRecorder();
-    final canvas = Canvas(recorder);
-
-    // Render the SVG onto the canvas
-    final svgPicture = SvgPicture.string(svgString);
-    // svgPicture.paint(canvas, Rect.fromLTRB(0, 0, width, height));
-
-    // Convert the Picture to an Image
-    final picture = recorder.endRecording();
-    final img = await picture.toImage(width.toInt(), height.toInt());
-
-    // Convert the Image to PNG bytes
-    final byteData = await img.toByteData(format: ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
-  }
-
-  Future<Uint8List> svgPrintSvg(logo) async {
-    final Uint8List pngBytes = await svgToRaster('<svg ${logo[1]}', 100, 100);
-
-    return pngBytes;
-  }
-
   Future<List<int>> transactionReceipt(
       PaperSize paper,
       CapabilityProfile profile,
@@ -243,14 +216,17 @@ class Receipt {
       id,
       serial,
       branchid,
-      promodetails) async {
+      promodetails,
+      logo) async {
     final Generator ticket = Generator(paper, profile);
     List<int> bytes = [];
 
-    final ByteData data = await rootBundle.load('assets/logo.png');
-    final Uint8List imagebytes = data.buffer.asUint8List();
-    final Image? image = decodeImage(imagebytes);
+    // final ByteData data = await rootBundle.load('assets/logo.png');
+    // final Uint8List imagebytes = data.buffer.asUint8List();
+    final Uint8List imagebytes = await Helper().svgToPng('<svg ${logo[1]}');
+    final img.Image? image = img.decodeImage(imagebytes);
 
+    print(imagebytes);
     bytes += ticket.drawer();
     bytes += ticket.image(image!);
     bytes += ticket.text(branchname,
@@ -287,6 +263,29 @@ class Receipt {
             styles: const PosStyles(align: PosAlign.left, bold: true)),
         PosColumn(
             text: 'TYPE: $epaymenttype',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+    }
+
+    if (paymenttype == 'E2E') {
+      bytes += ticket.row([
+        PosColumn(
+            text: 'REF#: ${referenceid.split('|')[0]}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: 'TYPE: ${epaymenttype.split('|')[0]}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+      bytes += ticket.row([
+        PosColumn(
+            text: 'REF#: ${referenceid.split('|')[1]}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: 'TYPE: ${epaymenttype.split('|')[1]}',
             width: 6,
             styles: const PosStyles(align: PosAlign.right, bold: true)),
       ]);
@@ -394,16 +393,18 @@ class Receipt {
           styles: const PosStyles(align: PosAlign.right, bold: true)),
     ]);
 
-    bytes += ticket.row([
-      PosColumn(
-          text: 'CASH',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left, bold: true)),
-      PosColumn(
-          text: customercash(cash),
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right, bold: true)),
-    ]);
+    if (paymenttype == 'SPLIT' || paymenttype == 'CASH' || paymenttype == 'EPAYMENT') {
+      bytes += ticket.row([
+        PosColumn(
+            text: paymenttype == 'CASH' || paymenttype == 'SPLIT' ? 'CASH' : epaymenttype,
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: customercash(cash),
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+    }
 
     if (paymenttype == 'SPLIT') {
       bytes += ticket.row([
@@ -418,16 +419,56 @@ class Receipt {
       ]);
     }
 
-    bytes += ticket.row([
-      PosColumn(
-          text: 'CHANGE',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left, bold: true)),
-      PosColumn(
-          text: change(totalamtdue(items), cash),
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right, bold: true)),
-    ]);
+    if (paymenttype == 'E2E') {
+      bytes += ticket.row([
+        PosColumn(
+            text: epaymenttype.split('|')[0],
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: customercash(cash),
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+
+      bytes += ticket.row([
+        PosColumn(
+            text: epaymenttype.split('|')[1],
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: customercash(ecash),
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+
+      bytes += ticket.row([
+        PosColumn(
+            text: 'CHANGE',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: change(totalamtdue(items), cash + ecash),
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+    }
+
+    if (paymenttype == 'CASH' ||
+        paymenttype == 'EPAYMENT' ||
+        paymenttype == 'SPLIT') {
+      bytes += ticket.row([
+        PosColumn(
+            text: 'CHANGE',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left, bold: true)),
+        PosColumn(
+            text: change(totalamtdue(items), cash),
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true)),
+      ]);
+    }
+
     bytes += ticket.row([
       PosColumn(
           text: 'Vatable',
@@ -595,7 +636,7 @@ class Receipt {
       if (connect == PosPrintResult.success) {
         PosPrintResult printing = await printer.printTicket(
             (await transactionReceipt(paper, profile, branchname, id, serial,
-                branchid, promodetails)));
+                branchid, promodetails, logo)));
 
         print(printing.msg);
         printer.disconnect();

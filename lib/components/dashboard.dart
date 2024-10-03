@@ -2760,6 +2760,23 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
 
+        pdfBytes = await Receipt(
+              itemsList,
+              firstepaymentReceive,
+              detailid,
+              posid,
+              widget.fullname,
+              shift,
+              companyname,
+              address,
+              tin,
+              'E2E',
+              '$firstepaymentreference|$secondepaymentreference',
+              '$firstepaymentname|$secondepaymentname',
+              secondepaymentReceive,
+              salesrepresentative == '' ? widget.fullname : salesrepresentative)
+          .printReceipt();
+
       Navigator.of(context).pop();
       Navigator.of(context).pop();
       Navigator.of(context).pop();

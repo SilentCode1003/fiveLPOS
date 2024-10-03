@@ -90,6 +90,7 @@ class SyncToDatabase {
 
     if (categoryResults['msg'] == 'success') {
       for (var data in json.decode(jsonDataCategory)) {
+        print(data);
         if (data['categoryname'] == 'Material') {
         } else {
           final results = await ProductPrice()
@@ -619,11 +620,8 @@ class SyncToDatabase {
       RefundModel ss = RefundModel.fromJson(s);
       print('Syncing: OR# ${ss.detaildid} for REFUND...');
 
-      final results = await SalesDetails().refund(
-        ss.detaildid,
-        ss.reason,
-        ss.cashier
-      );
+      final results =
+          await SalesDetails().refund(ss.detaildid, ss.reason, ss.cashier);
 
       final jsonData = json.encode(results['data']);
       if (results['msg'] == 'success') {

@@ -25,12 +25,13 @@ class EndShiftReceipt {
   }
 
   Future<List<int>> endshiftReport(PaperSize paper, CapabilityProfile profile,
-      branchname, id, serial, branchid, address, tin) async {
+      branchname, id, serial, branchid, address, tin, logo) async {
     final Generator printer = Generator(paper, profile);
     List<int> bytes = [];
 
-    final ByteData data = await rootBundle.load('assets/logo.png');
-    final Uint8List imagebytes = data.buffer.asUint8List();
+    // final ByteData data = await rootBundle.load('assets/logo.png');
+    // final Uint8List imagebytes = data.buffer.asUint8List();
+    final Uint8List imagebytes = await Helper().svgToPng('<svg ${logo[1]}');
     final Image? image = decodeImage(imagebytes);
 
     bytes += printer.drawer();
@@ -255,7 +256,7 @@ class EndShiftReceipt {
       if (connect == PosPrintResult.success) {
         PosPrintResult printing = await printer.printTicket(
             (await endshiftReport(paper, profile, branchname, id, serial,
-                branchid, address, tin)));
+                branchid, address, tin, logo)));
 
         print(printing.msg);
       }

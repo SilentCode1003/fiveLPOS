@@ -126,3 +126,8 @@
 ### Version 1.3.4
 
 - Fix Syncing of POS Configuration
+
+### Version 1.3.5
+
+- Revise LOGO reference
+- Fix Split Payment E2E
