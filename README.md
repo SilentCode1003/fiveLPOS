@@ -111,7 +111,6 @@
 
 -Change item display from 4 to 6 columns
 
-
 ### Version 1.2.28
 
 - Fix added split payement with epayment to epayment
@@ -131,3 +130,7 @@
 
 - Revise LOGO reference
 - Fix Split Payment E2E
+
+### Version 1.3.6
+
+- Fix POS Configuration
