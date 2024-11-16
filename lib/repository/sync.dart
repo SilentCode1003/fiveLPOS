@@ -421,7 +421,7 @@ class SyncToDatabase {
       sales = await Helper().jsonListToFileReadAndroid('sales.json');
     }
 
-    print(sales);
+    // print(sales);
 
     if (sales.isEmpty) {
       return;

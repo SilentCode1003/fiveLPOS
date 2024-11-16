@@ -226,7 +226,7 @@ class Receipt {
     final Uint8List imagebytes = await Helper().svgToPng('<svg ${logo[1]}');
     final img.Image? image = img.decodeImage(imagebytes);
 
-    print(imagebytes);
+    //print(imagebytes);
     bytes += ticket.drawer();
     bytes += ticket.image(image!);
     bytes += ticket.text(branchname,
@@ -558,10 +558,10 @@ class Receipt {
 
     String promodetails = '';
 
-    final isOnline = await Helper().hasInternetConnection();
-    if (isOnline) {
-      promodetails = await promo();
-    }
+    // final isOnline = await Helper().hasInternetConnection();
+    // if (isOnline) {
+    //   promodetails = await promo();
+    // }
 
     PdfPageFormat format = PdfPageFormat.roll80;
     // final pdf = pw.Document(version: PdfVersion.pdf_1_5, compress: true);

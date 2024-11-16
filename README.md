@@ -35,7 +35,7 @@
 - Added Order Slip Receipt
 - Upgrade to latest dart libraries
 - Revise item filter
-- Added Production/Kitchen Printer Setup
+- Added Production/Kitchen printer Setup
 - Fix bluetooth detection for android 31 and up
 
 ### Version 1.2.13
@@ -134,3 +134,12 @@
 ### Version 1.3.6
 
 - Fix POS Configuration
+
+### Version 1.3.7
+
+- Fix Offline POS Transaction
+- Fix Reprinting Receipt
+
+### Version 1.3.10
+
+- Fix Resolutions for POS Screens 1920x1080

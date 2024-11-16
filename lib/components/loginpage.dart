@@ -73,115 +73,115 @@ class _LoginPageState extends State<LoginPage> {
           );
         });
 
-    final isOnline = await Helper().hasInternetConnection();
+    // final isOnline = await Helper().hasInternetConnection();
 
-    print(isOnline);
+    // print(isOnline);
 
-    if (!isOnline) {
-      Map<String, dynamic> offlineData = {};
-      if (Platform.isWindows) {
-        offlineData = await Helper().readJsonToFile('user.json');
-      }
-      if (Platform.isAndroid) {
-        offlineData = await Helper().jsonToFileReadAndroid('user.json');
-      }
-
-      Navigator.of(context).pop();
-
-      UserInfoModel userinfomodel = UserInfoModel(
-          offlineData['employeeid'].toString(),
-          offlineData['fullname'],
-          offlineData['position'],
-          offlineData['contactinfo'],
-          offlineData['datehired'],
-          offlineData['usercode'],
-          offlineData['accesstype'],
-          offlineData['status'],
-          offlineData['APK']);
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => MyDashboard(
-                  accesstype: userinfomodel.accesstype,
-                  employeeid: userinfomodel.employeeid,
-                  fullname: userinfomodel.fullname,
-                  positiontype: userinfomodel.position,
-                  logo: branchlogo,
-                )),
-      );
-    } else {
-      await Login().authenticate(username, password).then((response) {
-        if (response['msg'] == 'success') {
-          Navigator.of(context).pop();
-          final jsonData = json.encode(response['data']);
-          final results = json.decode(jsonData);
-
-          print(results);
-
-          UserInfoModel userinfomodel = UserInfoModel(
-              results[0]['employeeid'].toString(),
-              results[0]['fullname'],
-              results[0]['position'],
-              results[0]['contactinfo'],
-              results[0]['datehired'],
-              results[0]['usercode'],
-              results[0]['accesstype'],
-              results[0]['status'],
-              results[0]['APK']);
-
-          final userinfo = {
-            'employeeid': results[0]['employeeid'].toString(),
-            'fullname': results[0]['fullname'],
-            'position': results[0]['position'],
-            'contactinfo': results[0]['contactinfo'],
-            'datehired': results[0]['datehired'],
-            'usercode': results[0]['usercode'],
-            'accesstype': results[0]['accesstype'],
-            'status': results[0]['status'],
-            'APK': results[0]['APK'],
-          };
-
-          if (Platform.isAndroid) {
-            Helper().jsonToFileWriteAndroid(userinfo, 'user.json');
-          }
-
-          if (Platform.isWindows) {
-            Helper().writeJsonToFile(userinfo, 'user.json');
-          }
-
-          _saveRememberedCredentials();
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => MyDashboard(
-                      accesstype: userinfomodel.accesstype,
-                      employeeid: userinfomodel.employeeid,
-                      fullname: userinfomodel.fullname,
-                      positiontype: userinfomodel.position,
-                      logo: branchlogo,
-                    )),
-          );
-        } else {
-          Navigator.of(context).pop();
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Access'),
-              content: const Text('Incorrect username and password'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        }
-      });
+    // if (!isOnline) {
+    Map<String, dynamic> offlineData = {};
+    if (Platform.isWindows) {
+      offlineData = await Helper().readJsonToFile('user.json');
     }
+    if (Platform.isAndroid) {
+      offlineData = await Helper().jsonToFileReadAndroid('user.json');
+    }
+
+    Navigator.of(context).pop();
+
+    UserInfoModel userinfomodel = UserInfoModel(
+        offlineData['employeeid'].toString(),
+        offlineData['fullname'],
+        offlineData['position'],
+        offlineData['contactinfo'],
+        offlineData['datehired'],
+        offlineData['usercode'],
+        offlineData['accesstype'],
+        offlineData['status'],
+        offlineData['APK']);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => MyDashboard(
+                accesstype: userinfomodel.accesstype,
+                employeeid: userinfomodel.employeeid,
+                fullname: userinfomodel.fullname,
+                positiontype: userinfomodel.position,
+                logo: branchlogo,
+              )),
+    );
+    // } else {
+    //   await Login().authenticate(username, password).then((response) {
+    //     if (response['msg'] == 'success') {
+    //       Navigator.of(context).pop();
+    //       final jsonData = json.encode(response['data']);
+    //       final results = json.decode(jsonData);
+
+    //       print(results);
+
+    //       UserInfoModel userinfomodel = UserInfoModel(
+    //           results[0]['employeeid'].toString(),
+    //           results[0]['fullname'],
+    //           results[0]['position'],
+    //           results[0]['contactinfo'],
+    //           results[0]['datehired'],
+    //           results[0]['usercode'],
+    //           results[0]['accesstype'],
+    //           results[0]['status'],
+    //           results[0]['APK']);
+
+    //       final userinfo = {
+    //         'employeeid': results[0]['employeeid'].toString(),
+    //         'fullname': results[0]['fullname'],
+    //         'position': results[0]['position'],
+    //         'contactinfo': results[0]['contactinfo'],
+    //         'datehired': results[0]['datehired'],
+    //         'usercode': results[0]['usercode'],
+    //         'accesstype': results[0]['accesstype'],
+    //         'status': results[0]['status'],
+    //         'APK': results[0]['APK'],
+    //       };
+
+    //       if (Platform.isAndroid) {
+    //         Helper().jsonToFileWriteAndroid(userinfo, 'user.json');
+    //       }
+
+    //       if (Platform.isWindows) {
+    //         Helper().writeJsonToFile(userinfo, 'user.json');
+    //       }
+
+    //       _saveRememberedCredentials();
+
+    //       Navigator.push(
+    //         context,
+    //         MaterialPageRoute(
+    //             builder: (context) => MyDashboard(
+    //                   accesstype: userinfomodel.accesstype,
+    //                   employeeid: userinfomodel.employeeid,
+    //                   fullname: userinfomodel.fullname,
+    //                   positiontype: userinfomodel.position,
+    //                   logo: branchlogo,
+    //                 )),
+    //       );
+    //     } else {
+    //       Navigator.of(context).pop();
+    //       showDialog(
+    //         context: context,
+    //         barrierDismissible: false,
+    //         builder: (ctx) => AlertDialog(
+    //           title: const Text('Access'),
+    //           content: const Text('Incorrect username and password'),
+    //           actions: [
+    //             TextButton(
+    //               onPressed: () => Navigator.pop(ctx),
+    //               child: const Text('OK'),
+    //             ),
+    //           ],
+    //         ),
+    //       );
+    //     }
+    //   });
+    // }
   }
 
   void togglePasswordVisibility() {

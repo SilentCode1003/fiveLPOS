@@ -33,7 +33,7 @@ class Helper {
     final directory = Directory.current.path;
     final file = File('$directory/$filePath');
 
-    print('JSON data read to: $file');
+    //print('JSON data read to: $file');
 
     // Check if the file exists
     if (!file.existsSync()) {
@@ -53,7 +53,7 @@ class Helper {
     final directory = Directory.current.path;
     final file = File('$directory/$filePath');
 
-    print('JSON data read to: $file');
+    //print('JSON data read to: $file');
 
     // Check if the file exists
     if (!file.existsSync()) {
@@ -109,7 +109,7 @@ class Helper {
       // Write the JSON string to the file
       await file.writeAsString(jsonString);
 
-      print('Data written to ${file.path}');
+      //print('Data written to ${file.path}');
     } catch (e) {
       print(e);
     }
@@ -127,7 +127,7 @@ class Helper {
       // Write the JSON string to the file
       await file.writeAsString(jsonString);
 
-      print('Data written to ${file.path}');
+      //print('Data written to ${file.path}');
     } catch (e) {
       print(e);
     }
@@ -157,7 +157,7 @@ class Helper {
     final filePath = '${directory.path}/$filename';
     final file = File(filePath);
 
-    print('JSON data read to: $filePath');
+    //print('JSON data read to: $filePath');
 
     // Check if the file exists
     if (!file.existsSync()) {
@@ -185,7 +185,7 @@ class Helper {
 
       await file.writeAsString(json.encode(jsonData));
 
-      print('JSON data written to: $filePath');
+      //print('JSON data written to: $filePath');
     } catch (e) {
       print('Error writing JSON data: $e');
     }
@@ -196,7 +196,7 @@ class Helper {
     final filePath = '${directory.path}/$filename';
     final file = File(filePath);
 
-    print('JSON data read to: $filePath');
+    //print('JSON data read to: $filePath');
 
     // Check if the file exists
     if (!file.existsSync()) {
@@ -218,7 +218,7 @@ class Helper {
       final file = File(filePath);
       if (await file.exists()) {
         final contents = await file.readAsString();
-        print('readJsonFile Contents of JSON file: $contents');
+        // print('readJsonFile Contents of JSON file: $contents');
         return jsonDecode(contents);
       }
     } catch (e) {
@@ -236,23 +236,23 @@ class Helper {
     File? file;
 
     if (Platform.isWindows) {
-      print('Reading JSON file at $filenname');
+      //print('Reading JSON file at $filenname');
       data = await readJsonFile(filenname);
-      print('Contents of JSON file: $data');
+      // print('Contents of JSON file: $data');
       file = File(filenname);
     }
     if (Platform.isAndroid) {
       final directory = await getApplicationDocumentsDirectory();
       final fileLocation = '${directory.path}/$filenname';
-      print('Reading JSON file at $fileLocation');
+      //print('Reading JSON file at $fileLocation');
 
       data = await readJsonFile(fileLocation);
-      print('Contents of JSON file: $data');
+      // print('Contents of JSON file: $data');
       file = File(fileLocation);
     }
 
     // Append the new data
-    print('New Data: $newData');
+    //print('New Data: $newData');
     data.add(newData);
 
     // Write the updated data back to the JSON file
@@ -307,38 +307,52 @@ class Helper {
 
         // print('checkConnection: $checkConnection');
 
-        bool isAlive = await checkHealth();
-        print(isAlive);
-        if (isAlive) {
-          print('Internet connection available');
+        print('Internet connection available');
 
-          if (Platform.isWindows) {
-            print('online');
-            Helper()
-                .writeJsonToFile({'status': 'online'}, 'networkstatus.json');
-          }
-
-          if (Platform.isAndroid) {
-            print('online');
-            Helper().jsonToFileWriteAndroid(
-                {'status': 'online'}, 'networkstatus.json');
-          }
-          return true;
-        } else {
-          print('Internet connection not available');
-          if (Platform.isWindows) {
-            print('offline');
-            Helper()
-                .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
-          }
-
-          if (Platform.isAndroid) {
-            print('offline');
-            Helper().jsonToFileWriteAndroid(
-                {'status': 'offline'}, 'networkstatus.json');
-          }
-          return false;
+        if (Platform.isWindows) {
+          print('online');
+          Helper().writeJsonToFile({'status': 'online'}, 'networkstatus.json');
         }
+
+        if (Platform.isAndroid) {
+          print('online');
+          Helper().jsonToFileWriteAndroid(
+              {'status': 'online'}, 'networkstatus.json');
+        }
+        return true;
+
+        // bool isAlive = await checkHealth();
+        // print(isAlive);
+        // if (isAlive) {
+        //   print('Internet connection available');
+
+        //   if (Platform.isWindows) {
+        //     print('online');
+        //     Helper()
+        //         .writeJsonToFile({'status': 'online'}, 'networkstatus.json');
+        //   }
+
+        //   if (Platform.isAndroid) {
+        //     print('online');
+        //     Helper().jsonToFileWriteAndroid(
+        //         {'status': 'online'}, 'networkstatus.json');
+        //   }
+        //   return true;
+        // } else {
+        //   print('Internet connection not available');
+        //   if (Platform.isWindows) {
+        //     print('offline');
+        //     Helper()
+        //         .writeJsonToFile({'status': 'offline'}, 'networkstatus.json');
+        //   }
+
+        //   if (Platform.isAndroid) {
+        //     print('offline');
+        //     Helper().jsonToFileWriteAndroid(
+        //         {'status': 'offline'}, 'networkstatus.json');
+        //   }
+        //   return false;
+        // }
       } catch (error) {
         print('Error: $error \n Internet connection not available');
         return false;
@@ -368,7 +382,7 @@ class Helper {
         return false;
       }
     } catch (e) {
-      rethrow;
+      return false;
     }
   }
 
@@ -442,8 +456,7 @@ class Helper {
     }
   }
 
-    Future<Uint8List> svgToPng(String svgString) async {
-
+  Future<Uint8List> svgToPng(String svgString) async {
     final pictureInfo = await vg.loadPicture(SvgStringLoader(svgString), null);
 
     final image = await pictureInfo.picture.toImage(250, 250);

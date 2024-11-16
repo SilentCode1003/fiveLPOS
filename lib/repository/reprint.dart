@@ -101,8 +101,19 @@ class ReprintingReceipt {
     );
   }
 
-  Future<List<int>> reprintReceipt(PaperSize paper, CapabilityProfile profile,
-      branchname, id, serial, branchid, address, tin, min, ptu, items, logo) async {
+  Future<List<int>> reprintReceipt(
+      PaperSize paper,
+      CapabilityProfile profile,
+      branchname,
+      id,
+      serial,
+      branchid,
+      address,
+      tin,
+      min,
+      ptu,
+      items,
+      logo, user) async {
     final Generator printer = Generator(paper, profile);
     List<int> bytes = [];
 
@@ -157,7 +168,7 @@ class ReprintingReceipt {
 
     bytes += printer.row([
       PosColumn(
-          text: 'Cashier: $cashier',
+          text: 'Cashier: $user',
           width: 6,
           styles: const PosStyles(align: PosAlign.left, bold: true)),
       PosColumn(
@@ -382,13 +393,20 @@ class ReprintingReceipt {
     Map<String, dynamic> pos = {};
     Map<String, dynamic> branch = {};
     Map<String, dynamic> printerconfig = {};
+    Map<String, dynamic> userconfig = {};
 
     if (Platform.isWindows) {
       pos = await Helper().readJsonToFile('pos.json');
+      branch = await Helper().readJsonToFile('branch.json');
+      printerconfig = await Helper().readJsonToFile('printer.json');
+      userconfig = await Helper().readJsonToFile('user.json');
     }
 
     if (Platform.isAndroid) {
       pos = await Helper().jsonToFileReadAndroid('pos.json');
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
+      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
+      userconfig = await Helper().jsonToFileReadAndroid('user.json');
     }
     id = pos['posid'].toString();
     posname = pos['posname'];
@@ -396,13 +414,6 @@ class ReprintingReceipt {
     min = pos['min'];
     ptu = '${pos['ptu']}';
 
-    if (Platform.isWindows) {
-      branch = await Helper().readJsonToFile('branch.json');
-    }
-
-    if (Platform.isAndroid) {
-      branch = await Helper().jsonToFileReadAndroid('branch.json');
-    }
     branchid = branch['branchid'].toString();
     branchname = branch['branchname'];
     tin = 'VAT REG TIN: ${branch['tin']}';
@@ -411,14 +422,6 @@ class ReprintingReceipt {
 
     List<Map<String, dynamic>> items =
         List<Map<String, dynamic>>.from(jsonDecode(ordescription));
-
-    if (Platform.isWindows) {
-      printerconfig = await Helper().readJsonToFile('printer.json');
-    }
-
-    if (Platform.isAndroid) {
-      printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
-    }
 
     if (Platform.isAndroid || Platform.isWindows && printerconfig['isenable']) {
       PrinterNetworkManager printer =
@@ -433,7 +436,7 @@ class ReprintingReceipt {
       if (connect == PosPrintResult.success) {
         PosPrintResult printing = await printer.printTicket(
             (await reprintReceipt(paper, profile, branchname, id, serial,
-                branchid, address, tin, min, ptu, items, logo)));
+                branchid, address, tin, min, ptu, items, logo, userconfig['fullname'])));
       }
     }
 

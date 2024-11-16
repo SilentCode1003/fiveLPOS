@@ -49,7 +49,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
       if (result.status == 200) {
         setState(() {
           for (var data in json.decode(jsonData)) {
-            print(data);
+            // print(data);
 
             ReceiptModel model = ReceiptModel(
               data['detail_id'],

@@ -20,7 +20,7 @@ class CheckHealthAPI {
       userinfo = await Helper().jsonToFileReadAndroid('user.json');
     }
     final url = Uri.parse('${api['uri']}${Config.checkHealthAPI}');
-    final response = await http.get(url);
+    final response = await http.get(url).timeout(Duration(seconds: 5));
 
     final responseData = json.decode(response.body);
     final status = response.statusCode;

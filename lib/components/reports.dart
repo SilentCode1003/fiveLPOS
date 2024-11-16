@@ -111,9 +111,7 @@ class _ReportPageState extends State<ReportPage> {
                         for (var data in json.decode(solditemJson)) {
                           setState(() {
                             shiftsolditems.add(SoldItemModel(
-                                data['item'],
-                                data['quantity'],
-                                data['total']));
+                                data['item'], data['quantity'], data['total']));
                           });
                         }
 

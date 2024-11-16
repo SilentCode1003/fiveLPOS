@@ -128,7 +128,7 @@ class _MyDashboardState extends State<MyDashboard> {
 
   final SyncToDatabase _syncToDatabase = SyncToDatabase.instance;
 
-  bool isConnected = true;
+  bool isConnected = false;
 
   String splitEPaymentType = '';
 
@@ -154,6 +154,14 @@ class _MyDashboardState extends State<MyDashboard> {
   @override
   void initState() {
     // TODO: implement initState
+    _checkServerStatus().then((isOnline) {
+      print(isOnline);
+      setState(() {
+        isConnected = isOnline;
+      });
+      _syncToDatabase.getDetailID().then((value) => _getposconfig());
+    });
+
     _getbranchdetail();
     _getpayment();
     _getemployees();
@@ -161,9 +169,6 @@ class _MyDashboardState extends State<MyDashboard> {
 
     _getposconfig();
     _getdiscount();
-    _getbranchdetail();
-
-    _checknetowrkstatus();
 
     super.initState();
   }
@@ -180,11 +185,9 @@ class _MyDashboardState extends State<MyDashboard> {
     super.dispose();
   }
 
-  Future<void> _checknetowrkstatus() async {
-    final isOnline = await Helper().hasInternetConnection();
-    setState(() {
-      isConnected = isOnline;
-    });
+  Future<bool> _checkServerStatus() async {
+    final isOnline = await Helper().checkHealth();
+    return isOnline;
   }
 
   Future<void> _getbranchdetail() async {
@@ -194,32 +197,20 @@ class _MyDashboardState extends State<MyDashboard> {
 
     if (Platform.isWindows) {
       branch = await Helper().readJsonToFile('branch.json');
-
-      setState(() {
-        List<String> logo =
-            utf8.decode(base64.decode(branch['logo'])).split('<svg ');
-        String svglogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
-
-        branchlogo = svglogo;
-        companyname = branch['branchname'];
-      });
     }
 
     if (Platform.isAndroid) {
       branch = await Helper().jsonToFileReadAndroid('branch.json');
-
-      setState(() {
-        List<String> logo =
-            utf8.decode(base64.decode(branch['logo'])).split('<svg ');
-        String svglogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
-
-        branchlogo = svglogo;
-        companyname = branch['branchname'];
-      });
     }
-    // for (var branch in branchconfig) {
 
-    // }
+    setState(() {
+      List<String> logo =
+          utf8.decode(base64.decode(branch['logo'])).split('<svg ');
+      String svglogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
+
+      branchlogo = svglogo;
+      companyname = branch['branchname'];
+    });
   }
 
   Future<void> _getPOSShift(posid) async {
@@ -508,10 +499,10 @@ class _MyDashboardState extends State<MyDashboard> {
             .printReceipt();
 
         // if (Platform.isWindows) {
-        //   List<Printer> printerList = await Printing.listPrinters();
+        //   List<printer> printerList = await printing.listprinters();
         //   for (var printer in printerList) {
         //     if (printer.isDefault) {
-        //       Printing.directPrintPdf(
+        //       printing.directprintPdf(
         //           printer: printer,
         //           onLayout: (PdfPageFormat format) => pdfBytes);
         //     }
@@ -581,10 +572,10 @@ class _MyDashboardState extends State<MyDashboard> {
           .printReceipt();
 
       // if (Platform.isWindows) {
-      //   List<Printer> printerList = await Printing.listPrinters();
+      //   List<printer> printerList = await printing.listprinters();
       //   for (var printer in printerList) {
       //     if (printer.isDefault) {
-      //       Printing.directPrintPdf(
+      //       printing.directprintPdf(
       //           printer: printer, onLayout: (PdfPageFormat format) => pdfBytes);
       //     }
       //   }
@@ -595,30 +586,19 @@ class _MyDashboardState extends State<MyDashboard> {
   }
 
   Future<String> _sendreceipt(email, ornumber) async {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return LoadingSpinner(
-            message: 'Sending Email',
-          );
-        });
-
-    print('$email $ornumber');
-
     final results = await SalesDetails().getdetails(ornumber);
     final jsonData = json.encode(results['data']);
 
     if (results['msg'] == 'success') {
-      Navigator.of(context).pop();
       if (jsonData.length == 2) {
+        Navigator.pop(context);
         showDialog(
             context: context,
             barrierDismissible: false,
             builder: (BuildContext context) {
               return AlertDialog(
                 title: const Text('Not Found'),
-                content: Text('OR Number $detailid not found'),
+                content: Text('OR Number $ornumber not found'),
                 actions: [
                   TextButton(
                     onPressed: () async {
@@ -645,7 +625,6 @@ class _MyDashboardState extends State<MyDashboard> {
         String epaymentname = '';
         String referenceid = '';
         for (var data in json.decode(jsonData)) {
-          print(data);
           setState(() {
             ornumber = data['ornumber'];
             ordate = data['ordate'];
@@ -743,9 +722,14 @@ class _MyDashboardState extends State<MyDashboard> {
 
   Future<void> _search() async {
     String serial = _serialNumberController.text;
+
+    if (serial.isEmpty) {
+      return;
+    }
+
     final results = await ProductPrice().getitemserial(serial, branchid);
     final jsonData = json.decode(results['data']);
-    int id = 0;
+    String id = '';
     String description = '';
     double price = 0;
     double stocks = 0;
@@ -756,7 +740,7 @@ class _MyDashboardState extends State<MyDashboard> {
       setState(() {
         for (var data in jsonData) {
           print(data);
-          id = data['id'];
+          id = data['id'].toString();
           description = data['description'];
           price = double.parse(data['price'].toString());
           stocks = double.parse(data['quantity'].toString());
@@ -1113,22 +1097,22 @@ class _MyDashboardState extends State<MyDashboard> {
           setState(() {
             int newQuantity = itemsList[existingIndex]['quantity'] + quantity;
             if (newQuantity > stocks) {
-              showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('Alert'),
-                      content: Text('Stocks available $stocks'),
-                      icon: const Icon(Icons.warning),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    );
-                  });
+              // showDialog(
+              //     context: context,
+              //     barrierDismissible: false,
+              //     builder: (context) {
+              //       return AlertDialog(
+              //         title: const Text('Alert'),
+              //         content: Text('Stocks available $stocks'),
+              //         icon: const Icon(Icons.warning),
+              //         actions: [
+              //           TextButton(
+              //             onPressed: () => Navigator.pop(context),
+              //             child: const Text('OK'),
+              //           ),
+              //         ],
+              //       );
+              //     });
             } else {
               itemsList[existingIndex]['quantity'] = newQuantity;
             }
@@ -1208,7 +1192,7 @@ class _MyDashboardState extends State<MyDashboard> {
             title: const Text('Others'),
             content: SingleChildScrollView(
               child: Center(
-                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                child: Wrap(spacing: 4, runSpacing: 4, children: [
                   ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor:
@@ -1216,7 +1200,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: isStartShift
+                      onPressed: isStartShift && isConnected
                           ? () {
                               _startShift(context, posid);
                             }
@@ -1234,7 +1218,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: isEndShift
+                      onPressed: isEndShift && isConnected
                           ? () {
                               _endShift(context, posid);
                             }
@@ -1252,7 +1236,7 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: isEndShift
+                      onPressed: (isEndShift && isConnected)
                           ? () async {
                               await _syncSales();
                             }
@@ -1270,20 +1254,22 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: () {
-                        // Navigator.pushReplacementNamed(context, '/setting');
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ReceiptPage(
-                                    reprint: _reprint,
-                                    refund: _refund,
-                                    email: _sendreceipt,
-                                    orderslip: _orderslip,
-                                    posid: posid,
-                                  )),
-                        );
-                      },
+                      onPressed: (isEndShift && isConnected)
+                          ? () {
+                              // Navigator.pushReplacementNamed(context, '/setting');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ReceiptPage(
+                                          reprint: _reprint,
+                                          refund: _refund,
+                                          email: _sendreceipt,
+                                          orderslip: _orderslip,
+                                          posid: posid,
+                                        )),
+                              );
+                            }
+                          : null,
                       child: const Text(
                         'RECEIPTS',
                         style: TextStyle(
@@ -1297,16 +1283,18 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: () {
-                        // Navigator.pushReplacementNamed(context, '/setting');
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ReportPage(
-                                    posid: posid,
-                                  )),
-                        );
-                      },
+                      onPressed: (isEndShift && isConnected)
+                          ? () {
+                              // Navigator.pushReplacementNamed(context, '/setting');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ReportPage(
+                                          posid: posid,
+                                        )),
+                              );
+                            }
+                          : null,
                       child: const Text(
                         'REPORTS',
                         style: TextStyle(
@@ -1320,49 +1308,54 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: () {
-                        showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Re-printing'),
-                                content: SizedBox(
-                                  height: 70,
-                                  width: 200,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextField(
-                                        controller: _receiptORController,
-                                        keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
-                                            labelText: 'OR Number',
-                                            hintText: '200000001'),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () async {
-                                      String receiptOR =
-                                          _receiptORController.text.trim();
-                                      Navigator.of(context).pop();
-                                      _getdetails(context, receiptOR);
-                                    },
-                                    child: const Text('Print'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () async {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              );
-                            });
-                      },
+                      onPressed: (isEndShift && isConnected)
+                          ? () {
+                              showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Re-Printing'),
+                                      content: SizedBox(
+                                        height: 70,
+                                        width: 200,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            TextField(
+                                              controller: _receiptORController,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              decoration: const InputDecoration(
+                                                  labelText: 'OR Number',
+                                                  hintText: '200000001'),
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () async {
+                                            String receiptOR =
+                                                _receiptORController.text
+                                                    .trim();
+                                            Navigator.of(context).pop();
+                                            _getdetails(context, receiptOR);
+                                          },
+                                          child: const Text('Print'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () async {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    );
+                                  });
+                            }
+                          : null,
                       child: const Text(
                         'RE-PRINT',
                         style: TextStyle(
@@ -1376,63 +1369,69 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: () {
-                        showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('REFUND'),
-                                content: SizedBox(
-                                  height: 400,
-                                  width: 90,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextField(
-                                        controller: _refundORController,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: const InputDecoration(
-                                            labelText: 'OR Number',
-                                            hintText: '200000001'),
+                      onPressed: (isEndShift && isConnected)
+                          ? () {
+                              showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('REFUND'),
+                                      content: SizedBox(
+                                        height: 400,
+                                        width: 90,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            TextField(
+                                              controller: _refundORController,
+                                              keyboardType:
+                                                  TextInputType.multiline,
+                                              decoration: const InputDecoration(
+                                                  labelText: 'OR Number',
+                                                  hintText: '200000001'),
+                                            ),
+                                            TextField(
+                                              controller:
+                                                  _refundReasonController,
+                                              keyboardType:
+                                                  TextInputType.multiline,
+                                              maxLength: 300,
+                                              decoration: const InputDecoration(
+                                                  labelText: 'Reason',
+                                                  hintText:
+                                                      'Please enter reason of refund'),
+                                            )
+                                          ],
+                                        ),
                                       ),
-                                      TextField(
-                                        controller: _refundReasonController,
-                                        keyboardType: TextInputType.multiline,
-                                        maxLength: 300,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Reason',
-                                            hintText:
-                                                'Please enter reason of refund'),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () async {
-                                      // String receiptOR =
-                                      //     _receiptORController.text.trim();
-                                      // Navigator.of(context).pop();
-                                      // _getdetails(context, receiptOR);
-                                      String reason =
-                                          _refundReasonController.text;
-                                      String ornumber =
-                                          _refundORController.text;
-                                      _refund(ornumber, reason);
-                                    },
-                                    child: const Text('Proceed'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () async {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              );
-                            });
-                      },
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () async {
+                                            // String receiptOR =
+                                            //     _receiptORController.text.trim();
+                                            // Navigator.of(context).pop();
+                                            // _getdetails(context, receiptOR);
+                                            String reason =
+                                                _refundReasonController.text;
+                                            String ornumber =
+                                                _refundORController.text;
+                                            _refund(ornumber, reason);
+                                          },
+                                          child: const Text('Proceed'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () async {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    );
+                                  });
+                            }
+                          : null,
                       child: const Text(
                         'REFUND',
                         style: TextStyle(
@@ -1446,125 +1445,134 @@ class _MyDashboardState extends State<MyDashboard> {
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary,
                           minimumSize: const Size(120, 90)),
-                      onPressed: () {
-                        final TextEditingController emailController =
-                            TextEditingController();
-                        final TextEditingController ornumberController =
-                            TextEditingController();
+                      onPressed: (isEndShift && isConnected)
+                          ? () {
+                              final TextEditingController emailController =
+                                  TextEditingController();
+                              final TextEditingController ornumberController =
+                                  TextEditingController();
 
-                        Navigator.of(context).pop();
-                        showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Customer Email'),
-                                content: SizedBox(
-                                  height: 200,
-                                  width: 200,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextField(
-                                        controller: emailController,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Customer Email',
-                                            hintText: 'you@example.com'),
+                              Navigator.of(context).pop();
+                              showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Customer Email'),
+                                      content: SizedBox(
+                                        height: 200,
+                                        width: 200,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            TextField(
+                                              controller: emailController,
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                              decoration: const InputDecoration(
+                                                  labelText: 'Customer Email',
+                                                  hintText: 'you@example.com'),
+                                            ),
+                                            TextField(
+                                              controller: ornumberController,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              decoration: const InputDecoration(
+                                                  labelText: 'OR Number',
+                                                  hintText: '200000001'),
+                                            )
+                                          ],
+                                        ),
                                       ),
-                                      TextField(
-                                        controller: ornumberController,
-                                        keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
-                                            labelText: 'OR Number',
-                                            hintText: '200000001'),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () async {
-                                        String email = emailController.text;
-                                        String ornumber =
-                                            ornumberController.text;
-                                        if (isValidEmail(email)) {
-                                          String message = '';
+                                      actions: [
+                                        TextButton(
+                                            onPressed: () async {
+                                              String email =
+                                                  emailController.text;
+                                              String ornumber =
+                                                  ornumberController.text;
+                                              if (isValidEmail(email)) {
+                                                String message = '';
 
-                                          showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return LoadingSpinner(
-                                                  message: 'Sending...',
-                                                );
-                                              });
-                                          message = await _sendreceipt(
-                                              email, ornumber);
+                                                showDialog(
+                                                    context: context,
+                                                    barrierDismissible: false,
+                                                    builder:
+                                                        (BuildContext context) {
+                                                      return LoadingSpinner(
+                                                          message:
+                                                              'Sending...');
+                                                    });
+                                                message = await _sendreceipt(
+                                                    email, ornumber);
 
-                                          Navigator.of(context).pop();
-
-                                          _clearItems();
-
-                                          if (message != 'success') {
-                                          } else {
-                                            Navigator.of(context).pop();
-                                            showDialog(
-                                                context: context,
-                                                barrierDismissible: false,
-                                                builder:
-                                                    (BuildContext context) {
-                                                  return AlertDialog(
-                                                    title:
-                                                        const Text('Success'),
-                                                    content: const Text(
-                                                        'E-Receipt sent successfully!'),
-                                                    actions: [
-                                                      TextButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                          },
-                                                          child:
-                                                              const Text('Ok'))
-                                                    ],
-                                                  );
-                                                });
-                                          }
-                                        } else {
-                                          showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  title: const Text('Invalid'),
-                                                  content: const Text(
-                                                      'Invalid Email Address!'),
-                                                  actions: [
-                                                    TextButton(
-                                                        onPressed: () {
-                                                          Navigator.of(context)
-                                                              .pop();
-                                                        },
-                                                        child:
-                                                            const Text('Close'))
-                                                  ],
-                                                );
-                                              });
-                                        }
-                                      },
-                                      child: const Text('Send')),
-                                  TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Close')),
-                                ],
-                              );
-                            });
-                      },
+                                                if (message != 'success') {
+                                                } else {
+                                                  Navigator.of(context).pop();
+                                                  showDialog(
+                                                      context: context,
+                                                      barrierDismissible: false,
+                                                      builder: (BuildContext
+                                                          context) {
+                                                        return AlertDialog(
+                                                          title: const Text(
+                                                              'Success'),
+                                                          content: const Text(
+                                                              'E-Receipt sent successfully!'),
+                                                          actions: [
+                                                            TextButton(
+                                                                onPressed: () {
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop();
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop();
+                                                                },
+                                                                child:
+                                                                    const Text(
+                                                                        'Ok'))
+                                                          ],
+                                                        );
+                                                      });
+                                                }
+                                              } else {
+                                                showDialog(
+                                                    context: context,
+                                                    barrierDismissible: false,
+                                                    builder:
+                                                        (BuildContext context) {
+                                                      return AlertDialog(
+                                                        title: const Text(
+                                                            'Invalid'),
+                                                        content: const Text(
+                                                            'Invalid Email Address!'),
+                                                        actions: [
+                                                          TextButton(
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                              },
+                                                              child: const Text(
+                                                                  'Close'))
+                                                        ],
+                                                      );
+                                                    });
+                                              }
+                                            },
+                                            child: const Text('Send')),
+                                        TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Close')),
+                                      ],
+                                    );
+                                  });
+                            }
+                          : null,
                       child: const Text(
                         'SEND\nE-RECEIPT',
                         style: TextStyle(
@@ -1853,274 +1861,317 @@ class _MyDashboardState extends State<MyDashboard> {
     String paymenttype,
     String items,
     String total,
-    String cashier,
     String referenceid,
     String paymentname,
   ) async {
     Map<String, dynamic> result = {};
     try {
       final TextEditingController emailController = TextEditingController();
-      final isOnline = await Helper().hasInternetConnection();
+      // final isOnline = await Helper().hasInternetConnection();
       Uint8List? pdfBytes;
 
       Map<String, dynamic> printerconfig = {};
       Map<String, dynamic> emailconfig = {};
+      Map<String, dynamic> userconfig = {};
       if (Platform.isWindows) {
         printerconfig = await Helper().readJsonToFile('printer.json');
         emailconfig = await Helper().readJsonToFile('email.json');
+        userconfig = await Helper().readJsonToFile('user.json');
       }
 
       if (Platform.isAndroid) {
         printerconfig = await Helper().jsonToFileReadAndroid('printer.json');
         emailconfig = await Helper().jsonToFileReadAndroid('email.json');
+        userconfig = await Helper().jsonToFileReadAndroid('user.json');
       }
 
-      setState(() {
-        isConnected = isOnline;
+      final cashier = userconfig['fullname'];
+
+      // setState(() {
+      //   isConnected = isOnline;
+      // });
+
+      // if (isOnline) {
+      //   result = await POSTransaction().sending(
+      //       detailid,
+      //       date,
+      //       posid,
+      //       shift,
+      //       paymenttype,
+      //       referenceid,
+      //       paymentname,
+      //       items,
+      //       total,
+      //       salesrepresentative == '' ? widget.fullname : salesrepresentative,
+      //       cashAmount.toString(),
+      //       '0',
+      //       branchid,
+      //       jsonEncode(discountDetail));
+
+      pdfBytes = await Receipt(
+              itemsList,
+              cashAmount,
+              detailid,
+              posid,
+              cashier,
+              shift,
+              companyname,
+              address,
+              tin,
+              paymenttype,
+              referenceid,
+              paymentname,
+              0,
+              salesrepresentative == '' ? cashier : salesrepresentative)
+          .printReceipt();
+
+      //   if (result['msg'] == 'success') {
+      //     // if (Platform.isAndroid && printerconfig['printerip'] == '') {
+      //     //   printing.layoutPdf(
+      //     //       onLayout: (PdfPageFormat format) async => pdfBytes,
+      //     //       name: detailid.toString());
+      //     // } else if (Platform.isWindows) {
+      //     //   List<printer> printerList = await printing.listprinters();
+      //     //   for (var localprinter in printerList) {
+      //     //     if (localprinter.isDefault) {
+      //     //       printing.directprintPdf(
+      //     //           printer: localprinter,
+      //     //           onLayout: (PdfPageFormat format) => pdfBytes);
+      //     //     }
+      //     //   }
+      //     // }
+
+      //     if (Platform.isAndroid) {
+      //       Helper().jsonListToFileWriteAndroid([
+      //         {
+      //           'detailid': detailid,
+      //         }
+      //       ], 'posdetailid.json');
+      //     }
+      //     if (Platform.isWindows) {
+      //       Helper().writeListJsonToFile([
+      //         {
+      //           'detailid': detailid,
+      //         }
+      //       ], 'posdetailid.json');
+      //     }
+      //   } else {
+      //     showDialog(
+      //         context: context,
+      //         barrierDismissible: false,
+      //         builder: (BuildContext context) {
+      //           return AlertDialog(
+      //             title: const Text('Error'),
+      //             content: Text(
+      //                 'Please inform administrator. Thank you! ${result['text']}'),
+      //             actions: [
+      //               TextButton(
+      //                 onPressed: () {
+      //                   Navigator.of(context).pop(); // Close the dialog
+      //                 },
+      //                 child: const Text('OK'),
+      //               ),
+      //             ],
+      //           );
+      //         });
+      //   }
+      //   await _syncSales();
+      // } else {
+      if (Platform.isAndroid) {
+        await Helper().jsonListToFileWriteAndroid([
+          {
+            'detailid': detailid,
+          }
+        ], 'posdetailid.json');
+      }
+
+      if (Platform.isWindows) {
+        await Helper().writeListJsonToFile([
+          {
+            'detailid': detailid,
+          }
+        ], 'posdetailid.json');
+      }
+
+      await Helper().appendDataToJsonFile('sales.json', {
+        'detailid': detailid,
+        'date': date,
+        'posid': posid,
+        'shift': shift,
+        'paymenttype': paymenttype,
+        'referenceid': referenceid,
+        'paymentname': paymentname,
+        'items': items,
+        'total': total,
+        'cashier': salesrepresentative == '' ? cashier : salesrepresentative,
+        'cash': cashAmount.toString(),
+        'ecash': '0',
+        'branch': branchid,
+        'discountdetail': jsonEncode(discountDetail),
+        'issync': 0
       });
 
-      if (isOnline) {
-        result = await POSTransaction().sending(
-            detailid,
-            date,
-            posid,
-            shift,
-            paymenttype,
-            referenceid,
-            paymentname,
-            items,
-            total,
-            salesrepresentative == '' ? widget.fullname : salesrepresentative,
-            cashAmount.toString(),
-            '0',
-            branchid,
-            jsonEncode(discountDetail));
+      // await Receipt(
+      //         itemsList,
+      //         cashAmount,
+      //         detailid,
+      //         posid,
+      //         cashier,
+      //         shift,
+      //         companyname,
+      //         address,
+      //         tin,
+      //         paymenttype,
+      //         referenceid,
+      //         paymentname,
+      //         0,
+      //         salesrepresentative == '' ? cashier : salesrepresentative)
+      //     .printReceipt();
+      // }
 
-        pdfBytes = await Receipt(
-                itemsList,
-                cashAmount,
-                detailid,
-                posid,
-                cashier,
-                shift,
-                companyname,
-                address,
-                tin,
-                paymenttype,
-                referenceid,
-                paymentname,
-                0,
-                salesrepresentative == '' ? cashier : salesrepresentative)
-            .printReceipt();
+      // final isOnline = await Helper().checkHealth();
 
-        if (result['msg'] == 'success') {
-          // if (Platform.isAndroid && printerconfig['printerip'] == '') {
-          //   Printing.layoutPdf(
-          //       onLayout: (PdfPageFormat format) async => pdfBytes,
-          //       name: detailid.toString());
-          // } else if (Platform.isWindows) {
-          //   List<Printer> printerList = await Printing.listPrinters();
-          //   for (var localprinter in printerList) {
-          //     if (localprinter.isDefault) {
-          //       Printing.directPrintPdf(
-          //           printer: localprinter,
-          //           onLayout: (PdfPageFormat format) => pdfBytes);
-          //     }
-          //   }
-          // }
-
-          if (Platform.isAndroid) {
-            Helper().jsonListToFileWriteAndroid([
-              {
-                'detailid': detailid,
-              }
-            ], 'posdetailid.json');
-          }
-          if (Platform.isWindows) {
-            Helper().writeListJsonToFile([
-              {
-                'detailid': detailid,
-              }
-            ], 'posdetailid.json');
-          }
-        } else {
-          showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Error'),
-                  content: Text(
-                      'Please inform administrator. Thank you! ${result['text']}'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              });
-        }
-        await _syncSales();
-      } else {
-        if (Platform.isAndroid) {
-          Helper().jsonListToFileWriteAndroid([
-            {
-              'detailid': detailid,
-            }
-          ], 'posdetailid.json');
-        }
-
-        if (Platform.isWindows) {
-          Helper().writeListJsonToFile([
-            {
-              'detailid': detailid,
-            }
-          ], 'posdetailid.json');
-        }
-
-        Helper().appendDataToJsonFile('sales.json', {
-          'detailid': detailid,
-          'date': date,
-          'posid': posid,
-          'shift': shift,
-          'paymenttype': paymenttype,
-          'referenceid': referenceid,
-          'paymentname': paymentname,
-          'items': items,
-          'total': total,
-          'cashier':
-              salesrepresentative == '' ? widget.fullname : salesrepresentative,
-          'cash': cashAmount.toString(),
-          'ecash': '0',
-          'branch': branchid,
-          'discountdetail': jsonEncode(discountDetail),
-          'issync': 0
+      Helper().checkHealth().then((isOnline) {
+        setState(() {
+          isConnected = isOnline;
         });
+        if (isOnline) {
+          _syncSales();
+          _syncInventory();
+        }
 
-        await Receipt(
-                itemsList,
-                cashAmount,
-                detailid,
-                posid,
-                cashier,
-                shift,
-                companyname,
-                address,
-                tin,
-                paymenttype,
-                referenceid,
-                paymentname,
-                0,
-                salesrepresentative == '' ? cashier : salesrepresentative)
-            .printReceipt();
-      }
+        if (paymenttype != 'CASH') {
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        }
 
-      if (paymenttype != 'CASH') {
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-      } else {
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-      }
-
-      showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Success'),
-              content: const Text('Transaction successfull'),
-              actions: <Widget>[
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary),
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    _clearItems();
-                    await _syncInventory();
-                  },
-                  child: const Text('OK'),
-                ),
-                if (printerconfig['productionprinterip'] != '')
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Success'),
+                content: const Text('Transaction successfull'),
+                actions: <Widget>[
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor:
                             Theme.of(context).colorScheme.onPrimary),
                     onPressed: () async {
-                      await OrderSlip(itemsList, Helper().GetCurrentDatetime(),
-                              detailid)
-                          .printOrderSlip();
+                      Navigator.of(context).pop();
+                      _clearItems();
                     },
-                    child: const Text('Printer Order Slip'),
+                    child: const Text('OK'),
                   ),
-                if (emailconfig['emailaddress'] != '' && isOnline)
-                  ElevatedButton(
+                  if (printerconfig['productionprinterip'] != '')
+                    ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor:
                               Theme.of(context).colorScheme.primary,
                           foregroundColor:
                               Theme.of(context).colorScheme.onPrimary),
-                      onPressed: () {
-                        showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Customer Email'),
-                                content: SizedBox(
-                                  height: 200,
-                                  width: 200,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextField(
-                                        controller: emailController,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Customer Email',
-                                            hintText: 'you@example.com'),
-                                      )
-                                    ],
+                      onPressed: () async {
+                        await OrderSlip(itemsList,
+                                Helper().GetCurrentDatetime(), detailid)
+                            .printOrderSlip();
+                      },
+                      child: const Text('Print Order Slip'),
+                    ),
+                  if (emailconfig['emailaddress'] != '' && isConnected)
+                    ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onPrimary),
+                        onPressed: () {
+                          showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Customer Email'),
+                                  content: SizedBox(
+                                    height: 200,
+                                    width: 200,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        TextField(
+                                          controller: emailController,
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          decoration: const InputDecoration(
+                                              labelText: 'Customer Email',
+                                              hintText: 'you@example.com'),
+                                        )
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () async {
-                                        String email = emailController.text;
-                                        if (isValidEmail(email)) {
-                                          String message = '';
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () async {
+                                          String email = emailController.text;
+                                          if (isValidEmail(email)) {
+                                            String message = '';
 
-                                          showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return LoadingSpinner(
-                                                  message: 'Sending...',
-                                                );
-                                              });
-                                          message = await Email().sendMail(
-                                              detailid.toString(),
-                                              email,
-                                              pdfBytes!,
-                                              cashier,
-                                              itemsList,
-                                              paymentname,
-                                              referenceid);
+                                            showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return LoadingSpinner(
+                                                    message: 'Sending...',
+                                                  );
+                                                });
+                                            message = await Email().sendMail(
+                                                detailid.toString(),
+                                                email,
+                                                pdfBytes!,
+                                                userconfig['fullname'],
+                                                itemsList,
+                                                paymentname,
+                                                referenceid);
 
-                                          Navigator.of(context).pop();
-
-                                          if (message != 'success') {
-                                          } else {
                                             Navigator.of(context).pop();
+
+                                            if (message != 'success') {
+                                            } else {
+                                              Navigator.of(context).pop();
+                                              showDialog(
+                                                  context: context,
+                                                  barrierDismissible: false,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title:
+                                                          const Text('Success'),
+                                                      content: const Text(
+                                                          'E-Receipt sent successfully!'),
+                                                      actions: [
+                                                        TextButton(
+                                                            onPressed: () {
+                                                              Navigator.of(
+                                                                      context)
+                                                                  .pop();
+                                                            },
+                                                            child: const Text(
+                                                                'Ok'))
+                                                      ],
+                                                    );
+                                                  });
+
+                                              _clearItems();
+                                            }
+                                          } else {
                                             showDialog(
                                                 context: context,
                                                 barrierDismissible: false,
@@ -2128,9 +2179,9 @@ class _MyDashboardState extends State<MyDashboard> {
                                                     (BuildContext context) {
                                                   return AlertDialog(
                                                     title:
-                                                        const Text('Success'),
+                                                        const Text('Invalid'),
                                                     content: const Text(
-                                                        'E-Receipt sent successfully!'),
+                                                        'Invalid Email Address!'),
                                                     actions: [
                                                       TextButton(
                                                           onPressed: () {
@@ -2138,50 +2189,28 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                     context)
                                                                 .pop();
                                                           },
-                                                          child:
-                                                              const Text('Ok'))
+                                                          child: const Text(
+                                                              'Close'))
                                                     ],
                                                   );
                                                 });
-
-                                            _clearItems();
                                           }
-                                        } else {
-                                          showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  title: const Text('Invalid'),
-                                                  content: const Text(
-                                                      'Invalid Email Address!'),
-                                                  actions: [
-                                                    TextButton(
-                                                        onPressed: () {
-                                                          Navigator.of(context)
-                                                              .pop();
-                                                        },
-                                                        child:
-                                                            const Text('Close'))
-                                                  ],
-                                                );
-                                              });
-                                        }
-                                      },
-                                      child: const Text('Send')),
-                                  TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Close')),
-                                ],
-                              );
-                            });
-                      },
-                      child: const Text('Send E-Receipt')),
-              ],
-            );
-          });
+                                        },
+                                        child: const Text('Send')),
+                                    TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Close')),
+                                  ],
+                                );
+                              });
+                        },
+                        child: const Text('Send E-Receipt')),
+                ],
+              );
+            });
+      });
     } catch (e) {
       if (paymenttype != 'CASH') {
         Navigator.of(context).pop();
@@ -2302,6 +2331,8 @@ class _MyDashboardState extends State<MyDashboard> {
     await _syncToDatabase.syncSales();
     await _syncToDatabase.syncSplitSales();
     await _syncToDatabase.syncRefund();
+    await _syncToDatabase.getProductPrice();
+    await _syncToDatabase.getDetailID();
   }
 
   double _remaining() {
@@ -2491,7 +2522,7 @@ class _MyDashboardState extends State<MyDashboard> {
                               detailid)
                           .printOrderSlip();
                     },
-                    child: const Text('Printer Order Slip'),
+                    child: const Text('Print Order Slip'),
                   ),
                 if (emailconfig['emailaddress'] != '' && isOnline)
                   ElevatedButton(
@@ -2760,7 +2791,7 @@ class _MyDashboardState extends State<MyDashboard> {
         });
       }
 
-        pdfBytes = await Receipt(
+      pdfBytes = await Receipt(
               itemsList,
               firstepaymentReceive,
               detailid,
@@ -2806,7 +2837,7 @@ class _MyDashboardState extends State<MyDashboard> {
                               detailid)
                           .printOrderSlip();
                     },
-                    child: const Text('Printer Order Slip'),
+                    child: const Text('Print Order Slip'),
                   ),
                 if (emailconfig['emailaddress'] != '' && isOnline)
                   ElevatedButton(
@@ -2954,107 +2985,115 @@ class _MyDashboardState extends State<MyDashboard> {
   Future<void> _discount() async {
     final List<Widget> discount = List<Widget>.generate(
         discountList.length,
-        (index) => ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary),
-              onPressed: () {
-                if (discountItemCounter == 1) {
-                  showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Warning'),
-                          content: const Text(
-                              'This POS is only accepts one discount'),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(); // Close the dialog
-                              },
-                              child: const Text('Ok'),
-                            ),
-                          ],
-                        );
-                      });
-                } else {
-                  (discountList[index] == 'PWD' ||
-                          discountList[index] == 'Senior')
-                      ? showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (BuildContext context) {
-                            return SingleChildScrollView(
-                              child: AlertDialog(
-                                title: Text(discountList[index]),
-                                content: Column(
-                                  children: [
-                                    Row(
-                                      children: [
+        (index) => SizedBox(
+              height: 70,
+              width: 120,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary),
+                onPressed: () {
+                  if (discountItemCounter == 1) {
+                    showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Warning'),
+                            content: const Text(
+                                'This POS is only accepts one discount'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context)
+                                      .pop(); // Close the dialog
+                                },
+                                child: const Text('Ok'),
+                              ),
+                            ],
+                          );
+                        });
+                  } else {
+                    (discountList[index] == 'PWD' ||
+                            discountList[index] == 'Senior')
+                        ? showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return SingleChildScrollView(
+                                child: AlertDialog(
+                                  title: Text(discountList[index]),
+                                  content: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 520,
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
+                                              child: TextField(
+                                                controller:
+                                                    _discountIDController,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  labelText: 'ID',
+                                                  hintText: '163456',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(children: [
                                         SizedBox(
                                           width: 520,
                                           child: Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: TextField(
-                                              controller: _discountIDController,
+                                              controller:
+                                                  _discountFullnameController,
                                               decoration: const InputDecoration(
-                                                labelText: 'ID',
-                                                hintText: '163456',
+                                                labelText: 'Fullname',
+                                                hintText: 'Juan Dela Cruz',
                                                 border: OutlineInputBorder(),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ],
+                                      ]),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context)
+                                            .pop(); // Close the dialog
+                                      },
+                                      child: const Text('Close'),
                                     ),
-                                    Row(children: [
-                                      SizedBox(
-                                        width: 520,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: TextField(
-                                            controller:
-                                                _discountFullnameController,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Fullname',
-                                              hintText: 'Juan Dela Cruz',
-                                              border: OutlineInputBorder(),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ]),
+                                    TextButton(
+                                      onPressed: () {
+                                        _getdiscountrate(discountList[index]);
+                                        Navigator.of(context)
+                                            .pop(); // Close the dialog
+                                      },
+                                      child: const Text('Apply'),
+                                    ),
                                   ],
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context)
-                                          .pop(); // Close the dialog
-                                    },
-                                    child: const Text('Close'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      _getdiscountrate(discountList[index]);
-                                      Navigator.of(context)
-                                          .pop(); // Close the dialog
-                                    },
-                                    child: const Text('Apply'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          })
-                      : _getdiscountrate(discountList[index]);
-                }
-              },
-              child: Text(
-                discountList[index],
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+                              );
+                            })
+                        : _getdiscountrate(discountList[index]);
+                  }
+                },
+                child: Text(
+                  discountList[index],
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ));
 
@@ -3221,7 +3260,6 @@ class _MyDashboardState extends State<MyDashboard> {
                                         paymenttype,
                                         jsonEncode(itemsList),
                                         calculateGrandTotal().toString(),
-                                        widget.fullname,
                                         referenceid,
                                         paymentname);
                                   }
@@ -4037,7 +4075,7 @@ class _MyDashboardState extends State<MyDashboard> {
             padding: const EdgeInsets.all(5),
             alignment: Alignment.center,
             child: ClipOval(
-              child: SvgPicture.string(branchlogo),
+              child: branchlogo == '' ? null : SvgPicture.string(branchlogo),
             ),
           ),
           title: Text(
@@ -4086,16 +4124,17 @@ class _MyDashboardState extends State<MyDashboard> {
           ],
         ),
         body: SingleChildScrollView(
-          child: Row(
+          child: Wrap(
+            spacing: 0,
+            runSpacing: 0,
             children: [
               Container(
-                width: 680,
-                height: 680,
+                width: 605,
                 padding: const EdgeInsets.all(5),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
-                    height: 270,
+                    height: 520,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       border: Border.all(
@@ -4106,7 +4145,7 @@ class _MyDashboardState extends State<MyDashboard> {
                     ),
                     child: SingleChildScrollView(
                       child: DataTable(
-                        columnSpacing: 1,
+                        columnSpacing: 10,
                         columns: const [
                           DataColumn(
                               label: Text(
@@ -4213,313 +4252,377 @@ class _MyDashboardState extends State<MyDashboard> {
                   ),
                 ),
               ), //Item List
-
               Container(
-                  color: Colors.teal,
-                  width: 70,
-                  height: 680,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                          onPressed: () {
-                            _clearItems();
-                          },
-                          icon: const Icon(
-                            Icons.delete_forever,
-                            size: 50,
-                            color: Colors.white,
-                          ))
-                    ],
+                  width: 40,
+                  padding: const EdgeInsets.all(2),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Column(
+                      children: [
+                        IconButton(
+                            onPressed: () {
+                              _clearItems();
+                            },
+                            icon: const Icon(
+                              Icons.replay_circle_filled,
+                              size: 24,
+                              color: Colors.teal,
+                            ))
+                      ],
+                    ),
                   )), //Other Function Buttons
-
               Container(
-                width: 600,
-                height: 680,
-                padding: const EdgeInsets.all(5),
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Text(
-                            'Shift:  $shift',
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'OR:  $detailid',
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            isConnected
-                                ? 'Status: Connected'
-                                : 'Status: Disconnected',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isConnected ? Colors.green : Colors.red,
-                            ),
-                          ),
-                          Text(
-                            'Total :  ${formatAsCurrency(calculateGrandTotal())}',
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ), // Status
-
-                      Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 480,
-                                child: TextField(
-                                  controller: _serialNumberController,
-                                  decoration: const InputDecoration(
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color:
-                                              Color.fromARGB(255, 2, 90, 71)),
-                                    ),
-                                    labelText: 'Serial Number',
-                                    labelStyle: TextStyle(
-                                        color: Color.fromARGB(255, 2, 90, 71)),
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Enter Serial',
-                                    prefixIcon: Icon(Icons.qr_code_2_outlined),
-                                  ),
-                                  textInputAction: TextInputAction.go,
-                                  onEditingComplete: () {
-                                    _search();
-                                    _serialNumberController.clear();
-                                  },
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.primary,
-                                      foregroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                      minimumSize: const Size(80, 60)),
-                                  onPressed: () {
-                                    _search();
-                                  },
-                                  child: const Icon(Icons.search),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ), // Search
-                      SizedBox(height: 70),
-                      Container(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
+                width: 570,
+                padding: const EdgeInsets.all(4),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
                           children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                _discount();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  minimumSize: const Size(120, 70)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        10.0), // Adjust padding as needed
-                                    child: const FaIcon(FontAwesomeIcons.tag,
-                                        size: 16), // Adjust size as needed
+                            Text(
+                              'Shift:  $shift',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              'OR:  $detailid',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ), // Status
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Server Status: ',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  const Text('DISCOUNT'),
-                                ],
-                              ),
-                            ), //Discount
+                                ),
+                                Text(
+                                  isConnected ? 'Connected' : ' Disconnected',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        isConnected ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              'Total :  ${formatAsCurrency(calculateGrandTotal())}',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ), // Status
 
-                            ElevatedButton(
-                              onPressed: () {
-                                if (itemsList.isEmpty) {
-                                  showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title:
-                                              const Text('Empty Transaction'),
-                                          content: const Text(
-                                              'Your transaction list is empty. Please add items before proceeding to payment.'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(); // Close the dialog
-                                              },
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                } else {
-                                  showDialog(
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 280,
+                              child: TextField(
+                                controller: _serialNumberController,
+                                decoration: const InputDecoration(
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Color.fromARGB(255, 2, 90, 71)),
+                                  ),
+                                  labelText: 'Serial Number',
+                                  labelStyle: TextStyle(
+                                      color: Color.fromARGB(255, 2, 90, 71)),
+                                  border: OutlineInputBorder(),
+                                  hintText: 'Enter Serial',
+                                  prefixIcon: Icon(Icons.qr_code_2_outlined),
+                                ),
+                                textInputAction: TextInputAction.go,
+                                onEditingComplete: () {
+                                  _search();
+                                  _serialNumberController.clear();
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Theme.of(context).colorScheme.primary,
+                                    foregroundColor:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                    minimumSize: const Size(80, 60)),
+                                onPressed: () {
+                                  _search();
+                                  _serialNumberController.clear();
+                                },
+                                child: const Icon(Icons.search),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ), // Search
+                    SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              _discount();
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                minimumSize: const Size(120, 70)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      10.0), // Adjust padding as needed
+                                  child: const FaIcon(FontAwesomeIcons.tag,
+                                      size: 16), // Adjust size as needed
+                                ),
+                                const Text('DISCOUNT'),
+                              ],
+                            ),
+                          ), //Discount
+
+                          ElevatedButton(
+                            onPressed: () {
+                              if (itemsList.isEmpty) {
+                                showDialog(
                                     context: context,
                                     barrierDismissible: false,
                                     builder: (BuildContext context) {
                                       return AlertDialog(
-                                        // alignment: Alignment.center,
-                                        title: const Text(
-                                          'PAYMENT METHOD',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 25,
-                                            fontWeight: FontWeight.bold,
+                                        title: const Text('Empty Transaction'),
+                                        content: const Text(
+                                            'Your transaction list is empty. Please add items before proceeding to payment.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context)
+                                                  .pop(); // Close the dialog
+                                            },
+                                            child: const Text('OK'),
                                           ),
+                                        ],
+                                      );
+                                    });
+                              } else {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      // alignment: Alignment.center,
+                                      title: const Text(
+                                        'PAYMENT METHOD',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        content: Wrap(
-                                          alignment: WrapAlignment.center,
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: [
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.all(8.0),
-                                              child: Container(
-                                                child: DropdownMenu(
-                                                  width: 460,
-                                                  initialSelection:
-                                                      employees.first,
-                                                  onSelected: (String? value) {
-                                                    selectedSalesRepresentative =
-                                                        value!;
-                                                    setState(() {
-                                                      salesrepresentative =
-                                                          selectedSalesRepresentative;
-                                                    });
-                                                  },
-                                                  dropdownMenuEntries: employees
-                                                      .map<
-                                                              DropdownMenuEntry<
-                                                                  String>>(
-                                                          (String value) {
-                                                    return DropdownMenuEntry<
-                                                            String>(
-                                                        value: value,
-                                                        label: value);
-                                                  }).toList(),
-                                                ),
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              height: 60,
-                                              width: 120,
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  _epayment();
+                                      ),
+                                      content: Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Container(
+                                              child: DropdownMenu(
+                                                width: 460,
+                                                initialSelection:
+                                                    employees.first,
+                                                onSelected: (String? value) {
+                                                  selectedSalesRepresentative =
+                                                      value!;
+                                                  setState(() {
+                                                    salesrepresentative =
+                                                        selectedSalesRepresentative;
+                                                  });
                                                 },
-                                                style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Theme.of(context)
-                                                            .colorScheme
-                                                            .primary,
-                                                    foregroundColor:
-                                                        Theme.of(context)
-                                                            .colorScheme
-                                                            .onPrimary),
-                                                child: const Text('E-PAYMENT'),
+                                                dropdownMenuEntries: employees
+                                                    .map<
+                                                            DropdownMenuEntry<
+                                                                String>>(
+                                                        (String value) {
+                                                  return DropdownMenuEntry<
+                                                          String>(
+                                                      value: value,
+                                                      label: value);
+                                                }).toList(),
                                               ),
                                             ),
-                                            SizedBox(
-                                              height: 60,
-                                              width: 120,
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    barrierDismissible: false,
-                                                    builder:
-                                                        (BuildContext context) {
-                                                      return AlertDialog(
-                                                        title: const Text(
-                                                            'Cash Payment'),
-                                                        content: Column(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            Text(
-                                                                'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
-                                                            const SizedBox(
-                                                              height: 16,
-                                                            ), // Add spacing between text and text field
+                                          ),
+                                          SizedBox(
+                                            height: 60,
+                                            width: 120,
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                _epayment();
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .primary,
+                                                  foregroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onPrimary),
+                                              child: const Text('E-PAYMENT'),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 60,
+                                            width: 120,
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                showDialog(
+                                                  context: context,
+                                                  barrierDismissible: false,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title: const Text(
+                                                          'Cash Payment'),
+                                                      content: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                              'Please collect cash from the customer. Total: ${formatAsCurrency(calculateGrandTotal())}'),
+                                                          const SizedBox(
+                                                            height: 16,
+                                                          ), // Add spacing between text and text field
 
-                                                            TextField(
-                                                              controller:
-                                                                  _cashReceivedController,
-                                                              keyboardType:
-                                                                  TextInputType
-                                                                      .number,
-                                                              inputFormatters: [
-                                                                CurrencyInputFormatter(
-                                                                  leadingSymbol:
-                                                                      CurrencySymbols
-                                                                          .PESO,
-                                                                ),
-                                                              ],
-                                                              onChanged:
-                                                                  (value) {
-                                                                // Remove currency symbols and commas to get the numeric value
-                                                                String
-                                                                    numericValue =
-                                                                    value
-                                                                        .replaceAll(
-                                                                  RegExp(
-                                                                      '[${CurrencySymbols.PESO},]'),
-                                                                  '',
-                                                                );
-                                                                setState(() {
-                                                                  cashAmount =
-                                                                      double.tryParse(
-                                                                              numericValue) ??
-                                                                          0;
-                                                                });
-                                                              },
-                                                              decoration:
-                                                                  const InputDecoration(
-                                                                hintText:
-                                                                    'Enter amount',
-                                                                border:
-                                                                    OutlineInputBorder(),
+                                                          TextField(
+                                                            controller:
+                                                                _cashReceivedController,
+                                                            keyboardType:
+                                                                TextInputType
+                                                                    .number,
+                                                            inputFormatters: [
+                                                              CurrencyInputFormatter(
+                                                                leadingSymbol:
+                                                                    CurrencySymbols
+                                                                        .PESO,
                                                               ),
+                                                            ],
+                                                            onChanged: (value) {
+                                                              // Remove currency symbols and commas to get the numeric value
+                                                              String
+                                                                  numericValue =
+                                                                  value
+                                                                      .replaceAll(
+                                                                RegExp(
+                                                                    '[${CurrencySymbols.PESO},]'),
+                                                                '',
+                                                              );
+                                                              setState(() {
+                                                                cashAmount =
+                                                                    double.tryParse(
+                                                                            numericValue) ??
+                                                                        0;
+                                                              });
+                                                            },
+                                                            decoration:
+                                                                const InputDecoration(
+                                                              hintText:
+                                                                  'Enter amount',
+                                                              border:
+                                                                  OutlineInputBorder(),
                                                             ),
-                                                          ],
-                                                        ),
-                                                        actions: [
-                                                          ElevatedButton(
-                                                            style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    Theme.of(
-                                                                            context)
-                                                                        .colorScheme
-                                                                        .primary,
-                                                                foregroundColor: Theme.of(
-                                                                        context)
-                                                                    .colorScheme
-                                                                    .onPrimary),
-                                                            onPressed: () {
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      actions: [
+                                                        ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(
+                                                              backgroundColor:
+                                                                  Theme.of(
+                                                                          context)
+                                                                      .colorScheme
+                                                                      .primary,
+                                                              foregroundColor:
+                                                                  Theme.of(
+                                                                          context)
+                                                                      .colorScheme
+                                                                      .onPrimary),
+                                                          onPressed: () {
+                                                            showDialog(
+                                                                context:
+                                                                    context,
+                                                                barrierDismissible:
+                                                                    false,
+                                                                builder:
+                                                                    (BuildContext
+                                                                        context) {
+                                                                  return LoadingSpinner(
+                                                                    message:
+                                                                        'Loading',
+                                                                  );
+                                                                });
+
+                                                            String message = '';
+                                                            String title = '';
+
+                                                            if (_cashReceivedController
+                                                                    .text ==
+                                                                '') {
+                                                              cashAmount =
+                                                                  calculateGrandTotal();
+                                                            }
+
+                                                            if (cashAmount ==
+                                                                0) {
+                                                              message +=
+                                                                  'Please enter cash tendered to proceed.';
+                                                              title +=
+                                                                  '[Enter Amount]';
+                                                            }
+                                                            if (cashAmount <
+                                                                calculateGrandTotal()) {
+                                                              message +=
+                                                                  'Please enter the right amount of cash.';
+                                                              title +=
+                                                                  '[Insufficient Funds]';
+                                                            }
+
+                                                            if (message != '') {
                                                               showDialog(
                                                                   context:
                                                                       context,
@@ -4528,100 +4631,75 @@ class _MyDashboardState extends State<MyDashboard> {
                                                                   builder:
                                                                       (BuildContext
                                                                           context) {
-                                                                    return LoadingSpinner(
-                                                                      message:
-                                                                          'Loading',
+                                                                    return AlertDialog(
+                                                                      title: Text(
+                                                                          title),
+                                                                      content: Text(
+                                                                          message),
+                                                                      actions: [
+                                                                        TextButton(
+                                                                          onPressed:
+                                                                              () {
+                                                                            Navigator.of(context).pop(); // Close the dialog
+                                                                          },
+                                                                          child:
+                                                                              const Text('OK'),
+                                                                        ),
+                                                                      ],
                                                                     );
                                                                   });
-
-                                                              String message =
-                                                                  '';
-                                                              String title = '';
-
-                                                              if (_cashReceivedController
-                                                                      .text ==
-                                                                  '') {
-                                                                cashAmount =
-                                                                    calculateGrandTotal();
-                                                              }
-
-                                                              if (cashAmount ==
-                                                                  0) {
-                                                                message +=
-                                                                    'Please enter cash tendered to proceed.';
-                                                                title +=
-                                                                    '[Enter Amount]';
-                                                              }
-                                                              if (cashAmount <
-                                                                  calculateGrandTotal()) {
-                                                                message +=
-                                                                    'Please enter the right amount of cash.';
-                                                                title +=
-                                                                    '[Insufficient Funds]';
-                                                              }
-
-                                                              if (message !=
-                                                                  '') {
-                                                                showDialog(
-                                                                    context:
-                                                                        context,
-                                                                    barrierDismissible:
-                                                                        false,
-                                                                    builder:
-                                                                        (BuildContext
-                                                                            context) {
-                                                                      return AlertDialog(
-                                                                        title: Text(
-                                                                            title),
-                                                                        content:
-                                                                            Text(message),
-                                                                        actions: [
-                                                                          TextButton(
-                                                                            onPressed:
-                                                                                () {
-                                                                              Navigator.of(context).pop(); // Close the dialog
-                                                                            },
-                                                                            child:
-                                                                                const Text('OK'),
-                                                                          ),
-                                                                        ],
-                                                                      );
-                                                                    });
-                                                              } else {
-                                                                detailid++;
-                                                                _transaction(
-                                                                    detailid
-                                                                        .toString(),
-                                                                    posid,
-                                                                    helper
-                                                                        .GetCurrentDatetime(),
-                                                                    shift,
-                                                                    'CASH',
-                                                                    jsonEncode(
-                                                                        itemsList),
-                                                                    calculateGrandTotal()
-                                                                        .toString(),
-                                                                    widget
-                                                                        .fullname,
-                                                                    'CASH',
-                                                                    'CASH');
-                                                              }
+                                                            } else {
+                                                              detailid++;
+                                                              _transaction(
+                                                                  detailid
+                                                                      .toString(),
+                                                                  posid,
+                                                                  helper
+                                                                      .GetCurrentDatetime(),
+                                                                  shift,
+                                                                  'CASH',
+                                                                  jsonEncode(
+                                                                      itemsList),
+                                                                  calculateGrandTotal()
+                                                                      .toString(),
+                                                                  'CASH',
+                                                                  'CASH');
+                                                            }
+                                                          },
+                                                          child: const Text(
+                                                              'Proceed'),
+                                                        ),
+                                                        TextButton(
+                                                            onPressed: () {
+                                                              Navigator.of(
+                                                                      context)
+                                                                  .pop();
                                                             },
                                                             child: const Text(
-                                                                'Proceed'),
-                                                          ),
-                                                          TextButton(
-                                                              onPressed: () {
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .pop();
-                                                              },
-                                                              child: const Text(
-                                                                  'Close'))
-                                                        ],
-                                                      );
-                                                    },
-                                                  );
+                                                                'Close'))
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .primary,
+                                                  foregroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onPrimary),
+                                              child: const Text('CASH'),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 60,
+                                            width: 120,
+                                            child: ElevatedButton(
+                                                onPressed: () {
+                                                  _splitoptions();
                                                 },
                                                 style: ElevatedButton.styleFrom(
                                                     backgroundColor:
@@ -4632,277 +4710,254 @@ class _MyDashboardState extends State<MyDashboard> {
                                                         Theme.of(context)
                                                             .colorScheme
                                                             .onPrimary),
-                                                child: const Text('CASH'),
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              height: 60,
-                                              width: 120,
-                                              child: ElevatedButton(
-                                                  onPressed: () {
-                                                    _splitoptions();
-                                                  },
-                                                  style:
-                                                      ElevatedButton.styleFrom(
-                                                          backgroundColor:
-                                                              Theme.of(context)
-                                                                  .colorScheme
-                                                                  .primary,
-                                                          foregroundColor:
-                                                              Theme.of(context)
-                                                                  .colorScheme
-                                                                  .onPrimary),
-                                                  child: const Text('SPLIT')),
-                                            )
-                                          ],
+                                                child: const Text('SPLIT')),
+                                          )
+                                        ],
+                                      ),
+                                      actions: [
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              foregroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .onPrimary),
+                                          onPressed: () {
+                                            Navigator.of(context)
+                                                .pop(); // Close the dialog
+                                          },
+                                          child: const Text('Close'),
                                         ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                minimumSize: const Size(120, 70)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      10.0), // Adjust padding as needed
+                                  child: const FaIcon(
+                                      FontAwesomeIcons.moneyBill,
+                                      size: 16), // Adjust size as needed
+                                ),
+                                const Text('PAYMENT'),
+                              ],
+                            ),
+                          ), //Payments
+
+                          ElevatedButton(
+                            onPressed: () {
+                              others();
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                minimumSize: const Size(120, 70)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      10.0), // Adjust padding as needed
+                                  child: const FaIcon(FontAwesomeIcons.gears,
+                                      size: 16), // Adjust size as needed
+                                ),
+                                const Text('OTHERS'),
+                              ],
+                            ),
+                          ), // Others
+                        ],
+                      ),
+                    ), //Main Controllers (Discounts Payment Others)
+                    const Center(
+                      child: Text('Merge Categories',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    Wrap(
+                        spacing: 8, // Adjust the spacing between buttons
+                        runSpacing:
+                            8, // Adjust the vertical spacing between rows
+                        children: mergeproduct), //Merge Categories
+
+                    const Center(
+                      child: Text('Product Categories',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+
+                    Wrap(
+                        spacing: 8, // Adjust the spacing between buttons
+                        runSpacing:
+                            8, // Adjust the vertical spacing between rows
+                        children: category), //Product Categories
+
+                    const Center(
+                      child: Text('Services & Add-ons',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              if (isStartShift != false) {
+                                showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Shift'),
+                                        content: const Text(
+                                            'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
                                         actions: [
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .primary,
-                                                foregroundColor:
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .onPrimary),
+                                          TextButton(
                                             onPressed: () {
                                               Navigator.of(context)
                                                   .pop(); // Close the dialog
                                             },
-                                            child: const Text('Close'),
+                                            child: const Text('OK'),
                                           ),
                                         ],
                                       );
-                                    },
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  minimumSize: const Size(120, 70)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        10.0), // Adjust padding as needed
-                                    child: const FaIcon(
-                                        FontAwesomeIcons.moneyBill,
-                                        size: 16), // Adjust size as needed
-                                  ),
-                                  const Text('PAYMENT'),
-                                ],
-                              ),
-                            ), //Payments
-
-                            ElevatedButton(
-                              onPressed: () {
-                                others();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  minimumSize: const Size(120, 70)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        10.0), // Adjust padding as needed
-                                    child: const FaIcon(FontAwesomeIcons.gears,
-                                        size: 16), // Adjust size as needed
-                                  ),
-                                  const Text('OTHERS'),
-                                ],
-                              ),
-                            ), // Others
-                          ],
-                        ),
-                      ), //Main Controllers (Discounts Payment Others)
-                      const Center(
-                        child: Text('Merge Categories',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                      ),
-                      Wrap(
-                          spacing: 8, // Adjust the spacing between buttons
-                          runSpacing:
-                              8, // Adjust the vertical spacing between rows
-                          children: mergeproduct), //Merge Categories
-
-                      const Center(
-                        child: Text('Product Categories',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                      ),
-
-                      Wrap(
-                          spacing: 8, // Adjust the spacing between buttons
-                          runSpacing:
-                              8, // Adjust the vertical spacing between rows
-                          children: category), //Product Categories
-
-                      const Center(
-                        child: Text('Services & Add-ons',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                if (isStartShift != false) {
-                                  showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: const Text('Shift'),
-                                          content: const Text(
-                                              'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(); // Close the dialog
-                                              },
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                } else {
-                                  services();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  minimumSize: const Size(120, 70)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        10.0), // Adjust padding as needed
-                                    child: const FaIcon(
-                                        FontAwesomeIcons.handHolding,
-                                        size: 16), // Adjust size as needed
-                                  ),
-                                  const Text('SERVICES'),
-                                ],
-                              ),
+                                    });
+                              } else {
+                                services();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                minimumSize: const Size(120, 70)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      10.0), // Adjust padding as needed
+                                  child: const FaIcon(
+                                      FontAwesomeIcons.handHolding,
+                                      size: 16), // Adjust size as needed
+                                ),
+                                const Text('SERVICES'),
+                              ],
                             ),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (isStartShift != false) {
-                                  showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: const Text('Shift'),
-                                          content: const Text(
-                                              'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(); // Close the dialog
-                                              },
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                } else {
-                                  package();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  minimumSize: const Size(120, 70)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        10.0), // Adjust padding as needed
-                                    child: const FaIcon(
-                                        FontAwesomeIcons.boxesStacked,
-                                        size: 16), // Adjust size as needed
-                                  ),
-                                  const Text('PACKAGE'),
-                                ],
-                              ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (isStartShift != false) {
+                                showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Shift'),
+                                        content: const Text(
+                                            'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context)
+                                                  .pop(); // Close the dialog
+                                            },
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      );
+                                    });
+                              } else {
+                                package();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                minimumSize: const Size(120, 70)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      10.0), // Adjust padding as needed
+                                  child: const FaIcon(
+                                      FontAwesomeIcons.boxesStacked,
+                                      size: 16), // Adjust size as needed
+                                ),
+                                const Text('PACKAGE'),
+                              ],
                             ),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (isStartShift != false) {
-                                  showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: const Text('Shift'),
-                                          content: const Text(
-                                              'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(); // Close the dialog
-                                              },
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                } else {
-                                  addons();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  minimumSize: const Size(120, 70)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        10.0), // Adjust padding as needed
-                                    child: const FaIcon(
-                                        FontAwesomeIcons.boxTissue,
-                                        size: 16), // Adjust size as needed
-                                  ),
-                                  const Text('ADD-ONS'),
-                                ],
-                              ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (isStartShift != false) {
+                                showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Shift'),
+                                        content: const Text(
+                                            'Shift not yet started. Go to OTHERS >> START SHIFT to start shift'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context)
+                                                  .pop(); // Close the dialog
+                                            },
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      );
+                                    });
+                              } else {
+                                addons();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                minimumSize: const Size(120, 70)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      10.0), // Adjust padding as needed
+                                  child: const FaIcon(
+                                      FontAwesomeIcons.boxTissue,
+                                      size: 16), // Adjust size as needed
+                                ),
+                                const Text('ADD-ONS'),
+                              ],
                             ),
-                          ],
-                        ),
-                      ), // Others (Service Addon Package)
-                    ],
-                  ),
+                          ),
+                        ],
+                      ),
+                    ), // Others (Service Addon Package)
+                  ],
                 ),
               ), //Controller
             ],

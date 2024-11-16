@@ -43,9 +43,7 @@ class _PosConfigState extends State<PosConfig> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () async {
-      await _check();
-    });
+    _check();
   }
 
   Future<void> _check() async {
@@ -53,6 +51,11 @@ class _PosConfigState extends State<PosConfig> {
     // List<Map<String, dynamic>> branchconfig = await db.query('branch');
     // List<Map<String, dynamic>> emailconfig = await db.query('email');
 
+    Map<String, dynamic> pos = {};
+    Map<String, dynamic> branch = {};
+    Map<String, dynamic> email = {};
+    Map<String, dynamic> printer = {};
+    Map<String, dynamic> server = {};
     if (Platform.isAndroid) {
       Database db = await _databaseHelper.database;
 
@@ -77,174 +80,69 @@ class _PosConfigState extends State<PosConfig> {
       await createJsonFile('splitpayment.json');
       await createJsonFile('refund.json');
 
-      Map<String, dynamic> pos =
-          await Helper().jsonToFileReadAndroid('pos.json');
-      Map<String, dynamic> branch =
-          await Helper().jsonToFileReadAndroid('branch.json');
-      Map<String, dynamic> email =
-          await Helper().jsonToFileReadAndroid('email.json');
-      Map<String, dynamic> printer =
-          await Helper().jsonToFileReadAndroid('printer.json');
-      Map<String, dynamic> server =
-          await Helper().jsonToFileReadAndroid('server.json');
-
-      _branchidController.text = branch['branchid'];
-      _posidController.text = pos['posid'].toString();
-      _serverController.text = server['uri'];
-
-      if (pos.isNotEmpty && branch.isNotEmpty) {
-        // List<Map<String, dynamic>> branchconfig = await db.query('branch');
-        // for (var branch in branchconfig) {
-        setState(() {
-          branchlogo = branch['logo'];
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => LoginPage(
-                        logo: branchlogo,
-                      )));
-        });
-        //}
-      } else {
-        if (pos.isNotEmpty) {
-          //for (var pos in posconfig) {
-          // String name = pos['posid'];
-          print('${pos['posid']}');
-          setState(() {
-            _posidController.text = pos['posid'].toString();
-          });
-          // Process data
-          //}
-        }
-
-        if (branch.isNotEmpty) {
-          //for (var branch in branchconfig) {
-          // String name = pos['posid'];
-          print('${branch['branchid']}');
-
-          setState(() {
-            branchlogo = branch['logo'];
-            _branchidController.text = branch['branchid'];
-          });
-          // Process data
-          // }
-        }
-
-        // if (email.isNotEmpty) {
-        //   //for (var email in emailconfig) {
-        //   // String name = pos['posid'];
-        //   print(
-        //       '${email['emailaddress']} ${email['emailpassword']} ${email['emailserver']}');
-
-        //   setState(() {
-        //     _emailAddressController.text = email['emailaddress'];
-        //     _emailPasswordController.text = email['emailpassword'];
-        //     _emailServerController.text = email['emailserver'];
-        //   });
-        //   // Process data
-        //   //}
-        // }
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Not yet configured'),
-            content: const Text('Please enter POS ID and SYNC to Server'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+      pos = await Helper().jsonToFileReadAndroid('pos.json');
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
+      email = await Helper().jsonToFileReadAndroid('email.json');
+      printer = await Helper().jsonToFileReadAndroid('printer.json');
+      server = await Helper().jsonToFileReadAndroid('server.json');
     }
 
     if (Platform.isWindows) {
-      Map<String, dynamic> pos = await Helper().readJsonToFile('pos.json');
-      Map<String, dynamic> branch =
-          await Helper().readJsonToFile('branch.json');
-      Map<String, dynamic> server =
-          await Helper().readJsonToFile('server.json');
-
-      if (pos.isNotEmpty && branch.isNotEmpty) {
-        // List<Map<String, dynamic>> branchconfig = await db.query('branch');
-        // for (var branch in branchconfig) {
-        _branchidController.text = branch['branchid'];
-        _posidController.text = pos['posid'].toString();
-        _serverController.text = server['uri'];
-        setState(() {
-          branchlogo = branch['logo'];
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => LoginPage(
-                        logo: branchlogo,
-                      )));
-        });
-        //}
-      } else {
-        if (pos.isNotEmpty) {
-          //for (var pos in posconfig) {
-          // String name = pos['posid'];
-          print('${pos['posid']}');
-          setState(() {
-            _posidController.text = pos['posid'].toString();
-          });
-          // Process data
-          //}
-        }
-
-        if (branch.isNotEmpty) {
-          //for (var branch in branchconfig) {
-          // String name = pos['posid'];
-          print('${branch['branchid']}');
-
-          setState(() {
-            branchlogo = branch['logo'];
-            _branchidController.text = branch['branchid'];
-          });
-          // Process data
-          // }
-        }
-
-        // if (email.isNotEmpty) {
-        //   //for (var email in emailconfig) {
-        //   // String name = pos['posid'];
-        //   print(
-        //       '${email['emailaddress']} ${email['emailpassword']} ${email['emailserver']}');
-
-        //   setState(() {
-        //     _emailAddressController.text = email['emailaddress'];
-        //     _emailPasswordController.text = email['emailpassword'];
-        //     _emailServerController.text = email['emailserver'];
-        //   });
-        //   // Process data
-        //   //}
-        // }
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Not yet configured'),
-            content: const Text('Please enter POS ID and SYNC to Server'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+      pos = await Helper().readJsonToFile('pos.json');
+      branch = await Helper().readJsonToFile('branch.json');
+      server = await Helper().readJsonToFile('server.json');
+      email = await Helper().readJsonToFile('email.json');
+      printer = await Helper().readJsonToFile('printer.json');
     }
 
-    final isOnline = await Helper().hasInternetConnection();
+    _branchidController.text = branch['branchid'];
+    _posidController.text = pos['posid'].toString();
+    _serverController.text = server['uri'];
 
-    if (isOnline) {
+    if (pos.isNotEmpty && branch.isNotEmpty) {
+    } else {
+      if (pos.isNotEmpty) {
+        print('${pos['posid']}');
+        setState(() {
+          _posidController.text = pos['posid'].toString();
+        });
+      }
+
+      if (branch.isNotEmpty) {
+        print('${branch['branchid']}');
+
+        setState(() {
+          branchlogo = branch['logo'];
+          _branchidController.text = branch['branchid'];
+        });
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Not yet configured'),
+          content: const Text('Please enter POS ID and SYNC to Server'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    showDialog(
+        context: context,
+        builder: (context) =>
+            CircularProgressBar(status: 'Syncing', module: _serverController.text));
+
+    final isOnline = await Helper().hasInternetConnection();
+    final isServerUp = await Helper().checkHealth();
+
+    if (isOnline && isServerUp) {
+      _showLogin(branch);
       showDialog(
           context: context,
           builder: (context) {
@@ -420,34 +318,6 @@ class _PosConfigState extends State<PosConfig> {
         return;
       });
 
-      Future.delayed(const Duration(seconds: 7), () async {
-        await _syncToDatabase.getDetailID().then((value) {
-          Navigator.pop(context);
-          showDialog(
-              context: context,
-              builder: (context) {
-                return CircularProgressBar(
-                  status: 'Done Detail ID',
-                  module: 'POS Shift',
-                );
-              });
-        });
-      }).catchError((e) {
-        showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-                  content: Text(
-                      'Please check your network or contact administrator'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ));
-        return;
-      });
-
       Future.delayed(const Duration(seconds: 6), () async {
         await _syncToDatabase.getPosShift().then((value) {
           Navigator.pop(context);
@@ -540,7 +410,7 @@ class _PosConfigState extends State<PosConfig> {
               builder: (context) {
                 return CircularProgressBar(
                   status: 'Done POS Refund',
-                  module: '',
+                  module: 'Syncing POS Detail ID',
                 );
               });
 
@@ -561,26 +431,70 @@ class _PosConfigState extends State<PosConfig> {
                 ));
         return;
       });
+
+      Future.delayed(const Duration(seconds: 7), () async {
+        await _syncToDatabase.getDetailID().then((value) {
+          Navigator.pop(context);
+          showDialog(
+              context: context,
+              builder: (context) {
+                return CircularProgressBar(
+                  status: 'Done Detail ID',
+                  module: '',
+                );
+              });
+        });
+      }).catchError((e) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  content: Text(
+                      'Please check your network or contact administrator'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ));
+        return;
+      });
     } else {
+      _showLogin(branch);
       showDialog(
           barrierDismissible: false,
           context: context,
           builder: (context) => AlertDialog(
-                content: Text('Offline Mode'),
+                title: const Text('LAN/Wi-Fi & Server Info'),
+                content: Text(
+                    'LAN/Wi-Fi Status: ${isOnline ? 'Online' : 'Offline'}\nServer Status: ${isServerUp ? 'Online' : 'Offline'}'),
                 actions: [
                   TextButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: const Text('OK')),
+                      child: const Text('Proceed to Offline Mode')),
                   ElevatedButton(
                       onPressed: () {
+                        Navigator.pop(context);
                         _check();
                       },
                       child: const Text('Retry'))
                 ],
               ));
     }
+  }
+
+  void _showLogin(branch) {
+    setState(() {
+      branchlogo = branch['logo'];
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => LoginPage(
+                    logo: branchlogo,
+                  )));
+    });
   }
 
   Future<void> _sync() async {
