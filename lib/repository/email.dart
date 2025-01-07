@@ -4,11 +4,11 @@ import 'dart:typed_data';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
-import 'package:fiveLPOS/repository/dbhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
+import '/repository/dbhelper.dart';
 
 class Email {
-  DatabaseHelper dbHelper = DatabaseHelper();
+  // DatabaseHelper dbHelper = DatabaseHelper();
   Helper helper = Helper();
   CSS css = CSS();
 
@@ -47,9 +47,9 @@ class Email {
     }
 
     if (Platform.isAndroid) {
-      posconfig = await Helper().JsonToFileRead('pos.json');
-      branchconfig = await Helper().JsonToFileRead('branch.json');
-      emailconfig = await Helper().JsonToFileRead('email.json');
+      posconfig = await Helper().jsonToFileReadAndroid('pos.json');
+      branchconfig = await Helper().jsonToFileReadAndroid('branch.json');
+      emailconfig = await Helper().jsonToFileReadAndroid('email.json');
     }
 
     id = posconfig['posid'].toString();

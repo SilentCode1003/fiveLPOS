@@ -3,8 +3,9 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  charset_converter
+  connectivity_plus
   desktop_window
+  permission_handler_windows
   printing
 )
 

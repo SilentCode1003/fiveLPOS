@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fiveLPOS/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
 
 import '../config.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +16,7 @@ class PosConfigAPI {
     }
 
     if (Platform.isAndroid) {
-      api = await Helper().JsonToFileRead('server.json');
+      api = await Helper().jsonToFileReadAndroid('server.json');
     }
 
     final url = Uri.parse('${api['uri']}${Config.getPosConfig}');

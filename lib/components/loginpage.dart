@@ -1,40 +1,27 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:desktop_window/desktop_window.dart';
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
+// import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:fivelPOS/main.dart';
+import 'package:flutter/widgets.dart';
+
+import 'package:fivelPOS/repository/customerhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fiveLPOS/components/dashboard.dart';
+import '/components/dashboard.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
 
 import '../model/userinfo.dart';
 import '../api/login.dart';
 import 'loadingspinner.dart';
 
-// void main() {
-//   runApp(MyApp());
-// }
-
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'POS Shift Login',
-//       theme: ThemeData(
-//         primarySwatch: Colors.blue,
-//       ),
-//       home: LoginPage(),
-//     );
-//   }
-// }
-
 class LoginPage extends StatefulWidget {
-  String logo;
-  LoginPage({super.key, required this.logo});
+  final String logo;
+  const LoginPage({super.key, required this.logo});
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -45,23 +32,32 @@ class _LoginPageState extends State<LoginPage> {
   String tin = '';
   String address = '';
   String branchlogo = '';
-  var _printerStatus;
-  // DatabaseHelper dbHelper = DatabaseHelper();
 
-  var _printer;
+  bool obscureText = true;
 
   @override
   void initState() {
     super.initState();
-    // _getbranchdetail(.replaceAll(RegExp(r'\n'), ''));
+    _loadRememberedCredentials();
     setState(() {
       List<String> logo =
           utf8.decode(base64.decode(widget.logo)).split('<svg ');
       branchlogo = '<svg ${logo[1].replaceAll(RegExp(r'\n'), ' ')}';
-      _printerinitiate();
     });
+  }
 
-    // print(branchlogo);
+  Future<void> _loadRememberedCredentials() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _usernameController.text = prefs.getString('username') ?? '';
+      _passwordController.text = prefs.getString('password') ?? '';
+    });
+  }
+
+  Future<void> _saveRememberedCredentials() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('username', _usernameController.text);
+    prefs.setString('password', _passwordController.text);
   }
 
   Future<void> _login() async {
@@ -77,86 +73,122 @@ class _LoginPageState extends State<LoginPage> {
           );
         });
 
-    await Login().authenticate(username, password).then((response) {
-      if (response['msg'] == 'success') {
-        Navigator.of(context).pop();
-        final jsonData = json.encode(response['data']);
-        final results = json.decode(jsonData);
+    // final isOnline = await Helper().hasInternetConnection();
 
-        print(results);
+    // print(isOnline);
 
-        UserInfoModel userinfomodel = UserInfoModel(
-            results[0]['employeeid'].toString(),
-            results[0]['fullname'],
-            results[0]['position'],
-            results[0]['contactinfo'],
-            results[0]['datehired'],
-            results[0]['usercode'],
-            results[0]['accesstype'],
-            results[0]['status']);
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => MyDashboard(
-                  accesstype: userinfomodel.accesstype,
-                  employeeid: userinfomodel.employeeid,
-                  fullname: userinfomodel.fullname,
-                  positiontype: userinfomodel.position,
-                  logo: branchlogo,
-                  printer: _printer,
-                  printerstatus: _printerStatus)),
-        );
-      } else {
-        Navigator.of(context).pop();
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Access'),
-            content: const Text('Incorrect username and password'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    });
-  }
-
-  void _printerinitiate() async {
-    const PaperSize paper = PaperSize.mm80;
-    final profile = await CapabilityProfile.load();
-    var printerconfig = {};
+    // if (!isOnline) {
+    Map<String, dynamic> offlineData = {};
     if (Platform.isWindows) {
-      printerconfig = await Helper().readJsonToFile('printer.json');
+      offlineData = await Helper().readJsonToFile('user.json');
     }
     if (Platform.isAndroid) {
-      printerconfig = await Helper().JsonToFileRead('printer.json');
+      offlineData = await Helper().jsonToFileReadAndroid('user.json');
     }
 
-    // print(profile.name);
+    Navigator.of(context).pop();
 
-    final printer = NetworkPrinter(paper, profile);
+    UserInfoModel userinfomodel = UserInfoModel(
+        offlineData['employeeid'].toString(),
+        offlineData['fullname'],
+        offlineData['position'],
+        offlineData['contactinfo'],
+        offlineData['datehired'],
+        offlineData['usercode'],
+        offlineData['accesstype'],
+        offlineData['status'],
+        offlineData['APK']);
 
-    final PosPrintResult res = await printer.connect(
-        printerconfig['key'] == 'value' || printerconfig['printerip'] == ''
-            ? '192.168.10.120'
-            : printerconfig['printerip'],
-        port: 9100,
-        timeout: const Duration(seconds: 1));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => MyDashboard(
+                accesstype: userinfomodel.accesstype,
+                employeeid: userinfomodel.employeeid,
+                fullname: userinfomodel.fullname,
+                positiontype: userinfomodel.position,
+                logo: branchlogo,
+              )),
+    );
+    // } else {
+    //   await Login().authenticate(username, password).then((response) {
+    //     if (response['msg'] == 'success') {
+    //       Navigator.of(context).pop();
+    //       final jsonData = json.encode(response['data']);
+    //       final results = json.decode(jsonData);
 
-    // print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
-    _printerStatus = res.msg;
-    _printer = printer;
+    //       print(results);
 
-    // printer.text('INITIAL PRINT');
-    // printer.text('INITIAL PRINT');
-    // printer.feed(1);
-    // printer.cut();
+    //       UserInfoModel userinfomodel = UserInfoModel(
+    //           results[0]['employeeid'].toString(),
+    //           results[0]['fullname'],
+    //           results[0]['position'],
+    //           results[0]['contactinfo'],
+    //           results[0]['datehired'],
+    //           results[0]['usercode'],
+    //           results[0]['accesstype'],
+    //           results[0]['status'],
+    //           results[0]['APK']);
+
+    //       final userinfo = {
+    //         'employeeid': results[0]['employeeid'].toString(),
+    //         'fullname': results[0]['fullname'],
+    //         'position': results[0]['position'],
+    //         'contactinfo': results[0]['contactinfo'],
+    //         'datehired': results[0]['datehired'],
+    //         'usercode': results[0]['usercode'],
+    //         'accesstype': results[0]['accesstype'],
+    //         'status': results[0]['status'],
+    //         'APK': results[0]['APK'],
+    //       };
+
+    //       if (Platform.isAndroid) {
+    //         Helper().jsonToFileWriteAndroid(userinfo, 'user.json');
+    //       }
+
+    //       if (Platform.isWindows) {
+    //         Helper().writeJsonToFile(userinfo, 'user.json');
+    //       }
+
+    //       _saveRememberedCredentials();
+
+    //       Navigator.push(
+    //         context,
+    //         MaterialPageRoute(
+    //             builder: (context) => MyDashboard(
+    //                   accesstype: userinfomodel.accesstype,
+    //                   employeeid: userinfomodel.employeeid,
+    //                   fullname: userinfomodel.fullname,
+    //                   positiontype: userinfomodel.position,
+    //                   logo: branchlogo,
+    //                 )),
+    //       );
+    //     } else {
+    //       Navigator.of(context).pop();
+    //       showDialog(
+    //         context: context,
+    //         barrierDismissible: false,
+    //         builder: (ctx) => AlertDialog(
+    //           title: const Text('Access'),
+    //           content: const Text('Incorrect username and password'),
+    //           actions: [
+    //             TextButton(
+    //               onPressed: () => Navigator.pop(ctx),
+    //               child: const Text('OK'),
+    //             ),
+    //           ],
+    //         ),
+    //       );
+    //     }
+    //   });
+    // }
+  }
+
+  void togglePasswordVisibility() {
+    setState(() {
+      obscureText = !obscureText;
+      print(obscureText);
+    });
   }
 
   @override
@@ -193,9 +225,15 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
-                          obscureText: true,
-                          decoration:
-                              const InputDecoration(labelText: 'Password'),
+                          obscureText: obscureText,
+                          decoration: InputDecoration(
+                              labelText: 'Password',
+                              suffixIcon: IconButton(
+                                onPressed: togglePasswordVisibility,
+                                icon: Icon(obscureText
+                                    ? Icons.visibility
+                                    : Icons.visibility_off),
+                              )),
                         ),
                         const SizedBox(height: 32),
                         ElevatedButton(
@@ -203,7 +241,11 @@ class _LoginPageState extends State<LoginPage> {
                             _login();
                           },
                           style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 80)),
+                              minimumSize: const Size(double.infinity, 80),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onPrimary),
                           onPressed: _login,
                           child: const Text('Login'),
                         ),

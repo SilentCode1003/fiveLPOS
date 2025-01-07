@@ -7,9 +7,10 @@ class UserInfoModel {
   final int usercode;
   final int accesstype;
   final String status;
+  final String APK;
 
   UserInfoModel(this.employeeid, this.fullname, this.position, this.contactinfo,
-      this.datehired, this.usercode, this.accesstype, this.status);
+      this.datehired, this.usercode, this.accesstype, this.status, this.APK);
 
   factory UserInfoModel.fromJson(Map<String, dynamic> json) {
     return UserInfoModel(
@@ -21,6 +22,7 @@ class UserInfoModel {
       json['usercode'],
       json['accesstype'],
       json['status'],
+      json['APK'],
     );
   }
 }

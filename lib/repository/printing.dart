@@ -1,50 +1,36 @@
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 
 class LocalPrint {
-  Future<NetworkPrinter> printnetwork(ipaddress) async {
+  Future<void> printnetwork(String ipaddress) async {
+    PrinterNetworkManager printer = PrinterNetworkManager(ipaddress);
+
+    PosPrintResult printing =
+        await printer.printTicket(await transactionReceipt());
+
+    print(printing.msg);
+  }
+
+  Future<List<int>> transactionReceipt() async {
     const PaperSize paper = PaperSize.mm80;
     final profile = await CapabilityProfile.load();
 
-    print(profile.name);
+    final Generator printer = Generator(paper, profile);
+    List<int> bytes = [];
 
-    final printer = NetworkPrinter(paper, profile);
+    bytes += printer.text('TEST PRINT', styles: const PosStyles(bold: true));
+    bytes += printer.text('Company: 5L Solutions Supplys & Allied Services',
+        styles: const PosStyles(bold: true));
+    bytes += printer.text('Developer: Joseph A. Orencio',
+        styles: const PosStyles(bold: true));
+    bytes += printer.text('Contact: 09364423663',
+        styles: const PosStyles(bold: true));
+    bytes += printer.text('Web: https://www.5lsolutions.com/',
+        styles: const PosStyles(bold: true));
 
-    final PosPrintResult res = await printer.connect('${ipaddress}',
-        port: 9100, timeout: const Duration(seconds: 1));
+    bytes += printer.feed(2);
+    bytes += printer.cut();
 
-    if (res == PosPrintResult.success) {
-      // print('Print result: ${res.msg}');
-      // printer.text('TEST');
-      // printer.feed(5);
-      // printer.cut();
-
-      await testReceipt(printer);
-      return printer;
-    } else {
-      print('Print result: ${res.msg}');
-      return printer;
-    }
-  }
-
-  Future<void> testReceipt(NetworkPrinter printer) async {
-    printer.text('Bold text', styles: const PosStyles(bold: true));
-    printer.text('Reverse text', styles: const PosStyles(reverse: true));
-    printer.text('Underlined text',
-        styles: const PosStyles(underline: true), linesAfter: 1);
-    printer.text('Align left', styles: const PosStyles(align: PosAlign.left));
-    printer.text('Align center',
-        styles: const PosStyles(align: PosAlign.center));
-    printer.text('Align right',
-        styles: const PosStyles(align: PosAlign.right), linesAfter: 1);
-
-    printer.text('Text size 200%',
-        styles: const PosStyles(
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ));
-
-    printer.feed(2);
-    printer.cut();
+    return bytes;
   }
 }

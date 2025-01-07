@@ -1,14 +1,31 @@
+import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:fiveLPOS/components/circularprogressbar.dart';
-import 'package:fiveLPOS/components/dashboard.dart';
-import 'package:fiveLPOS/model/email.dart';
-import 'package:fiveLPOS/model/printer.dart';
-import 'package:fiveLPOS/repository/customerhelper.dart';
-import 'package:fiveLPOS/repository/printing.dart';
+import 'package:fivelPOS/api/discount.dart';
+import 'package:fivelPOS/api/productprice.dart';
+import 'package:fivelPOS/components/loadingspinner.dart';
+import 'package:fivelPOS/components/settings/networkprinter.dart';
+import 'package:fivelPOS/model/category.dart';
+import 'package:fivelPOS/model/discount.dart';
+import 'package:fivelPOS/model/productprice.dart';
+import 'package:fivelPOS/repository/bluetoothprinter.dart';
+import 'package:fivelPOS/repository/dbhelper.dart';
+import 'package:fivelPOS/repository/sync.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
+import 'package:flutter_multi_formatter/formatters/formatter_utils.dart';
+import '../api/category.dart';
+import '../model/promo.dart';
+import 'package:fivelPOS/model/branch.dart';
+import 'package:fivelPOS/model/email.dart';
+import 'package:fivelPOS/model/pos.dart';
+import 'package:fivelPOS/model/printer.dart';
+import 'package:fivelPOS/repository/customerhelper.dart';
+import 'package:fivelPOS/repository/printing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_esc_pos_network/flutter_esc_pos_network.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SettingsPage extends StatefulWidget {
   final String employeeid;
@@ -16,37 +33,70 @@ class SettingsPage extends StatefulWidget {
   final int accesstype;
   final int positiontype;
   final String logo;
-  const SettingsPage(
-      {super.key,
-      required this.employeeid,
-      required this.fullname,
-      required this.accesstype,
-      required this.positiontype,
-      required this.logo});
+  const SettingsPage({
+    super.key,
+    required this.employeeid,
+    required this.fullname,
+    required this.accesstype,
+    required this.positiontype,
+    required this.logo,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  int currentPage = 1;
+  int currentPage = 0;
   String emailaddress = '';
   String emailpassword = '';
   String smtp = '';
 
-  PaperSize papersize = PaperSize.mm80;
-  String printername = '';
-  String printerip = '';
-  bool isenable = false;
+  String branchid = '';
+  String branchname = '';
 
-  var _printer;
+  int posid = 0;
+  String posname = '';
+  String serial = '';
+  String min = '';
+  String ptu = '';
+  String status = '';
+  String createdby = '';
+  String createddate = '';
+
+  // bool _ischange = false;
+
+  // final List<String> _selectPrinterType = [
+  //   'Select Type',
+  //   'Network',
+  //   'Bluetooth',
+  // ];
+
+  // PrinterNetworkManager _printer = PrinterNetworkManager('');
+  NavigationRailLabelType labelType = NavigationRailLabelType.all;
+  bool showLeading = false;
+  bool showTrailing = false;
+  double groupAlignment = -1.0;
+
   @override
   void initState() {
-    // TODO: implement initState
-    _printerinitiate();
+    // TODO: implement
     _getemailconfig();
-    _getprinterconfig();
+    _getposconfig();
+    _getbranchconfig();
+    _requestBluetoothPermissions();
+
     super.initState();
+  }
+
+  Future<void> _requestBluetoothPermissions() async {
+    if (await Permission.bluetoothScan.request().isGranted &&
+        await Permission.bluetoothConnect.request().isGranted) {
+      // Permissions granted
+    } else {
+      // Handle the case when permissions are not granted
+      // You may want to show a message to the user and re-request permissions
+    }
   }
 
   Future<void> _getemailconfig() async {
@@ -65,7 +115,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     if (Platform.isAndroid) {
-      var email = await Helper().JsonToFileRead('email.json');
+      var email = await Helper().jsonToFileReadAndroid('email.json');
       print(email);
       EmailModel model = EmailModel(
           email['emailaddress'], email['emailpassword'], email['emailserver']);
@@ -78,40 +128,71 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _getprinterconfig() async {
+  Future<void> _getbranchconfig() async {
     if (Platform.isWindows) {
-      var printer = await Helper().readJsonToFile('printer.json');
-      print(printer);
-      if (printer['printername'] != null) {
-        PrinterModel model = PrinterModel(printer['printername'],
-            printer['printerip'], printer['papersize'], printer['isenable']);
+      var branch = await Helper().readJsonToFile('branch.json');
 
-        setState(() {
-          printername = model.printername;
-          printerip = model.printerip;
-          papersize =
-              model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
-        });
-        isenable = model.isenable;
-      }
+      print(branch);
+      BranchModel model =
+          BranchModel(branch['branchid'], branch['branchname'], '', '', '');
+
+      setState(() {
+        branchid = model.branchid;
+        branchname = model.branchname;
+      });
     }
 
     if (Platform.isAndroid) {
-      var printer = await Helper().JsonToFileRead('printer.json');
+      var branch = await Helper().jsonToFileReadAndroid('branch.json');
+      print(branch);
+      BranchModel model =
+          BranchModel(branch['branchid'], branch['branchname'], '', '', '');
 
-      print(printer);
-      if (printer['printername'] != null) {
-        PrinterModel model = PrinterModel(printer['printername'],
-            printer['printerip'], printer['papersize'], printer['isenable']);
+      setState(() {
+        branchid = model.branchid;
+        branchname = model.branchname;
+      });
+    }
+  }
 
-        setState(() {
-          printername = model.printername;
-          printerip = model.printerip;
-          papersize =
-              model.papersize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
-          isenable = model.isenable;
-        });
-      }
+  Future<void> _getposconfig() async {
+    if (Platform.isWindows) {
+      var pos = await Helper().readJsonToFile('pos.json');
+
+      print(pos);
+      POSModel model = POSModel(
+          pos['posid'],
+          pos['posname'],
+          pos['serial'],
+          pos['min'],
+          pos['ptu'],
+          pos['status'],
+          pos['createdby'],
+          pos['createddate']);
+
+      setState(() {
+        posid = model.posid;
+        posname = model.posname;
+      });
+    }
+
+    if (Platform.isAndroid) {
+      var pos = await Helper().jsonToFileReadAndroid('pos.json');
+      print(pos);
+      POSModel model = POSModel(
+          pos['posid'],
+          pos['posname'],
+          pos['serial'],
+          pos['min'],
+          pos['ptu'],
+          pos['status'],
+          pos['createdby'],
+          pos['createddate']);
+
+      setState(() {
+        posid = model.posid;
+        posname = model.posname;
+      });
     }
   }
 
@@ -121,124 +202,78 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  void _printerinitiate() async {
-    Map<String, dynamic> printerConfig = {};
-    papersize = PaperSize.mm80;
-    final profile = await CapabilityProfile.load();
-
-    print(profile.name);
-
-    final printer = NetworkPrinter(papersize, profile);
-
-    if (Platform.isWindows) {
-      printerConfig = await Helper().readJsonToFile('printer.json');
-    }
-
-    if (Platform.isAndroid) {
-      printerConfig = await Helper().JsonToFileRead('printer.json');
-    }
-
-    final PosPrintResult res = await printer.connect(printerConfig['printerip'],
-        port: 9100, timeout: const Duration(seconds: 5));
-
-    print('Initial Print: ${res.msg} ${printer.host} ${printer.port}');
-
-    _printer = printer;
-    printer.disconnect();
-  }
-
-  void isPrinterStatus() {
-    _getprinterconfig();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: buildBody(),
-      drawer: Drawer(
-        child: ListView(padding: EdgeInsets.zero, children: <Widget>[
-          DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal.shade400),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Branch: 5L Main'),
-                  Text('ID: 9999'),
-                  Text('POS ID: 1000'),
+    return SafeArea(
+      child: Scaffold(
+        appBar: buildAppBar(),
+        body: SafeArea(
+          child: Row(
+            children: <Widget>[
+              NavigationRail(
+                selectedIndex: currentPage,
+                groupAlignment: groupAlignment,
+                onDestinationSelected: (int index) {
+                  setState(() {
+                    currentPage = index;
+                  });
+                },
+                labelType: labelType,
+                leading: showLeading
+                    ? FloatingActionButton(
+                        elevation: 0,
+                        onPressed: () {
+                          // Add your onPressed code here!
+                        },
+                        child: const Icon(Icons.add),
+                      )
+                    : const SizedBox(),
+                trailing: showTrailing
+                    ? IconButton(
+                        onPressed: () {
+                          // Add your onPressed code here!
+                        },
+                        icon: const Icon(Icons.more_horiz_rounded),
+                      )
+                    : const SizedBox(),
+                destinations: const <NavigationRailDestination>[
+                  NavigationRailDestination(
+                    icon: Icon(Icons.print),
+                    selectedIcon: Icon(Icons.print),
+                    label: Text('Printers'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.email),
+                    selectedIcon: Icon(Icons.email),
+                    label: Text('Email'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.inventory),
+                    selectedIcon: Icon(Icons.inventory),
+                    label: Text('Products'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.discount),
+                    selectedIcon: Icon(Icons.discount),
+                    label: Text('Promo & Discounts'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.install_desktop),
+                    selectedIcon: Icon(Icons.install_desktop),
+                    label: Text('Offline Files'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.exit_to_app),
+                    selectedIcon: Icon(Icons.exit_to_app),
+                    label: Text('Exit'),
+                  ),
                 ],
-              )),
-          ListTile(
-            leading: const Icon(Icons.print),
-            title: const Text('Printer'),
-            onTap: () {
-              setState(() {
-                currentPage = 0;
-              });
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.email),
-            title: const Text('Email'),
-            onTap: () {
-              setState(() {
-                currentPage = 1;
-              });
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.gif_box),
-            title: const Text('Products'),
-            onTap: () {
-              setState(() {
-                currentPage = 2;
-              });
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.discount),
-            title: const Text('Discounts & Promo'),
-            onTap: () {
-              setState(() {
-                currentPage = 3;
-              });
-              Navigator.pop(context);
-            },
-          ),
-          const SizedBox(
-            height: 250,
-          ),
-          const Divider(
-            thickness: 4,
-          ),
-          Row(
-            children: [
-              IconButton(
-                  onPressed: () {
-                    // Navigator.pushReplacementNamed(context, '/dashboard');
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => MyDashboard(
-                                employeeid: widget.employeeid,
-                                fullname: widget.fullname,
-                                accesstype: widget.accesstype,
-                                positiontype: widget.positiontype,
-                                logo: widget.logo,
-                                printer: _printer,
-                                printerstatus: '',
-                              )),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_back))
+              ),
+              const VerticalDivider(thickness: 1, width: 1),
+              Expanded(child: buildBody()),
             ],
-          )
-        ]),
+          ),
+        ),
       ),
     );
   }
@@ -246,256 +281,107 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget buildBody() {
     switch (currentPage) {
       case 0:
-        return PrinterPage(
-            printername: printername,
-            ipaddress: printerip,
-            papersize: papersize,
-            isenable: isenable,
-            getPrinterConfig: isPrinterStatus);
+        return const PrinterPage();
       case 1:
         return EmailPage(
           emailaddress: emailaddress,
-          emailpassword: emailaddress,
+          emailpassword: emailpassword,
           smtp: smtp,
         );
       case 2:
         return const ProductPage();
       case 3:
         return const DiscountPromoPage();
+      case 4:
+        return ConfigFiles();
+      case 5:
+        return AlertDialog(
+          title: const Text('Return'),
+          content: const Text('Click click button to return.'),
+          backgroundColor: Colors.grey,
+          actions: [
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, '/dashboard');
+                },
+                child: const Text('Retrun to Dashboard')),
+          ],
+        );
       default:
         return Container();
     }
   }
+
+  PreferredSizeWidget buildAppBar() {
+    switch (currentPage) {
+      case 0:
+        return AppBar();
+      case 1:
+        return AppBar();
+      case 2:
+        return AppBar();
+      case 3:
+        return AppBar();
+      default:
+        return AppBar();
+    }
+  }
 }
 
-class PrinterPage extends StatelessWidget {
-  final String printername;
-  final String ipaddress;
-  final PaperSize papersize;
-  final bool isenable;
-  final Function() getPrinterConfig;
+class PrinterPage extends StatefulWidget {
+  const PrinterPage({super.key});
 
-  const PrinterPage(
-      {super.key,
-      required this.printername,
-      required this.ipaddress,
-      required this.papersize,
-      required this.isenable,
-      required this.getPrinterConfig});
+  @override
+  State<PrinterPage> createState() => _PrinterPageState();
+}
+
+class _PrinterPageState extends State<PrinterPage>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController _printername =
-        TextEditingController(text: printername);
-    TextEditingController _printeripaddress =
-        TextEditingController(text: ipaddress);
-    TextEditingController _printerpaperwidth =
-        TextEditingController(text: papersize.value == 1 ? 'mm58' : 'mm80');
-    bool _isenable = isenable;
-
-    Future<void> savePrinterConfig(jsnonData) async {
-      if (Platform.isWindows) {
-        await Helper()
-            .writeJsonToFile(jsnonData, 'printer.json')
-            .then((value) => showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text('Success'),
-                    content: Text('Printer configuration saved!'),
-                    icon: Icon(Icons.check),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                }));
-      }
-      if (Platform.isAndroid) {
-        await Helper()
-            .JsonToFileWrite(jsnonData, 'printer.json')
-            .then((value) => showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text('Success'),
-                    content: Text('Printer configuration saved!'),
-                    icon: Icon(Icons.check),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                }));
-      }
-    }
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                constraints: const BoxConstraints(
-                  minWidth: 200.0,
-                  maxWidth: 380.0,
-                ),
-                child: TextField(
-                  controller: _printername,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    focusedBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                    ),
-                    labelText: 'Name',
-                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                    border: OutlineInputBorder(),
-                    hintText: 'Priter Name',
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Container(
-                constraints: const BoxConstraints(
-                  minWidth: 200.0,
-                  maxWidth: 380.0,
-                ),
-                child: TextField(
-                  controller: _printeripaddress,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    focusedBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                    ),
-                    labelText: 'IP Address',
-                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                    border: OutlineInputBorder(),
-                    hintText: 'Printer IP Address',
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Container(
-                constraints: const BoxConstraints(
-                  minWidth: 200.0,
-                  maxWidth: 380.0,
-                ),
-                child: TextField(
-                  controller: _printerpaperwidth,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    focusedBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                    ),
-                    labelText: 'Paper',
-                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                    border: OutlineInputBorder(),
-                    hintText: 'Paper width',
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 40,
-                    minWidth: 200.0,
-                    maxWidth: 380.0,
-                  ),
-                  child: ElevatedButton(
-                      onPressed: () {
-                        savePrinterConfig({
-                          'printername': _printername.text,
-                          'printerip': _printeripaddress.text,
-                          'papersize': _printerpaperwidth.text,
-                          'isenable': false,
-                        });
-                      },
-                      child: const Text(
-                        'SAVE',
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w600),
-                      ))),
-              const SizedBox(
-                height: 5,
-              ),
-              Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 40,
-                    minWidth: 200.0,
-                    maxWidth: 380.0,
-                  ),
-                  child: ElevatedButton(
-                      onPressed: () {
-                        String ipaddress = _printeripaddress.text;
-                        LocalPrint().printnetwork(ipaddress);
-                      },
-                      child: const Text(
-                        'TEST PRINT',
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w600),
-                      ))),
-              const SizedBox(
-                height: 10,
-              ),
-              Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 40,
-                    minWidth: 200.0,
-                    maxWidth: 380.0,
-                  ),
-                  child: (_isenable == false)
-                      ? ElevatedButton(
-                          onPressed: () {
-                            savePrinterConfig({
-                              'printername': _printername.text,
-                              'printerip': _printeripaddress.text,
-                              'papersize': _printerpaperwidth.text,
-                              'isenable': true,
-                            });
-                          },
-                          child: const Text(
-                            'ENABLE',
-                            style: TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.w600),
-                          ))
-                      : ElevatedButton(
-                          onPressed: () {
-                            savePrinterConfig({
-                              'printername': _printername.text,
-                              'printerip': _printeripaddress.text,
-                              'papersize': _printerpaperwidth.text,
-                              'isenable': false,
-                            });
-                          },
-                          child: const Text(
-                            'DISABLE',
-                            style: TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.w600),
-                          ))),
-            ]),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          bottom: TabBar(
+              labelColor: Colors.white,
+              controller: _tabController,
+              tabs: const [
+                Tab(icon: Icon(Icons.print), text: 'Network Printer'),
+                Tab(
+                    icon: Icon(Icons.bluetooth_searching_sharp),
+                    text: 'Bluetooth Printer')
+              ]),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TabBarView(
+              controller: _tabController,
+              children: [NetworkPrinterConfig(), Bluetoothprinter()],
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class EmailPage extends StatelessWidget {
+class EmailPage extends StatefulWidget {
   final String emailaddress;
   final String emailpassword;
   final String smtp;
@@ -508,147 +394,179 @@ class EmailPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    TextEditingController _emailaddress =
-        TextEditingController(text: emailaddress);
-    TextEditingController _emailpassword =
-        TextEditingController(text: emailpassword);
-    TextEditingController _smtpserver = TextEditingController(text: smtp);
+  State<EmailPage> createState() => _EmailPageState();
+}
 
-    Future<void> saveEmailConfig(jsnonData) async {
-      if (Platform.isWindows) {
-        await Helper()
-            .writeJsonToFile(jsnonData, 'email.json')
-            .then((value) => showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text('Success'),
-                    content: Text('Email configuration saved!'),
-                    icon: Icon(Icons.check),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                }));
-      }
-      if (Platform.isAndroid) {
-        await Helper()
-            .JsonToFileWrite(jsnonData, 'email.json')
-            .then((value) => showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text('Success'),
-                    content: Text('Email configuration saved!'),
-                    icon: Icon(Icons.check),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  );
-                }));
-      }
+class _EmailPageState extends State<EmailPage> {
+  final TextEditingController _emailaddress = TextEditingController();
+  final TextEditingController _emailpassword = TextEditingController();
+  final TextEditingController _smtpserver = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailaddress.text = widget.emailaddress;
+    _emailpassword.text = widget.emailpassword;
+    _smtpserver.text = widget.smtp;
+  }
+
+  Future<void> saveEmailConfig(jsnonData) async {
+    if (Platform.isWindows) {
+      await Helper()
+          .writeJsonToFile(jsnonData, 'email.json')
+          .then((value) => showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Success'),
+                  content: const Text('Email configuration saved!'),
+                  icon: const Icon(Icons.check),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              }));
     }
+    if (Platform.isAndroid) {
+      await Helper()
+          .jsonToFileWriteAndroid(jsnonData, 'email.json')
+          .then((value) => showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Success'),
+                  content: const Text('Email configuration saved!'),
+                  icon: const Icon(Icons.check),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              }));
+    }
+  }
 
+  bool obscureText = true;
+
+  void togglePasswordVisibility() {
+    setState(() {
+      obscureText = !obscureText;
+      print(obscureText);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            constraints: const BoxConstraints(
-              minWidth: 200.0,
-              maxWidth: 380.0,
-            ),
-            child: TextField(
-              controller: _emailaddress,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                  ),
-                  labelText: 'Email',
-                  labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                  border: OutlineInputBorder(),
-                  hintText: 'Email Address',
-                  prefixIcon: Icon(Icons.email)),
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Container(
-            constraints: const BoxConstraints(
-              minWidth: 200.0,
-              maxWidth: 380.0,
-            ),
-            child: TextField(
-              controller: _emailpassword,
-              keyboardType: TextInputType.text,
-              decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                  ),
-                  labelText: 'Password',
-                  labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                  border: OutlineInputBorder(),
-                  hintText: 'Email Password',
-                  prefixIcon: Icon(Icons.password)),
-              obscureText: true,
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Container(
-            constraints: const BoxConstraints(
-              minWidth: 200.0,
-              maxWidth: 380.0,
-            ),
-            child: TextField(
-              controller: _smtpserver,
-              keyboardType: TextInputType.text,
-              decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
-                  ),
-                  labelText: 'SMTP',
-                  labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                  border: OutlineInputBorder(),
-                  hintText: 'SMTP Server',
-                  prefixIcon: Icon(Icons.desktop_windows)),
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Container(
+      child: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
               constraints: const BoxConstraints(
-                minHeight: 40,
                 minWidth: 200.0,
                 maxWidth: 380.0,
               ),
-              child: ElevatedButton(
-                  onPressed: () {
-                    saveEmailConfig({
-                      'emailaddress': _emailaddress.text,
-                      'emailpassword': _emailpassword.text,
-                      'emailserver': _smtpserver.text
-                    });
-                  },
-                  child: const Text(
-                    'SAVE',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                  )))
-        ],
+              child: TextField(
+                controller: _emailaddress,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                    ),
+                    labelText: 'Email',
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    border: OutlineInputBorder(),
+                    hintText: 'Email Address',
+                    prefixIcon: Icon(Icons.email)),
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Container(
+              constraints: const BoxConstraints(
+                minWidth: 200.0,
+                maxWidth: 380.0,
+              ),
+              child: TextField(
+                controller: _emailpassword,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureText
+                          ? Icons.visibility_off
+                          : Icons.visibility),
+                      onPressed: togglePasswordVisibility,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                    ),
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    border: OutlineInputBorder(),
+                    hintText: 'Email Password',
+                    prefixIcon: Icon(Icons.password)),
+                obscureText: obscureText,
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Container(
+              constraints: const BoxConstraints(
+                minWidth: 200.0,
+                maxWidth: 380.0,
+              ),
+              child: TextField(
+                controller: _smtpserver,
+                keyboardType: TextInputType.text,
+                decoration: const InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                    ),
+                    labelText: 'SMTP',
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    border: OutlineInputBorder(),
+                    hintText: 'SMTP Server',
+                    prefixIcon: Icon(Icons.desktop_windows)),
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Container(
+                constraints: const BoxConstraints(
+                  minHeight: 40,
+                  minWidth: 200.0,
+                  maxWidth: 380.0,
+                ),
+                child: ElevatedButton(
+                    onPressed: () {
+                      saveEmailConfig({
+                        'emailaddress': _emailaddress.text,
+                        'emailpassword': _emailpassword.text,
+                        'emailserver': _smtpserver.text
+                      });
+                    },
+                    child: const Text(
+                      'SAVE',
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                    )))
+          ],
+        ),
       ),
     );
   }
@@ -672,9 +590,18 @@ class ProductPage extends StatelessWidget {
               width: 320,
               height: 60,
               child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.production_quantity_limits),
-                  label: const Text('Item Name')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ProductPricePage()));
+                  },
+                  icon: const Icon(Icons.price_change_rounded),
+                  label: const Text('Product Price')),
             ),
           ),
           Padding(
@@ -683,7 +610,16 @@ class ProductPage extends StatelessWidget {
               width: 320,
               height: 60,
               child: ElevatedButton.icon(
-                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const CategoryPage()));
+                  },
                   icon: const Icon(Icons.category_sharp),
                   label: const Text(
                     'Category',
@@ -700,7 +636,7 @@ class DiscountPromoPage extends StatelessWidget {
   const DiscountPromoPage({super.key});
 
   @override
- Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -712,7 +648,16 @@ class DiscountPromoPage extends StatelessWidget {
               width: 320,
               height: 60,
               child: ElevatedButton.icon(
-                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const DiscountPage()));
+                  },
                   icon: const Icon(Icons.discount),
                   label: const Text('Discounts')),
             ),
@@ -723,7 +668,16 @@ class DiscountPromoPage extends StatelessWidget {
               width: 320,
               height: 60,
               child: ElevatedButton.icon(
-                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const PromoPage()));
+                  },
                   icon: const Icon(Icons.list),
                   label: const Text(
                     'Promo',
@@ -741,10 +695,718 @@ class ItemPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [],
     );
+  }
+}
+
+//Sub-page
+class CategoryPage extends StatefulWidget {
+  const CategoryPage({super.key});
+
+  @override
+  State<CategoryPage> createState() => _CategoryPageState();
+}
+
+class _CategoryPageState extends State<CategoryPage> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _getcategory() async {
+    showDialog(
+        context: context,
+        builder: (context) => LoadingSpinner(message: 'Fetching Data...'));
+    final results = await CategoryAPI().getCategory();
+    final jsonData = json.encode(results['data']);
+
+    if (results['msg'] == 'success') {
+      Navigator.pop(context);
+
+      setState(() {
+        for (var data in json.decode(jsonData)) {
+          if (data['categoryname'] == 'Material') {
+          } else {
+            if (Platform.isWindows) {
+              print('windows');
+              Helper().writeJsonToFile(data, 'category.json');
+            }
+
+            if (Platform.isAndroid) {
+              print('android');
+              Helper().jsonToFileWriteAndroid(data, 'category.json');
+            }
+
+            _databaseHelper.insertItem({
+              'categorycode': data['categorycode'],
+              'categoryname': data['categoryname'],
+              'status': data['status'],
+              'createdby': data['createdby'],
+              'createddate': data['createddate']
+            }, 'category');
+          }
+        }
+      });
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<List<CategoryModel>> _load() async {
+    List<CategoryModel> category = [];
+    dynamic data;
+    try {
+      if (Platform.isWindows) {
+        data = await Helper().readJsonListToFile('category.json');
+      }
+      if (Platform.isAndroid) {
+        data = await Helper().jsonListToFileReadAndroid('category.json');
+      }
+
+      for (var d in data) {
+        category.add(CategoryModel(d['categorycode'], d['categoryname'],
+            d['status'], d['createdby'], d['createddate']));
+      }
+
+      return category;
+    } catch (e) {
+      print(e);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('$e'),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'))
+              ],
+            );
+          });
+
+      return category;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(),
+        floatingActionButton: _syncButton(),
+        body: _categoryList(),
+      ),
+    );
+  }
+
+  Widget _syncButton() {
+    return FloatingActionButton(
+      onPressed: () {
+        _getcategory();
+      },
+      child: const Icon(Icons.sync),
+    );
+  }
+
+  Widget _categoryList() {
+    return FutureBuilder<List<CategoryModel>>(
+        future: _load(),
+        builder: (context, snapshot) {
+          return ListView.builder(
+              itemCount: snapshot.data?.length ?? 0,
+              itemBuilder: (context, index) {
+                CategoryModel category = snapshot.data![index];
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.teal, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      leading: Text(
+                        category.categorycode.toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      title: Text(
+                        category.categoryname,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Date Created: ${category.createddate} Created By: ${category.createdby}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      trailing: Text(
+                        category.status,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                );
+              });
+        });
+  }
+}
+
+class ProductPricePage extends StatefulWidget {
+  const ProductPricePage({super.key});
+
+  @override
+  State<ProductPricePage> createState() => _ProductPricePageState();
+}
+
+class _ProductPricePageState extends State<ProductPricePage> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  Future<void> _getProductPrice() async {
+    showDialog(
+        context: context,
+        builder: (context) => LoadingSpinner(message: 'Fetching Data...'));
+
+    Map<String, dynamic> branch = {};
+    String branchid = '';
+
+    if (Platform.isWindows) {
+      branch = await Helper().readJsonToFile('branch.json');
+      setState(() {
+        branchid = branch['branchid'];
+      });
+    }
+
+    if (Platform.isAndroid) {
+      branch = await Helper().jsonToFileReadAndroid('branch.json');
+      setState(() {
+        branchid = branch['branchid'];
+      });
+    }
+
+    final categoryResults = await CategoryAPI().getCategory();
+    final jsonDataCategory = json.encode(categoryResults['data']);
+
+    if (categoryResults['msg'] == 'success') {
+      Navigator.pop(context);
+      for (var data in json.decode(jsonDataCategory)) {
+        print(data);
+        if (data['categoryname'] == 'Material') {
+        } else {
+          showDialog(
+              context: context,
+              builder: (context) => LoadingSpinner(
+                  message: 'Fetching Data of ${data['categorycode']}...'));
+
+          final results = await ProductPrice()
+              .getcategoryitems('${data['categorycode']}', branchid);
+
+          final jsonData = json.decode(results['data']);
+          print(jsonData);
+
+          if (results['msg'] == 'success') {
+            for (var data in jsonData) {
+              if (data['categoryname'] == 'Material') {
+              } else {
+                _databaseHelper.insertItem({
+                  'productid': data['productid'],
+                  'description': data['description'],
+                  'barcode': data['barcode'],
+                  'price': data['price'],
+                  'category': data['category'],
+                  'quantity': data['quantity']
+                }, 'productprice');
+              }
+            }
+
+            Navigator.pop(context);
+          } else {
+            Navigator.pop(context);
+          }
+        }
+      }
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<List<ProductPriceModel>> _load() async {
+    List<ProductPriceModel> productprice = [];
+    try {
+      dynamic data;
+      if (Platform.isWindows) {
+        data = await Helper().readJsonListToFile('productprice.json');
+      }
+      if (Platform.isAndroid) {
+        data = await Helper().jsonListToFileReadAndroid('productprice.json');
+      }
+
+      for (var d in data) {
+        productprice.add(ProductPriceModel(
+          d['productid'].toString(),
+          d['description'] as String,
+          d['barcode'] as String,
+          d['productimage'] == null ? '' : d['productimage'] as String,
+          d['price'].toString(),
+          d['category'] as int,
+          d['quantity'] as int,
+        ));
+      }
+
+      return productprice;
+    } catch (e) {
+      print(e);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('$e'),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'))
+              ],
+            );
+          });
+
+      return productprice;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(),
+        floatingActionButton: _syncButton(),
+        body: _productPriceList(),
+      ),
+    );
+  }
+
+  Widget _syncButton() {
+    return FloatingActionButton(
+        onPressed: () {
+          _getProductPrice();
+        },
+        child: const Icon(Icons.sync));
+  }
+
+  Widget _productPriceList() {
+    return FutureBuilder<List<ProductPriceModel>>(
+        future: _load(),
+        builder: (context, snapshot) {
+          return ListView.builder(
+              itemCount: snapshot.data?.length ?? 0,
+              itemBuilder: (context, index) {
+                ProductPriceModel product = snapshot.data![index];
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.teal, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      leading: Icon(Icons.add_shopping_cart_rounded, size: 24),
+                      title: Text(
+                        'Item Name: ${product.description}\nBarcode: ${product.barcode}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Price: ${toCurrencyString(product.price)}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      trailing: Text(
+                        product.quantity.toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                );
+              });
+        });
+  }
+}
+
+class DiscountPage extends StatefulWidget {
+  const DiscountPage({super.key});
+
+  @override
+  State<DiscountPage> createState() => _DiscountPageState();
+}
+
+class _DiscountPageState extends State<DiscountPage> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  Future<void> _getDiscount() async {
+    showDialog(
+        context: context,
+        builder: (context) => LoadingSpinner(message: 'Fetching Data...'));
+
+    final results = await DiscountAPI().getDiscount();
+    final jsonData = json.encode(results['data']);
+
+    if (results['msg'] == 'success') {
+      Navigator.pop(context);
+      for (var data in json.decode(jsonData)) {
+        print(data);
+        _databaseHelper.insertItem({
+          'discountid': data['discountid'],
+          'discountname': data['name'],
+          'description': data['description'],
+          'rate': data['rate'],
+          'status': data['status'],
+          'createdby': data['createdby'],
+          'createddate': data['createddate'],
+        }, 'discount');
+      }
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<List<DiscountModel>> _load() async {
+    List<DiscountModel> discountList = [];
+
+    try {
+      dynamic data;
+      if (Platform.isWindows) {
+        data = await Helper().readJsonListToFile('discount.json');
+      }
+      if (Platform.isAndroid) {
+        data = await Helper().jsonListToFileReadAndroid('discount.json');
+      }
+
+      for (var d in data) {
+        discountList.add(DiscountModel(
+          d['discountid'] as int,
+          d['discountname'] as String,
+          d['description'] as String,
+          d['rate'],
+          d['status'] as String,
+          d['createdby'] as String,
+          d['createddate'] as String,
+        ));
+      }
+      return discountList;
+    } catch (e) {
+      print(e);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('$e'),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'))
+              ],
+            );
+          });
+
+      return discountList;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(),
+        floatingActionButton: _syncButton(),
+        body: _discountList(),
+      ),
+    );
+  }
+
+  Widget _syncButton() {
+    return FloatingActionButton(
+      onPressed: () {
+        _getDiscount();
+      },
+      child: const Icon(Icons.sync),
+    );
+  }
+
+  Widget _discountList() {
+    return FutureBuilder<List<DiscountModel>>(
+        future: _load(),
+        builder: (context, snapshot) {
+          return ListView.builder(
+              itemCount: snapshot.data?.length,
+              itemBuilder: (context, index) {
+                DiscountModel discount = snapshot.data![index];
+
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.teal, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      leading: Text(
+                        'ID: ${discount.discountid}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      title: Text(
+                        'Name: ${discount.discountname}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Rate: ${discount.rate}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      trailing: Text(
+                        'Status: ${discount.status}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                );
+              });
+        });
+  }
+}
+
+class PromoPage extends StatefulWidget {
+  const PromoPage({super.key});
+
+  @override
+  State<PromoPage> createState() => _PromoPageState();
+}
+
+class _PromoPageState extends State<PromoPage> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  Future<void> _getPromo() async {}
+
+  Future<List<PromoModel>> _load() async {
+    List<PromoModel> promoList = [];
+
+    try {
+      dynamic data;
+      if (Platform.isWindows) {
+        data = await Helper().readJsonListToFile('promo.json');
+      }
+      if (Platform.isAndroid) {
+        data = await Helper().jsonListToFileReadAndroid('promo.json');
+      }
+
+      print(data);
+
+      for (var d in data) {
+        promoList.add(PromoModel(
+          d['promoid'] as int,
+          d['name'] as String,
+          d['description'] as String,
+          d['condition'] as String,
+          d['startdate'] as String,
+          d['enddate'] as String,
+          d['status'] as String,
+          d['createdby'] as String,
+          d['createddate'] as String,
+        ));
+      }
+
+      return promoList;
+    } catch (e) {
+      print(e);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('$e'),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'))
+              ],
+            );
+          });
+
+      return promoList;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(),
+        floatingActionButton: _syncButton(),
+        body: _promoList(),
+      ),
+    );
+  }
+
+  Widget _syncButton() {
+    return FloatingActionButton(
+      onPressed: () {
+        _getPromo();
+      },
+      child: const Icon(Icons.sync),
+    );
+  }
+
+  Widget _promoList() {
+    return FutureBuilder<List<PromoModel>>(
+        future: _load(),
+        builder: (context, snapshot) {
+          return ListView.builder(
+              itemCount: snapshot.data?.length,
+              itemBuilder: (context, index) {
+                PromoModel promo = snapshot.data![index];
+
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.teal, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      leading: Text(
+                        'ID: ${promo.promoid}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      title: Text(
+                        'Name: ${promo.name}\nDescription: ${promo.description}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Condition: ${promo.condition}\nStart Date:${promo.startdate}\nEnd Date:${promo.enddate}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      trailing: Text(
+                        'Status: ${promo.status}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                );
+              });
+        });
+  }
+}
+
+class ConfigFiles extends StatefulWidget {
+  const ConfigFiles({super.key});
+
+  @override
+  State<ConfigFiles> createState() => _ConfigFilesState();
+}
+
+class _ConfigFilesState extends State<ConfigFiles> {
+  Future<void> _syncAndReset() async {
+    try {
+      showDialog(
+          context: context,
+          builder: (context) {
+            return LoadingSpinner(message: 'Loading...');
+          });
+
+      if (Platform.isAndroid) {
+        await Helper().resetJsonFileArrayAndroid('sales.json');
+      }
+
+      if (Platform.isWindows) {
+        await Helper().resetJsonFileArray('sales.json');
+      }
+
+      Navigator.pop(context);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Data has been reset.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    } catch (e) {
+      print(e);
+
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('Please inform administrator. Thank you! $e'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+        child: Container(
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      SizedBox(
+        height: 70,
+        width: 240,
+        child: ElevatedButton(
+          onPressed: () async {
+            await _syncAndReset();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          ),
+          child: const Text(
+            'SYNC AND RESET',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    ])));
   }
 }

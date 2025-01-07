@@ -1,9 +1,5 @@
 class Config {
-  // static const String apiUrl = 'http://192.168.40.91:3050/';
-  // static const String apiUrl = 'https://salesinventory.5lsolutions.com/';
-  // static const String apiUrl = 'http://172.16.2.200:7000/';
-
-  static const String authenticationLoginAPI = 'login/poslogin';
+  static const String authenticationLoginAPI = 'poslogin';
   static const String salesDetailAPI = 'salesdetails/save';
   static const String getcategoryAPI = 'productprice/getcategory';
   static const String getpriceAPI = 'productprice/getprice';
@@ -24,4 +20,14 @@ class Config {
   static const String servicesAPI = 'service/getactive';
   static const String packageAPI = 'servicepackage/getactive';
   static const String addonAPI = 'addon/getactive';
+  static const String refundAPI = 'salesdetails/refund';
+  static const String shiftReportAPI = 'shiftreports/getshiftreport';
+  static const String shiftItenSoldAPI = 'salesitems/getshiftitemsold';
+  static const String shiftSummaryPaymentAPI =
+      'salesitems/getshiftsummarypayment';
+  static const String shiftStaffSalesAPI = 'salesitems/getshiftstaffsales';
+  static const String getreceiptsAPI = 'salesdetails/getreceipts';
+  static const String getreportAPI = 'shiftreports/getreport';
+  static const String splitpaymentAPI = 'salesdetails/splitpayment';
+  static const String checkHealthAPI = 'checkhealth/alive';
 }
